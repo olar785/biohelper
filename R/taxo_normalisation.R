@@ -11,7 +11,7 @@
 #' ASV_2   Eukaryota   Chordata
 #' ASV_3   Eukaryota   Chordata
 #'
-#' Importantly, this function requires the download of NCBI taxonomic database (~3 GB).
+#' Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 #' This takes few minutes to install using the following command:
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
 
