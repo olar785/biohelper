@@ -7,12 +7,12 @@
 NAs_to_Xs(df)
 }
 \description{
-This function replace NA entries in a taxonomic table by the previous (higher)
-taxonomic information and add Xs according to the number of NA entries for each organisms.
+This function replaces NA entries in a taxonomic table by the previous (higher)
+taxonomic information and adds Xs according to the number of NA entries for each organism.
 }
 \details{
 The first column must contain ASV/OTU identifiers as the example below:
-ASV_id   Kingdom     Phylum   Genus
+ASV     Kingdom     Phylum   Genus
 ASV_1   Eukaryota
 ASV_2   Eukaryota   Chordata  Mus
 ASV_3   Eukaryota   Chordata

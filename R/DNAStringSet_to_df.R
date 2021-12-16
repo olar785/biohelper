@@ -1,6 +1,6 @@
-#' Load a DNAStringSet_to_df
+#' Load DNAStringSet_to_df
 #'
-#' This function takes in a DNAStringSet object to a dataframe.
+#' This function takes in a DNAStringSet object and return a dataframe.
 #'
 #' @export
 DNAStringSet_to_df = function(dss){
