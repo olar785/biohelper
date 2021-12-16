@@ -14,15 +14,15 @@ information of additional desired ranks.
 }
 \details{
 The first column must contain ASV/OTU identifiers as the example below:
-ASV_id   Kingdom   Phylum   etc
+ASV     Kingdom   Phylum   etc
 ASV_1   Eukaryota   Arthropoda
 ASV_2   Eukaryota   Chordata
 ASV_3   Eukaryota   Chordata
 
-Importanttly, this function requires the download of NCBI taxonimic database (~3 GB).
+Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
 }
 \examples{
-taxo_normalisation_wNCBI(taxo_dataframe, sqlFile = sqlFile, desired_ranks = c("Family", "Genus", "Species"))
+taxo_normalisation(taxo_dataframe, sqlFile = sqlFile, desired_ranks = c("Family", "Genus", "Species"))
 }
