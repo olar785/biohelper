@@ -12,9 +12,11 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Depends:
     tidyverse,
-	phyloseq,
+    phyloseq,
     janitor,
-    taxonomizr
+    taxonomizr,
+    R (>= 2.10)
 Suggests: 
     knitr
 VignetteBuilder: knitr
+LazyData: true
