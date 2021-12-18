@@ -1,4 +1,4 @@
-#' Load a NAs_to_Xs
+#' Loads NAs_to_Xs
 #'
 #' This function replaces NA entries in a taxonomic table by the previous (higher)
 #' taxonomic information and adds Xs according to the number of NA entries for each organism.

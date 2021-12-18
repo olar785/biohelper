@@ -1,4 +1,4 @@
-#' Load a %ni%
+#' Loads %ni%
 #'
 #' This function performs a Negate operation similar to %in%.
 #' @export

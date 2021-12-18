@@ -1,4 +1,4 @@
-#' Load a ps_to_microDecon
+#' Loads ps_to_microDecon
 #'
 #' This function is a wrapper of the decon function from microDecon R package.
 #' It performs the decon funtion on a phyloseq object with sample data and

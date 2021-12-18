@@ -1,4 +1,4 @@
-#' Load a taxo_normalisation
+#' Loads taxo_normalisation
 #'
 #' This function performs normalisation of taxonomic assignments of 18S and COI data
 #' identified via silva, midori or any other reference databases, using NCBI curated
