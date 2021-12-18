@@ -11,7 +11,7 @@
 #'
 #' @export
 #' @examples
-#' NAs_to_Xs(taxo_dataframe)
+#' NAs_to_Xs(ps_test_data@tax_table@.Data %>% as.data.frame())
 
 NAs_to_Xs = function(df){
   df[df==""]<-NA

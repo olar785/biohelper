@@ -18,7 +18,9 @@
 #'
 #' @export
 #' @examples
-#' taxo_normalisation(taxo_dataframe, sqlFile = sqlFile, desired_ranks = c("Family", "Genus", "Species"))
+#' taxo_df = ps_test_data@tax_table@.Data %>% as.data.frame()
+#' taxo_normalisation(taxo_df, sqlFile = sqlFile, desired_ranks = c("Phylum", Family", "Genus"))
+#'
 taxo_normalisation = function(df, sqlFile, ranks){
   df[df==""]<-NA
   paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.")

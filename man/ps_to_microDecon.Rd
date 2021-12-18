@@ -2,7 +2,7 @@
 % Please edit documentation in R/ps_to_microDecon.R
 \name{ps_to_microDecon}
 \alias{ps_to_microDecon}
-\title{Load a ps_to_microDecon}
+\title{Loads ps_to_microDecon}
 \usage{
 ps_to_microDecon(
   ps,

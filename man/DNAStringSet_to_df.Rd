@@ -2,10 +2,14 @@
 % Please edit documentation in R/DNAStringSet_to_df.R
 \name{DNAStringSet_to_df}
 \alias{DNAStringSet_to_df}
-\title{Load DNAStringSet_to_df}
+\title{Loads DNAStringSet_to_df}
 \usage{
 DNAStringSet_to_df(dss)
 }
 \description{
 This function takes in a DNAStringSet object and return a dataframe.
+}
+\examples{
+DNAStringSet_to_df(ps_test_data@refseq)
+
 }

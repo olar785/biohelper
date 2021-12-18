@@ -2,7 +2,7 @@
 % Please edit documentation in R/taxo_normalisation.R
 \name{taxo_normalisation}
 \alias{taxo_normalisation}
-\title{Load a taxo_normalisation}
+\title{Loads taxo_normalisation}
 \usage{
 taxo_normalisation(df, sqlFile, ranks)
 }
@@ -22,7 +22,4 @@ ASV_3   Eukaryota   Chordata
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
-}
-\examples{
-taxo_normalisation(taxo_dataframe, sqlFile = sqlFile, desired_ranks = c("Family", "Genus", "Species"))
 }

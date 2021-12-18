@@ -2,7 +2,7 @@
 % Please edit documentation in R/NAs_to_Xs.R
 \name{NAs_to_Xs}
 \alias{NAs_to_Xs}
-\title{Load a NAs_to_Xs}
+\title{Loads NAs_to_Xs}
 \usage{
 NAs_to_Xs(df)
 }
@@ -18,5 +18,5 @@ ASV_2   Eukaryota   Chordata  Mus
 ASV_3   Eukaryota   Chordata
 }
 \examples{
-NAs_to_Xs(taxo_dataframe)
+NAs_to_Xs(ps_test_data@tax_table@.Data \%>\% as.data.frame())
 }

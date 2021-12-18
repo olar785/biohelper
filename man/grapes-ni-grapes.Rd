@@ -2,7 +2,7 @@
 % Please edit documentation in R/Negate_func.R
 \name{\%ni\%}
 \alias{\%ni\%}
-\title{Load a \%ni\%}
+\title{Loads \%ni\%}
 \usage{
 ... \%ni\% NA
 }
