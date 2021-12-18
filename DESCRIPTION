@@ -15,6 +15,9 @@ Depends:
     phyloseq,
     janitor,
     taxonomizr,
+    theseus,
+    microDecon,
+    reshape2,
     R (>= 2.10)
 Suggests: 
     knitr
