@@ -3,5 +3,5 @@
 export("%ni%")
 export(DNAStringSet_to_df)
 export(NAs_to_Xs)
-export(microDecon_to_phyloseq)
+export(ps)
 export(taxo_normalisation)
