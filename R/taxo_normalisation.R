@@ -91,7 +91,6 @@ taxo_normalisation = function(df, sqlFile, ranks){
       length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id)
       n = n + 1
     }
-  #print(length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id))
   res_df[ranks] = getTaxonomy(res_df$id, sqlFile, desiredTaxa = ranks)
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
   res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")
