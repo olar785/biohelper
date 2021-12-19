@@ -21,7 +21,7 @@ It performs the decon funtion on a phyloseq object with sample data and
 returns a decontaminated phyloseq object with sample data, taxonomy and reference sequences if present.
 The sample_data MUST have a column labeled sample_id and a column labeled blank_type.
 Non blank samples must be NAs or empty strings..
-For examle:
+For example:
 sample_id   blank_type            extraction_method   etc.
 sample1     NA                    manual
 sample2     sampling_blank        manual

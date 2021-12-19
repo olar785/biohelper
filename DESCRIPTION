@@ -18,6 +18,7 @@ Depends:
     theseus,
     microDecon,
     reshape2,
+    stringr,
     R (>= 2.10)
 Suggests: 
     knitr

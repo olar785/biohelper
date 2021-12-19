@@ -5,7 +5,7 @@
 #' returns a decontaminated phyloseq object with sample data, taxonomy and reference sequences if present.
 #' The sample_data MUST have a column labeled sample_id and a column labeled blank_type.
 #' Non blank samples must be NAs or empty strings..
-#'For examle:
+#'For example:
 #'sample_id   blank_type            extraction_method   etc.
 #'sample1     NA                    manual
 #'sample2     sampling_blank        manual
@@ -46,7 +46,7 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
   }
 
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
-  ps@sam_data$blank_type = str_replace_all(ps@sam_data$blank_type, pattern = c("NA","na","Na","NaN","nan",""), replacement = NA_character_)
+  ps@sam_data$blank_type = suppressWarnings(str_replace_all(ps@sam_data$blank_type, pattern = c("NA","na","Na","NaN","nan",""), replacement = NA_character_))
   metadata = pstoveg_sample(ps) %>% dplyr::arrange(blank_type)
   ASV_table_ps = pstoveg_otu(ps) %>% t() %>% as.data.frame()
   ASV_table_ps = ASV_table_ps[,match(metadata$sample_id, names(ASV_table_ps))] %>% rownames_to_column('OTU_ID')
@@ -72,7 +72,7 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
   ntaxa_before = ps %>% subset_samples(is.na(blank_type)) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% ntaxa()
   ntaxa_after = ntaxa(ps_trimmed)
 
-  cat("\nContamination look-up in samples with MicroDecon\n")
+  cat("\nContamination removal outcome with MicroDecon\n")
   cat(paste0("Number of ASVs totally removed: ",ntaxa_before - ntaxa_after))
   cat("\n")
   cat(paste0("Percent of ASVs removed: ",round((1 - (ntaxa_after / ntaxa_before)) * 100,2), " %"))

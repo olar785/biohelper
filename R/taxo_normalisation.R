@@ -14,13 +14,12 @@
 #' Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 #' This takes few minutes to install using the following command:
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
-
 #'
 #' @export
 #' @examples
 #' taxo_df = ps_test_data@tax_table@.Data %>% as.data.frame()
 #' taxo_normalisation(taxo_df, sqlFile = sqlFile, desired_ranks = c("Phylum", Family", "Genus"))
-#'
+
 taxo_normalisation = function(df, sqlFile, ranks){
   df[df==""]<-NA
   paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.")
