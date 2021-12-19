@@ -18,7 +18,7 @@
 
 taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = NA, n_rank2 = 6, colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon"),f=NA){
   n_rank1 = if(is.na(n_rank1)){
-    n_rank1 = length(colors)
+    n_rank1 = length(colors)-1
   }
   # Creating dataframe
   dfn = psmelt(ps_obj)
