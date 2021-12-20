@@ -19,15 +19,15 @@ ps_to_microDecon(
 This function is a wrapper of the decon function from microDecon R package.
 It performs the decon funtion on a phyloseq object with sample data and
 returns a decontaminated phyloseq object with sample data, taxonomy and reference sequences if present.
-The sample_data MUST have a column labeled sample_id and a column labeled blank_type.
-Non blank samples must be NAs or empty strings..
+The sample_data MUST have a column labeled sample_id and a column labeled sample_type.
+Non blank samples must be labeled 'sample'
 For example:
-sample_id   blank_type            extraction_method   etc.
-sample1     NA                    manual
-sample2     sampling_blank        manual
-sample3     dna_extraction_blank  robot
-sample4                           robot
-sample5     NaN                   robot
+sample_id   blank_type            DNA_extraction_batch      extraction_method   etc.
+sample1     sample                1                         manual
+sample2     sampling_blank        1                         manual
+sample3     dna_extraction_blank  2                         robot
+sample4     sample                2                         robot
+sample5     pcr_blank             2                         robot
 }
 \examples{
 ps_to_microDecon(ps_test_data, groups = "extraction_method")
