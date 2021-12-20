@@ -31,7 +31,7 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
       ps_trimmed = merge_phyloseq(otu_table_ps,tax_ps)
       colnames(ps_trimmed@tax_table) = taxo_ranks
     }
-    if(!is.null(ps_taxa_trimmed@refseq)){
+    if(!is.null(ps_trimmed@refseq)){
       # Adding back the sequences
       ps_taxa_trimmed = prune_taxa(ps_trimmed %>% taxa_names(), ps_obj)
       fasta_ASVs = ps_taxa_trimmed@refseq
@@ -55,10 +55,10 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
   names_samples_ps = ps %>% subset_samples(sample_type=="sample") %>% sample_names()
   ASV_table_ps <- subset(ASV_table_ps, select=c(names_blanks_ps,names_samples_ps))
   if(!is.null(ps@tax_table)){
-      Taxo=as.data.frame(ps@tax_table@.Data); Taxo$OTU_ID = rownames(Taxo)
-      sorted = Taxo %>% unite("Taxonomy", 1:(ncol(Taxo)-1),sep = ";")
-      ASV_table_ps = ASV_table_ps[match(sorted$OTU_ID,ASV_table_ps$OTU_ID),]
-      ASV_table_ps$Taxonomy = sorted$Taxonomy
+    Taxo=as.data.frame(ps@tax_table@.Data); Taxo$OTU_ID = rownames(Taxo)
+    sorted = Taxo %>% unite("Taxonomy", 1:(ncol(Taxo)-1),sep = ";")
+    ASV_table_ps = ASV_table_ps[match(sorted$OTU_ID,ASV_table_ps$OTU_ID),]
+    ASV_table_ps$Taxonomy = sorted$Taxonomy
   }
   df_temp = metadata %>% group_by_at(which(colnames(metadata) %in% c("sample_type",groups))) %>% dplyr::count()
   #MicroDecon function
