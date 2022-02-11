@@ -14,14 +14,14 @@
 #' data("ps_test_data")
 #' taxo_df = ps_test_data@tax_table@.Data %>% as.data.frame()
 #' taxo_normalisation(taxo_df, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
-
+#'
 
 taxo_normalisation = function(df, sqlFile = "accessionTaxa.sql", ranks =c("superkingdom","kingdom", "phylum","class","order","family","genus","species")){
   ranks = str_to_lower(ranks)
   colnames(df) = str_to_lower(colnames(df))
-  # if("kingdom" %in% ranks){
-  #   ranks[ranks == "kingdom"] = "superkingdom"
-  # }
+  if("kingdom" %in% ranks){ ################# Keeping this for now as it seems absent from accessionTaxa.sql
+    ranks[ranks == "kingdom"] = "superkingdom"
+  }
   if("asv" %in% colnames(df)){
     df = df %>% column_to_rownames("asv")
   }
