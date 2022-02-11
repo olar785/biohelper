@@ -13,18 +13,12 @@
 #' @examples
 #' data("ps_test_data")
 #' taxo_df = ps_test_data@tax_table@.Data %>% as.data.frame()
-#' taxo_normalisation(taxo_df, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
+#' taxo_normalisation(taxo_df, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
 #'
-
-# taxo_df = read_csv("~/Desktop/SEA2020_COI/DADA2_results_COI/taxo.csv") %>% column_to_rownames("representative")
-# taxo_df = taxo_df %>% select(-c("taxID","taxon","rank","score","superkingdom"))
 
 taxo_normalisation = function(df, sqlFile, ranks){
   ranks = str_to_lower(ranks)
   colnames(df) = str_to_lower(colnames(df))
-  # if("kingdom" %in% ranks){ ################# Keeping this for now as it seems absent from accessionTaxa.sql
-  #   ranks[ranks == "kingdom"] = "superkingdom"
-  # }
   if("asv" %in% colnames(df)){
     df = df %>% column_to_rownames("asv")
   }
@@ -40,7 +34,7 @@ taxo_normalisation = function(df, sqlFile, ranks){
   rpt_indexes = max.col(!is.na(df[colnames(df)%ni%non_taxo_ranks]), "last")
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
   res_df = data.frame("asv" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
-  res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE) ###############################################
+  res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
   length(res_df[which(is.na(res_df$id)),]$id)
   r = 1
   # Deals with NA ids
