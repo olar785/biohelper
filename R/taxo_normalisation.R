@@ -16,12 +16,15 @@
 #' taxo_normalisation(taxo_df, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
 #'
 
-taxo_normalisation = function(df, sqlFile = "accessionTaxa.sql", ranks =c("superkingdom","kingdom", "phylum","class","order","family","genus","species")){
+# taxo_df = read_csv("~/Desktop/SEA2020_COI/DADA2_results_COI/taxo.csv") %>% column_to_rownames("representative")
+# taxo_df = taxo_df %>% select(-c("taxID","taxon","rank","score","superkingdom"))
+
+taxo_normalisation = function(df, sqlFile, ranks){
   ranks = str_to_lower(ranks)
   colnames(df) = str_to_lower(colnames(df))
-  if("kingdom" %in% ranks){ ################# Keeping this for now as it seems absent from accessionTaxa.sql
-    ranks[ranks == "kingdom"] = "superkingdom"
-  }
+  # if("kingdom" %in% ranks){ ################# Keeping this for now as it seems absent from accessionTaxa.sql
+  #   ranks[ranks == "kingdom"] = "superkingdom"
+  # }
   if("asv" %in% colnames(df)){
     df = df %>% column_to_rownames("asv")
   }
