@@ -36,7 +36,7 @@ taxo_normalisation = function(df, sqlFile = "accessionTaxa.sql", ranks =c("super
   non_taxo_ranks = c("otu","otus","asv","asvs","nR")
   rpt_indexes = max.col(!is.na(df[colnames(df)%ni%non_taxo_ranks]), "last")
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
-  res_df = data.frame("ASV" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
+  res_df = data.frame("asv" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
   res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE) ###############################################
   length(res_df[which(is.na(res_df$id)),]$id)
   r = 1
