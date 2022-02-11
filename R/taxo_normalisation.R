@@ -5,22 +5,26 @@
 #' classification and nomenclatureand database. It can also provide further taxonomic
 #' information of additional desired ranks.
 #'
-#' The first column must contain ASV/OTU identifiers as the example below:
-#' ASV     Kingdom   Phylum   etc
-#' ASV_1   Eukaryota   Arthropoda
-#' ASV_2   Eukaryota   Chordata
-#' ASV_3   Eukaryota   Chordata
-#'
 #' Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 #' This takes few minutes to install using the following command:
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
 #'
 #' @export
 #' @examples
+#' data("ps_test_data")
 #' taxo_df = ps_test_data@tax_table@.Data %>% as.data.frame()
-#' taxo_normalisation(taxo_df, sqlFile = sqlFile, desired_ranks = c("Phylum", Family", "Genus"))
+#' taxo_normalisation(taxo_df, sqlFile = 'accessionTaxa.sql', ranks = c("Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
 
-taxo_normalisation = function(df, sqlFile, ranks){
+
+taxo_normalisation = function(df, sqlFile = "accessionTaxa.sql", ranks =c("superkingdom","phylum","class","order","family","genus","species")){
+  ranks = str_to_lower(ranks)
+  colnames(df) = str_to_lower(colnames(df))
+  if("kingdom" %in% ranks){
+    ranks[ranks == "kingdom"] = "superkingdom"
+  }
+  if("asv" %in% colnames(df)){
+    df = df %>% column_to_rownames("asv")
+  }
   df[df==""]<-NA
   paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.")
   df = df %>% mutate_all(list(~str_replace(.,paternsToRemove, ""))) %>% mutate_all(list(~na_if(.,"")))
@@ -33,7 +37,7 @@ taxo_normalisation = function(df, sqlFile, ranks){
   rpt_indexes = max.col(!is.na(df[colnames(df)%ni%non_taxo_ranks]), "last")
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
   res_df = data.frame("ASV" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
-  res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
+  res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE) ###############################################
   length(res_df[which(is.na(res_df$id)),]$id)
   r = 1
   # Deals with NA ids
@@ -91,7 +95,7 @@ taxo_normalisation = function(df, sqlFile, ranks){
       length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id)
       n = n + 1
     }
-  res_df[ranks] = getTaxonomy(res_df$id, sqlFile, desiredTaxa = ranks)
+  res_df[ranks] = getTaxonomy(res_df$id, sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
   res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")
   res_df = res_df %>% column_to_rownames("ASV")
