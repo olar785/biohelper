@@ -29,7 +29,7 @@ taxo_normalisation = function(df, sqlFile = "accessionTaxa.sql", ranks =c("super
   paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.")
   df = df %>% mutate_all(list(~str_replace(.,paternsToRemove, ""))) %>% mutate_all(list(~na_if(.,"")))
   if("species" %in% tolower(colnames(df))){
-    df$Species = paste0(sapply(strsplit(df$Species,"_"), `[`, 1)," ", sapply(strsplit(df$Species,"_"), `[`, 2))
+    df$Species = paste0(sapply(strsplit(df$species,"_"), `[`, 1)," ", sapply(strsplit(df$species,"_"), `[`, 2))
   }
   df = df %>% mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% mutate_all(list(~na_if(.,"")))
   ranks_indexes = which(tolower(colnames(df)) %in% ranks)
