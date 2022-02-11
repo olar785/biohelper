@@ -28,12 +28,12 @@ taxo_normalisation = function(df, sqlFile = "accessionTaxa.sql", ranks =c("super
   df[df==""]<-NA
   paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.")
   df = df %>% mutate_all(list(~str_replace(.,paternsToRemove, ""))) %>% mutate_all(list(~na_if(.,"")))
-  if("species" %in% tolower(colnames(df))){
+  if("species" %in% colnames(df)){
     df$Species = paste0(sapply(strsplit(df$species,"_"), `[`, 1)," ", sapply(strsplit(df$species,"_"), `[`, 2))
   }
   df = df %>% mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% mutate_all(list(~na_if(.,"")))
-  ranks_indexes = which(tolower(colnames(df)) %in% ranks)
-  non_taxo_ranks = c("otu","otus","OTU","OTUs","OTUS","asv","asvs","ASVs","ASV","ASVS","nR")
+  ranks_indexes = which(colnames(df) %in% ranks)
+  non_taxo_ranks = c("otu","otus","asv","asvs","nR")
   rpt_indexes = max.col(!is.na(df[colnames(df)%ni%non_taxo_ranks]), "last")
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
   res_df = data.frame("ASV" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
@@ -98,7 +98,7 @@ taxo_normalisation = function(df, sqlFile = "accessionTaxa.sql", ranks =c("super
   res_df[ranks] = getTaxonomy(res_df$id, sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
   res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")
-  res_df = res_df %>% column_to_rownames("ASV")
+  res_df = res_df %>% column_to_rownames("asv")
   res_df=cbind(res_df,df[,colnames(df) %in% non_taxo_ranks,drop = FALSE])
   return(res_df)
 }
