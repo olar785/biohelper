@@ -27,7 +27,7 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   # Converting all factors to character strings
   dff = dff %>% mutate_if(is.factor, as.character)
   # Changing rare rank1 to 'Others'
-  ranks = colnames(ps_obj@tax_table@.Data)
+  ranks = colnames(ps_obj@tax_table@.Data %>% remove_empty("cols"))
   temp = dff %>% dplyr::group_by_at(which(colnames(dff)==ranks[1]):which(colnames(dff)==rank1)) %>% dplyr::summarise(rank1_Sum = sum(Abundance))
 
   temp_2 = temp %>% arrange(desc(rank1_Sum))
