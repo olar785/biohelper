@@ -80,6 +80,7 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   }
   dff$labls = sapply(dff[,rank2], func)
   dft = dff %>% dplyr::group_by_at(which(colnames(dff) %in% c("Sample","OTU",rank2, f))) %>% dplyr::summarise(Abund=sum(Abundance)*100)
+  dft = cbind(dft, dff[,colnames(dff)%ni%colnames(dft)])
   # Making plot
   return(ggplot(data = dft, aes(Sample, Abund, fill = pull(dft, rank2))) +
     geom_bar(stat="identity",color="black") +
