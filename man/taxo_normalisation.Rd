@@ -13,13 +13,13 @@ classification and nomenclatureand database. It can also provide further taxonom
 information of additional desired ranks.
 }
 \details{
-The first column must contain ASV/OTU identifiers as the example below:
-ASV     Kingdom   Phylum   etc
-ASV_1   Eukaryota   Arthropoda
-ASV_2   Eukaryota   Chordata
-ASV_3   Eukaryota   Chordata
-
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
+}
+\examples{
+data("ps_test_data")
+taxo_df = ps_test_data@tax_table@.Data \%>\% as.data.frame()
+taxo_normalisation(taxo_df, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
+
 }
