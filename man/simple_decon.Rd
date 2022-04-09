@@ -12,10 +12,10 @@ by either completely removing contaminant ASVs and their associated reads across
 or by subtracting read count per ASV using their max read count in blank(s) ("max_v"). The latter option does not
 take into account the compositional nature of the data. If using the latter option,
 the user may want to perform this step per batch of sample (e.g. DNA extraction or PCR batch).
-The sample_data MUST have a column labeled sample_id and a column labeled sample_type.
+The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type.
 Non blank samples must be labeled "sample".
 For example:
-sample_id   blank_type            DNA_extraction_batch      extraction_method   etc.
+sample_id   amplicon_type.        DNA_extraction_batch      extraction_method   etc.
 sample1     sample                1                         manual
 sample2     sampling_blank        1                         manual
 sample3     dna_extraction_blank  2                         robot
