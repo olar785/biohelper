@@ -31,13 +31,15 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
       rownames(tax_ps) = decontaminated$decon.table$OTU_ID
       ps_trimmed = merge_phyloseq(otu_table_ps,tax_ps)
       colnames(ps_trimmed@tax_table) = taxo_ranks
+    }else{
+      ps_trimmed = otu_table_ps
     }
-    if(!is.null(ps_trimmed@refseq)){
+    if(!is.null(ps_obj@refseq)){
       # Adding back the sequences
       ps_taxa_trimmed = prune_taxa(ps_trimmed %>% taxa_names(), ps_obj)
       fasta_ASVs = ps_taxa_trimmed@refseq
       fasta_ASVs = fasta_ASVs[match(ps_taxa_trimmed %>% taxa_names(), fasta_ASVs@ranges@NAMES),]
-      ps_trimmed@refseq = phyloseq::refseq(fasta_ASVs)
+      ps_trimmed = merge_phyloseq(ps_trimmed,phyloseq::refseq(fasta_ASVs))
     }
     # Adding back the environmental data
     env=env[rownames(env) %in% sample_names(ps_trimmed),]
