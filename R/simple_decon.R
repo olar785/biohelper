@@ -30,16 +30,18 @@ simple_decon= function(ps_obj, method = "complete_asv_removal"){
   if(method == "max_v"){
     Extraction_neg_max_vec <- apply(ps_blank_obj %>% pstoveg_otu %>% t() %>% as.data.frame, 1, max) %>% as.vector()
     names(Extraction_neg_max_vec) = taxa_names(ps_blank_obj)
-    Extractiondf = ps_obj %>% subset_taxa(asv %in% ASVs_in_Blanks) %>% pstoveg_otu %>% as.data.frame()
+    Extractiondf = ps_obj %>% pstoveg_otu %>% as.data.frame() %>% dplyr::select(ASVs_in_Blanks)
     Extractiondf = sweep(Extractiondf,MARGIN=2,Extraction_neg_max_vec,FUN="-")
     Extractiondf <- replace(Extractiondf, Extractiondf < 0, 0)
-    new_df = ps_obj %>% subset_taxa(asv %ni% ASVs_in_Blanks) %>% pstoveg_otu()
+    new_df = ps_obj %>% pstoveg_otu %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
     new_df = cbind(new_df, Extractiondf)
     ps_trimmed_obj = ps_obj
     ps_trimmed_obj@otu_table = otu_table(new_df, taxa_are_rows=FALSE)
     ps_trimmed_obj = ps_trimmed_obj %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
   } else{
-    ps_trimmed_obj = ps_obj %>% subset_samples(amplicon_type == "sample") %>% subset_taxa(asv %ni% ASVs_in_Blanks)
+    ps_trimmed_obj = ps_obj %>% subset_samples(amplicon_type == "sample")
+    new_df = ps_trimmed_obj %>% pstoveg_otu %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
+    ps_trimmed_obj@otu_table = otu_table(new_df, taxa_are_rows=FALSE)
   }
   # Printing results
   ntaxa_before = ps_obj %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% ntaxa()
