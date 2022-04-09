@@ -27,7 +27,7 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
     }
     rownames(otu_table_ps) = decontaminated$decon.table$OTU_ID
     if(!is.null(taxo_ranks)){
-      tax_ps = tax_table(decontaminated$decon.table$Taxonomy %>% colsplit(";", names = taxo_ranks))
+      tax_ps = tax_table(decontaminated$decon.table$Taxonomy %>% colsplit(";", names = taxo_ranks) %>% as.matrix())
       rownames(tax_ps) = decontaminated$decon.table$OTU_ID
       ps_trimmed = merge_phyloseq(otu_table_ps,tax_ps)
       colnames(ps_trimmed@tax_table) = taxo_ranks
