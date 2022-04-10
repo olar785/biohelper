@@ -69,8 +69,9 @@ taxo_normalisation = function(df, sqlFile, ranks){
     res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id = res_df_temp$id
     length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id)
     n = n + 1
+    number_ids = max(str_count(res_df$id, pattern = ","),na.rm = T) #####
   }
-  length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id)
+  #length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id)
   # Deals with multiple ids again but at higher level
   n = 1
   number_ids = max(str_count(res_df$id, pattern = ","),na.rm = T) + 1
