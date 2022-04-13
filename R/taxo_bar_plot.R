@@ -91,7 +91,7 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
            scale_fill_manual(values=r1Palette) +
            theme_classic() +
            theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-           guides(fill=guide_legend(title=rank2))
-  )
+           guides(fill=guide_legend(title=paste0(str_to_title(rank1),"; ",str_to_title(rank2)))
+           )
 }
 
