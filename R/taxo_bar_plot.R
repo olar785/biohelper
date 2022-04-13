@@ -5,7 +5,7 @@
 #'
 #' rank1 = Taxonomic rank to be associated with colours (e.g. Phylum)
 #' rank2 = Taxonomic rank to be associated with shades of colours (e.g. Family)
-#' colors = Colours to be used
+#' colors = Colors to be used
 #' n_rank2 = Number of shades to use per colour. Taxa which rank below that number will be assigned to "Other".
 #'
 #' @export
@@ -33,8 +33,10 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   temp_2 = temp_2 %>% top_n(n_rank1)
   list_of_rare_rank1 = temp[(temp[,rank1] %>% as_vector() %>% unname()) %ni% (temp_2[,rank1] %>% as_vector() %>% unname()),rank1] %>% as_vector() %>% unname()
   dff[dff[,rank1] %in% list_of_rare_rank1,rank1] = "Others"
-  # Changing rare families to 'Others'
+  # Changing rare families to 'Others' including those with _X...
+  dff[,rank2][grepl("_X", dff[,rank2], ignore.case=FALSE)] <- "Others"
   temp = dff %>% dplyr::group_by_at(c(which(colnames(dff)=="OTU"), which(colnames(dff)==ranks[1]):which(colnames(dff)==ranks[length(ranks)]))) %>% dplyr::summarise(ran2_Sum = sum(Abundance)) %>% as.data.frame()
+
   temp_3 = temp %>% arrange(desc(ran2_Sum))
   temp_3 = temp %>% group_by_at(which(colnames(temp)==ranks[1]):which(colnames(temp)==rank1)) %>% slice_max(order_by = ran2_Sum, n = 5)
   list_of_rare_rank2 = temp[(temp[,rank2] %>% as_vector() %>% unname()) %ni% (temp_3[,rank2] %>% as_vector() %>% unname()),]$OTU
@@ -83,13 +85,13 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   dft = cbind(dft, dff[,colnames(dff)%ni%colnames(dft)])
   # Making plot
   return(ggplot(data = dft, aes(Sample, Abund, fill = pull(dft, rank2))) +
-    geom_bar(stat="identity",color="black") +
-    theme_bw() +
-    ylab("Relative abundance (%)") +
-    scale_fill_manual(values=r1Palette) +
-    theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-    guides(fill=guide_legend(title=rank2))
+           geom_bar(stat="identity",color="black") +
+           theme_bw() +
+           ylab("Relative abundance (%)") +
+           scale_fill_manual(values=r1Palette) +
+           theme_classic() +
+           theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+           guides(fill=guide_legend(title=rank2))
   )
 }
 
