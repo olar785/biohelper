@@ -27,10 +27,10 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   dff = dff %>% mutate_if(is.factor, as.character)
   # Changing rare rank1 to 'Others'
   ranks = colnames(ps_obj@tax_table@.Data %>% remove_empty("cols"))
+  #dff[,rank1][grepl("_X", dff[,rank1], ignore.case=FALSE)] <- "Others"
   temp = dff %>% dplyr::group_by_at(which(colnames(dff)==ranks[1]):which(colnames(dff)==rank1)) %>% dplyr::summarise(rank1_Sum = sum(Abundance))
-
   temp_2 = temp %>% arrange(desc(rank1_Sum))
-  temp_2 = temp_2 %>% top_n(n_rank1)
+  temp_2 = temp_2 %>% head(n_rank1)
   list_of_rare_rank1 = temp[(temp[,rank1] %>% as_vector() %>% unname()) %ni% (temp_2[,rank1] %>% as_vector() %>% unname()),rank1] %>% as_vector() %>% unname()
   dff[dff[,rank1] %in% list_of_rare_rank1,rank1] = "Others"
   # Changing rare families to 'Others' including those with _X...
@@ -92,6 +92,6 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
            theme_classic() +
            theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
            guides(fill=guide_legend(title=paste0(str_to_title(rank1),"; ",str_to_title(rank2))))
-           )
+  )
 }
 
