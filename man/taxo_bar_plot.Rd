@@ -11,7 +11,8 @@ taxo_bar_plot(
   n_rank1 = NA,
   n_rank2 = 6,
   colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue",
-    "lightsalmon")
+    "lightsalmon"),
+  f_ord = NA
 )
 }
 \description{
@@ -23,6 +24,7 @@ rank1 = Taxonomic rank to be associated with colours (e.g. Phylum)
 rank2 = Taxonomic rank to be associated with shades of colours (e.g. Family)
 colors = Colors to be used
 n_rank2 = Number of shades to use per colour. Taxa which rank below that number will be assigned to "Other".
+f_ord = Order of the samples in the plot using sample name
 }
 \examples{
 colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")
