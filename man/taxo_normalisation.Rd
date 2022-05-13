@@ -17,6 +17,11 @@ information of additional desired ranks. It can either take in a taxonomy table
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
+
+obj = Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
+sqlFile = Path to the local NCBI taxonomy db
+ranks = Ranks to return
+keepSAR = Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)
 }
 \examples{
 data("ps_test_data")
