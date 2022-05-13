@@ -23,7 +23,7 @@
 
 taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
 
-  if(class(obj)=="phyloseq"){
+  if("phyloseq" %in% class(obj)){
     df = obj@tax_table@.Data %>% as.data.frame()
   } else{
     df = obj %>% as_tibble()
@@ -42,7 +42,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     taxa_id_df = which(colnames(df) %in% taxa_id)%>% as.numeric()
     colnames(df)[taxa_id_df] = "asv"
     if(any(duplicated(df))){
-      cat("Duplicated rows! Keeping the first instance only.")
+      cat("Duplicated rows! Keeping the first instance only.\n")
       df = df[!duplicated(df), ]
       df = df %>% column_to_rownames("asv")
     }else{
