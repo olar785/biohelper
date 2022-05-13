@@ -44,8 +44,10 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     if(any(duplicated(df))){
       cat("Duplicated rows! Keeping the first instance only.\n")
       df = df[!duplicated(df), ]
+      rownames( df ) <- NULL
       df = df %>% column_to_rownames("asv")
     }else{
+      rownames( df ) <- NULL
       df = df %>% column_to_rownames("asv")
     }
   }
