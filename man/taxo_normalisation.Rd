@@ -4,13 +4,14 @@
 \alias{taxo_normalisation}
 \title{Loads taxo_normalisation}
 \usage{
-taxo_normalisation(df, sqlFile, ranks)
+taxo_normalisation(obj, sqlFile, ranks, keepSAR = F)
 }
 \description{
 This function performs normalisation of taxonomic assignments of 18S and COI data
 identified via silva, midori or any other reference databases, using NCBI curated
 classification and nomenclatureand database. It can also provide further taxonomic
-information of additional desired ranks.
+information of additional desired ranks. It can either take in a taxonomy table
+(e.g. from Qiime2) or a phyloseq object.
 }
 \details{
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
@@ -19,7 +20,6 @@ prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
 }
 \examples{
 data("ps_test_data")
-taxo_df = ps_test_data@tax_table@.Data \%>\% as.data.frame()
-taxo_normalisation(taxo_df, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
+taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
 
 }
