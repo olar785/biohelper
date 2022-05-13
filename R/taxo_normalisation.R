@@ -26,7 +26,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   if("phyloseq" %in% class(obj)){
     df = obj@tax_table@.Data %>% as.data.frame()
   } else{
-    df = obj %>% as.data.table() %>% janitor::clean_names()
+    df = obj %>% as.data.frame() %>% janitor::clean_names()
   }
 
   ranks = str_to_lower(ranks)
