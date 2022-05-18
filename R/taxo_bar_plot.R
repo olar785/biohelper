@@ -12,11 +12,11 @@
 #' @export
 #' @examples
 #' colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")
-#' ps_test_data_t = ps_test_data %>% microbiome::transform(transform = "compositional") #%>% tax_glom('Family')
+#' ps_test_data_t = ps_test_data %>% tax_glom('Family') %>% microbiome::transform(transform = "compositional")
 #' p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors,  f = "extraction_method")
-#' p2 = p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
+#' p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
 
-taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = NA, n_rank2 = 6, colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon"), f_ord = NA){
+taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = NA, n_rank2 = 6, x_labels = NA, colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon"), f_ord = NA){
   n_rank1 = if(is.na(n_rank1)){
     n_rank1 = length(colors)-1
   }
@@ -81,7 +81,7 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
     return(names(labls[labls == rank2]))
   }
   dff$labls = sapply(dff[,rank2], func)
-  dft = dff %>% dplyr::group_by_at(which(colnames(dff) %in% c("Sample","OTU",rank2))) %>% dplyr::summarise(Abund=sum(Abundance)*100)
+  dft = dff %>% dplyr::group_by_at(which(colnames(dff) %in% c("Sample",rank2))) %>% dplyr::summarise(Abund=sum(Abundance)*100)
   dff = dff[match(dft$Sample, dff$Sample),]
   dft = cbind(dft, dff[,colnames(dff)%ni%colnames(dft)])
 

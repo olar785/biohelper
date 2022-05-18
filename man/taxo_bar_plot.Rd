@@ -10,6 +10,7 @@ taxo_bar_plot(
   rank2 = "Family",
   n_rank1 = NA,
   n_rank2 = 6,
+  x_labels = NA,
   colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue",
     "lightsalmon"),
   f_ord = NA
@@ -28,7 +29,7 @@ f_ord = Order of the samples in the plot using sample name
 }
 \examples{
 colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")
-ps_test_data_t = ps_test_data \%>\% microbiome::transform(transform = "compositional") #\%>\% tax_glom('Family')
+ps_test_data_t = ps_test_data \%>\% tax_glom('Family') \%>\% microbiome::transform(transform = "compositional")
 p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors,  f = "extraction_method")
-p2 = p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
+p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
 }
