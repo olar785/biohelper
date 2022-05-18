@@ -7,7 +7,6 @@
 #' rank2 = Taxonomic rank to be associated with shades of colours (e.g. Family)
 #' colors = Colors to be used
 #' n_rank2 = Number of shades to use per colour. Taxa which rank below that number will be assigned to "Other".
-#' f_ord = Order of the samples in the plot using sample name
 #'
 #' @export
 #' @examples
@@ -16,7 +15,7 @@
 #' p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors,  f = "extraction_method")
 #' p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
 
-taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = NA, n_rank2 = 6, x_labels = NA, colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon"), f_ord = NA){
+taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = NA, n_rank2 = 6, x_labels = NA, colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")){
   n_rank1 = if(is.na(n_rank1)){
     n_rank1 = length(colors)-1
   }
@@ -84,12 +83,6 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   dft = dff %>% dplyr::group_by_at(which(colnames(dff) %in% c("Sample",rank2))) %>% dplyr::summarise(Abund=sum(Abundance)*100)
   dff = dff[match(dft$Sample, dff$Sample),]
   dft = cbind(dft, dff[,colnames(dff)%ni%colnames(dft)])
-
-  # Ordering samples
-  if(!is.na(f_ord)){
-    dft[,"Sample"] = factor(dft %>% dplyr::pull("Sample"), levels = f_ord)
-    dft = dft %>% dplyr::arrange("Sample")
-  }
 
   # Making plot
   return(ggplot(data = dft, aes(Sample, Abund, fill = pull(dft, rank2))) +
