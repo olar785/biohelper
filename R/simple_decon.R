@@ -39,9 +39,8 @@ simple_decon= function(ps_obj, method = "complete_asv_removal"){
     ps_trimmed_obj@otu_table = otu_table(new_df, taxa_are_rows=FALSE)
     ps_trimmed_obj = ps_trimmed_obj %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
   } else{
-    ps_trimmed_obj = ps_obj %>% subset_samples(amplicon_type == "sample")
-    new_df = ps_trimmed_obj %>% pstoveg_otu %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
-    ps_trimmed_obj@otu_table = otu_table(new_df, taxa_are_rows=FALSE)
+    ps_trimmed_obj = ps_obj %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
+    ps_trimmed_obj = ps_trimmed_obj %>% pop_taxa(ASVs_in_Blanks)
   }
   # Printing results
   ntaxa_before = ps_obj %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% ntaxa()
