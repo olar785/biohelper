@@ -1,6 +1,7 @@
 #' Loads pop_taxa
 #'
 #' This function takes in a phyloseq object and a list of taxa to be removed.
+#' Credit to joey711 (https://github.com/joey711/phyloseq/issues/652)
 #'
 #' ps_obj = Phyloseq object to trim.
 #' undesiredTaxa = names of taxa to be removed (generally ASV or OTU id), as long as it is in taxa_names() of the phyloseq object.
