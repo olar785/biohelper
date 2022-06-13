@@ -43,6 +43,18 @@ def handle_program_options():
                         help='Should the taxonomy database be updated')
     parser.add_argument('--pident', default='no', type=str,
                         help='To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment')
+    parser.add_argument('--pgenus', default=95, type=int,
+                        help='Minimum similarity to assign genus (default: 95)')
+    parser.add_argument('--pfamily', default=87, type=int,
+                        help='Minimum similarity to assign family (default: 87)')
+    parser.add_argument('--porder', default=83, type=int,
+                        help='Minimum similarity to assign order (default: 83)')
+    parser.add_argument('--pclass', default=81, type=int,
+                        help='Minimum similarity to assign class (default: 81)')
+    parser.add_argument('--pphylum', default=79, type=int,
+                        help='Minimum similarity to assign phylum (default: 79)')
+    parser.add_argument('--pkingdom', default=71, type=int,
+                        help='Minimum similarity to assign kingdom (default: 71)')                        
     parser.add_argument('--taxonly', default="False", type=str,
                         help='Do not require the ASV/OTU table')
     parser.add_argument('-v', '--verbose', action='store_true')
@@ -87,31 +99,31 @@ def taxo_assignment(tabl, dict_blast):
 # Function to reduce taxonomy assignment depending on pident value
 def pidentThresholds(row):
     # print(row.taxonomy)
-    if row['pident'] < 71:
+    if row['pident'] < pkingdom:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus',
              'species']] = "NA", "NA", "NA", "NA", "NA", "NA", "NA"
         return row
-    elif row['pident'] < 79:
+    elif row['pident'] < pphylum:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus',
              'species']] = row["kingdom"], "NA", "NA", "NA", "NA", "NA", "NA"
         return row
-    elif row['pident'] < 81:
+    elif row['pident'] < pclass:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus', 'species']
             ] = row["kingdom"], row['phylum'], "NA", "NA", "NA", "NA", "NA"
         return row
-    elif row['pident'] < 83:
+    elif row['pident'] < porder:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus', 'species']
             ] = row["kingdom"], row['phylum'], row['class'], "NA", "NA", "NA", "NA"
         return row
-    elif row['pident'] < 87:
+    elif row['pident'] < pfamily:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus', 'species']
             ] = row["kingdom"], row['phylum'], row['class'], row['order'], "NA", "NA", "NA"
         return row
-    elif row['pident'] < 95:
+    elif row['pident'] < pgenus:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus', 'species']
             ] = row["kingdom"], row['phylum'], row['class'], row['order'], row['family'], "NA", "NA"
         return row
-    elif row['pident'] < 97:
+    elif row['pident'] < minSim:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus', 'species']
             ] = row["kingdom"], row['phylum'], row['class'], row['order'], row['family'], row['genus'], "NA"
         return row

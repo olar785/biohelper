@@ -1,20 +1,25 @@
 #' Loads blastn_taxo_assignment
 #'
-#' This function takes in a fasta file and returns taxonomic assignments.
-#' Specifically, it performs blastn and megablast in the nt database of NCBI and
-#' then uses a Last Common Ancestor (LCA) approach and a minimum percent identity
-#' (per taxonomic rank) to assign taxonomy. It then merges the results from blastn
-#' and megablast using the highest taxonomic resolution with a consensus between
-#' the two approaches.
+#' This wrapper function takes in a fasta file and returns a dataframe of
+#' taxonomic assignments. To do so, it first perform a blastn and megablast
+#' search in a database such as NCBI. It then uses a Last Common Ancestor (LCA)
+#' approach and optionally, a minimum percent identity (pident; per taxonomic rank)
+#' to assign taxonomy. It then merges the results from blastn and megablast using
+#' the highest taxonomic resolution between the two if there is consensus across
+#' all assigned ranks. Otherwise, it assigns taxonomy using the LCA approach.
+#' The function will write files from each step and return a dataframe of
+#' taxonomic assignments. Users only interested in performing a LCA/pident taxonomic
+#' assignment from multiple blast hits may refer to the lcaPident function (can be
+#' particularly useful to test different parameters).
 #'
 #' @export
 #' @examples
-#' blast_assignment(blastapp_path = "/home/miniconda3/bin/blastn",
-#' queries="uniqueSeqs.fasta",
+#' blastn_taxo_assignment(blastapp_path = "/home/miniconda3/bin/blastn",
+#' queries="uniqueSeqsTest.fasta",
 #' megablast_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
 #' blastn_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",db="nt",
-#' output="blast_resutls",
-#' nthreads=20)
+#' output="blast_results",
+#' nthreads=10)
 
 
 blastn_taxo_assignment = function(blastapp_path,
@@ -28,6 +33,12 @@ blastn_taxo_assignment = function(blastapp_path,
                             minCov=80,
                             update=FALSE,
                             pident="no",
+                            pgenus=95,
+                            pfamily=87,
+                            porder=83,
+                            pclass=81,
+                            pphylum=79,
+                            pkingdom=71,
                             taxonly="TRUE")
   {
   # Blastn and Megablast
@@ -46,6 +57,12 @@ blastn_taxo_assignment = function(blastapp_path,
   paste("--minCov", minCov, collapse = " "),
   paste("--update", update, collapse = " "),
   paste("--pident", pident, collapse = " "),
+  paste("--pgenus", pgenus, collapse = " "),
+  paste("--pfamily", pfamily, collapse = " "),
+  paste("--porder", porder, collapse = " "),
+  paste("--pclass", pclass, collapse = " "),
+  paste("--pphylum", pphylum, collapse = " "),
+  paste("--pkingdom", pkingdom, collapse = " "),
   paste("--taxonly", taxonly, collapse = " "))
 
   args_megablast = paste(
@@ -86,6 +103,7 @@ blastn_taxo_assignment = function(blastapp_path,
       }
     }
   }
+  write.table(x = newdf, file = paste0(output_path,"/blastn_taxo_assingment.csv"))
   return(newdf)
 }
 

@@ -16,22 +16,33 @@ blastn_taxo_assignment(
   minCov = 80,
   update = FALSE,
   pident = "no",
+  pgenus = 95,
+  pfamily = 87,
+  porder = 83,
+  pclass = 81,
+  pphylum = 79,
+  pkingdom = 71,
   taxonly = "TRUE"
 )
 }
 \description{
-This function takes in a fasta file and returns taxonomic assignments.
-Specifically, it performs blastn and megablast in the nt database of NCBI and
-then uses a Last Common Ancestor (LCA) approach and a minimum percent identity
-(per taxonomic rank) to assign taxonomy. It then merges the results from blastn
-and megablast using the highest taxonomic resolution with a consensus between
-the two approaches.
+This wrapper function takes in a fasta file and returns a dataframe of
+taxonomic assignments. To do so, it first perform a blastn and megablast
+search in a database such as NCBI. It then uses a Last Common Ancestor (LCA)
+approach and optionally, a minimum percent identity (pident; per taxonomic rank)
+to assign taxonomy. It then merges the results from blastn and megablast using
+the highest taxonomic resolution between the two if there is consensus across
+all assigned ranks. Otherwise, it assigns taxonomy using the LCA approach.
+The function will write files from each step and return a dataframe of
+taxonomic assignments. Users only interested in performing a LCA/pident taxonomic
+assignment from multiple blast hits may refer to the lcaPident function (can be
+particularly useful to test different parameters).
 }
 \examples{
-blast_assignment(blastapp_path = "/home/miniconda3/bin/blastn",
-queries="uniqueSeqs.fasta",
+blastn_taxo_assignment(blastapp_path = "/home/miniconda3/bin/blastn",
+queries="uniqueSeqsTest.fasta",
 megablast_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
 blastn_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",db="nt",
-output="blast_resutls",
-nthreads=20)
+output="blast_results",
+nthreads=10)
 }
