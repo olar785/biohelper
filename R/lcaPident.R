@@ -60,5 +60,8 @@ args_blastn = paste(
   args_general
 )
 system2(pyscript, args_blastn)
-return(fread(output) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species"))))
+temp = fread(output) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
+temp_summary = temp %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
+cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
+return(temp %>% dplyr::select(-nRb))
 }
