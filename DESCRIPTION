@@ -30,7 +30,6 @@ Config/reticulate:
     packages = list(
       list(package = "pandas"),
       list(package = "ete3"),
-      list(package = "re"),
       list(package = "argparse"),
       list(package = "tqdm")
     )
