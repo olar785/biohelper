@@ -30,7 +30,7 @@ def handle_program_options():
     parser = argparse.ArgumentParser(
         description='Takes blastn multiple hits, trim uncultured or unidentified hits or environmental samples, assign taxo to feature based on percent similarity (for species) and Last Common Ancestor method')
     parser.add_argument('-b', "--btbl", required=True,
-                        help='blatn format 6 output with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp", [REQUIRED]')
+                        help='blastn format 6 output with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp", [REQUIRED]')
     parser.add_argument("-f", "--ftbl", required=False,
                         help="Feature id table in txt format [REQUIRED]")
     parser.add_argument("-o", "--output_ftbl", required=True,

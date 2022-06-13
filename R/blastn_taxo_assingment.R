@@ -1,5 +1,6 @@
 #' Loads blastn_taxo_assignment
 #'
+#' @description
 #' This wrapper function takes in a fasta file and returns a dataframe of
 #' taxonomic assignments. To do so, it first perform a blastn and megablast
 #' search in a database such as NCBI. It then uses a Last Common Ancestor (LCA)
@@ -11,6 +12,25 @@
 #' taxonomic assignments. Users only interested in performing a LCA/pident taxonomic
 #' assignment from multiple blast hits may refer to the lcaPident function (can be
 #' particularly useful to test different parameters).
+#'
+#' @param
+#' blastapp_path      Path to the blastn program
+#' queries            Fasta file to query
+#' megablast_opts     megablast options including evalue (default = 0.001), max_target_seqs (default = 5) and perc_identity (default = 0.8)
+#' blastn_opts        blastn options including evalue (default = 0.001), max_target_seqs (default = 5) and perc_identity (default = 0.5)
+#' db                 Reference database
+#' output_path        Path to output directory
+#' nthreads           Number of threads for the blast search
+#' minSim             Minimum similarity to assign species hits (default: 97)
+#' minCov             Minimum coverage to keep hits (default: 80)
+#' update             Should the taxonomy database be updated? (default: FALSE)
+#' pident             To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment
+#' pgenus             Minimum similarity to assign genus (default: 95)
+#' pfamily            Minimum similarity to assign family (default: 87)
+#' porder             Minimum similarity to assign order (default: 83)
+#' pclass             Minimum similarity to assign class (default: 81)
+#' pphylum            Minimum similarity to assign phylum (default: 79)
+#' pkingdom           Minimum similarity to assign kingdom (default: 71)
 #'
 #' @export
 #' @examples

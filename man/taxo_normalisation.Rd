@@ -6,22 +6,22 @@
 \usage{
 taxo_normalisation(obj, sqlFile, ranks, keepSAR = F)
 }
+\arguments{
+\item{obj}{= Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
+sqlFile = Path to the local NCBI taxonomy db
+ranks = Ranks to return
+keepSAR = Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)}
+}
 \description{
 This function performs normalisation of taxonomic assignments of 18S and COI data
 identified via silva, midori or any other reference databases, using NCBI curated
 classification and nomenclatureand database. It can also provide further taxonomic
 information of additional desired ranks. It can either take in a taxonomy table
 (e.g. from Qiime2) or a phyloseq object.
-}
-\details{
+
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
-
-obj = Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
-sqlFile = Path to the local NCBI taxonomy db
-ranks = Ranks to return
-keepSAR = Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)
 }
 \examples{
 data("ps_test_data")

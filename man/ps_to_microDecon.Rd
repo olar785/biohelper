@@ -21,8 +21,7 @@ It performs the decon function on a phyloseq object with sample data and
 returns a decontaminated phyloseq object with sample data, taxonomy and reference sequences if present.
 The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type
 Non blank samples must be labeled 'sample' or 'Sample'.
-}
-\details{
+
 For example:
 sample_id   amplicon_type         DNA_extraction_batch      extraction_method   etc.
 sample1     sample                1                         manual

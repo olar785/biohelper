@@ -1,5 +1,6 @@
 #' Loads taxo_normalisation
 #'
+#' @description
 #' This function performs normalisation of taxonomic assignments of 18S and COI data
 #' identified via silva, midori or any other reference databases, using NCBI curated
 #' classification and nomenclatureand database. It can also provide further taxonomic
@@ -10,6 +11,7 @@
 #' This takes few minutes to install using the following command:
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
 #'
+#' @param
 #' obj = Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
 #' sqlFile = Path to the local NCBI taxonomy db
 #' ranks = Ranks to return

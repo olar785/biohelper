@@ -1,5 +1,6 @@
 #' Loads ps_to_microDecon
 #'
+#' @description
 #' This function is a wrapper of the decon function from microDecon R package.
 #' It performs the decon function on a phyloseq object with sample data and
 #' returns a decontaminated phyloseq object with sample data, taxonomy and reference sequences if present.
@@ -13,6 +14,7 @@
 #'sample3     dna_extraction_blank  2                         robot
 #'sample4     sample                2                         robot
 #'sample5     pcr_blank             2                         robot
+#'
 #'
 #' @export
 #' @examples
