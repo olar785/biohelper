@@ -3,6 +3,7 @@
 export("%ni%")
 export(DNAStringSet_to_df)
 export(NAs_to_Xs)
+export(blast_assignment)
 export(pop_taxa)
 export(ps_to_microDecon)
 export(simple_decon)

@@ -19,8 +19,21 @@ Depends:
     microDecon,
     reshape2,
     stringr,
+    reticulate,
     R (>= 2.10)
 Suggests: 
     knitr
 VignetteBuilder: knitr
 LazyData: true
+Config/reticulate:
+  list(
+    packages = list(
+      list(package = "pandas"),
+      list(package = "csv"),
+      list(package = "ete3"),
+      list(package = "re"),
+      list(package = "argparse"),
+      list(package = "tqdm")
+    )
+  )
+
