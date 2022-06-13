@@ -1,4 +1,4 @@
-#' Loads blast assignment
+#' Loads blastn_taxo_assignment
 #'
 #' This function takes in a fasta file and returns taxonomic assignments.
 #' Specifically, it performs blastn and megablast in the nt database of NCBI and

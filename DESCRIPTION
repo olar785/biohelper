@@ -29,7 +29,6 @@ Config/reticulate:
   list(
     packages = list(
       list(package = "pandas"),
-      list(package = "csv"),
       list(package = "ete3"),
       list(package = "re"),
       list(package = "argparse"),
