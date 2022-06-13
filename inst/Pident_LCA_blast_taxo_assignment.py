@@ -2,7 +2,7 @@
 
 
 '''
-This scripts uses python 3 and the following libraries need to be installed 'pandas', 'csv', 'ete3'. 're', and 'argparse' installed.
+This scripts uses python 3 and the following libraries need to be installed 'pandas', 'ete3' and 'argparse' installed.
 
 The blastn file needs NO modification. As long as blastn format 6 output with options 
 "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp" 
@@ -199,8 +199,6 @@ def LCA_bef_pident(b_trimmed, mS):
     print('\nLCA and Pident trimming completed')
     return f_btbl
 
-
-
 def LCA_only(b_trimmed, mS):
     # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
@@ -239,7 +237,8 @@ def blast_to_feature_tbl(btbl, ftbl):
 # Create taxonomy table only
 def blast_to_taxonomy_tbl(btbl, ftbl):
     print('\nAssign full taxonomy to each feature-id')
-    new_ftbl = ftbl["ASVs"].to_frame(name=None)
+    #new_ftbl = ftbl["ASVs"].to_frame(name=None)
+    new_ftbl = ftbl["ASVs"].to_frame()   
     new_ftbl['taxonomy'] = ""
     new_ftbl["Percent_Identity"] = ""
     new_ftbl["Sequence_coverage"] = ""

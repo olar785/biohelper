@@ -1,0 +1,2 @@
+export("args_megablast", "b_megablast", "minCov", "minSim", "o_megablast", "output_path",
+       "pident", "pyscript", "scipy", "taxonly", "update")

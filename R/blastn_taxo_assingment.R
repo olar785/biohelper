@@ -17,7 +17,7 @@
 #' nthreads=20)
 
 
-blast_assignment = function(blastapp_path,
+blastn_taxo_assignment = function(blastapp_path,
                             queries,
                             megablast_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
                             blastn_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",
@@ -30,7 +30,7 @@ blast_assignment = function(blastapp_path,
                             pident="no",
                             taxonly="TRUE")
   {
-  #Function
+  # Blastn and Megablast
   if(!dir.exists(output_path)) dir.create(output_path)
   args <- paste(paste("-db", db, collapse = " "),
                 paste("-query", queries, collapse = " "),
@@ -39,7 +39,7 @@ blast_assignment = function(blastapp_path,
   system2(blastapp_path, args = c(args,blastn_opts,"-task blastn", paste0("-out"," ",output_path,"/blastn_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
 
   # Taxonomic assignment using LCA and pident
-  pyscript = system.file("Pident_LCA_blast_taxo_assingment.py",package = "biohelper")
+  pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
 
   b_megablast = paste0(output_path,"/megablast_output.csv")
   b_blastn = paste0(output_path,"/blastn_output.csv")
@@ -67,6 +67,12 @@ blast_assignment = function(blastapp_path,
     paste("--taxonly", taxonly, collapse = " ")
   )
   system2(pyscript, args_blastn)
+
+  # Merging results from blastn and megablast
+  blastn = fread("")
+  megablast = fread("")
+
+
   }
 
 
