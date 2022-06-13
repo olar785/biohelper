@@ -14,7 +14,7 @@ blastn_taxo_assignment(
   nthreads,
   minSim = 97,
   minCov = 80,
-  update = TRUE,
+  update = FALSE,
   pident = "no",
   taxonly = "TRUE"
 )

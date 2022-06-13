@@ -26,7 +26,7 @@ blastn_taxo_assignment = function(blastapp_path,
                             nthreads,
                             minSim=97,
                             minCov=80,
-                            update=TRUE,
+                            update=FALSE,
                             pident="no",
                             taxonly="TRUE")
   {
@@ -41,39 +41,53 @@ blastn_taxo_assignment = function(blastapp_path,
   # Taxonomic assignment using LCA and pident
   pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
 
-  b_megablast = paste0(output_path,"/megablast_output.csv")
-  b_blastn = paste0(output_path,"/blastn_output.csv")
-  o_megablast = paste0(output_path,"/megablast_output_processed.csv")
-  o_blastn = paste0(output_path,"/blastn_output_processed.csv")
+  args_general = paste(
+  paste("--minSim", minSim, collapse = " "),
+  paste("--minCov", minCov, collapse = " "),
+  paste("--update", update, collapse = " "),
+  paste("--pident", pident, collapse = " "),
+  paste("--taxonly", taxonly, collapse = " "))
 
   args_megablast = paste(
-    paste("-b", b_megablast, collapse = " "),
-    paste("-o", o_megablast, collapse = " "),
-    paste("--minSim", minSim, collapse = " "),
-    paste("--minCov", minCov, collapse = " "),
-    paste("--update", update, collapse = " "),
-    paste("--pident", pident, collapse = " "),
-    paste("--taxonly", taxonly, collapse = " ")
+    paste("-b", paste0(output_path,"/megablast_output.csv"), collapse = " "),
+    paste("-o", paste0(output_path,"/megablast_output_processed.csv"), collapse = " "),
+    args_general
   )
-  system2(pyscript, args_megablast)
-
   args_blastn = paste(
-    paste("-b", b_blastn, collapse = " "),
-    paste("-o", o_blastn, collapse = " "),
-    paste("--minSim", minSim, collapse = " "),
-    paste("--minCov", minCov, collapse = " "),
-    paste("--update", update, collapse = " "),
-    paste("--pident", pident, collapse = " "),
-    paste("--taxonly", taxonly, collapse = " ")
+    paste("-b", paste0(output_path,"/blastn_output.csv"), collapse = " "),
+    paste("-o", paste0(output_path,"/blastn_output_processed.csv"), collapse = " "),
+    args_general
   )
+
+  system2(pyscript, args_megablast)
   system2(pyscript, args_blastn)
 
   # Merging results from blastn and megablast
-  blastn = fread("")
-  megablast = fread("")
+  megablast = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% dplyr::mutate(method = "megablast", colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
+  blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
 
+  blast = rbind(megablast, blastn) %>% dplyr::select(- c(taxonomy))
+  blast$nRb = rowSums(is.na(blast[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) | blast[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] == "")
+  blast <- blast %>% mutate_all(na_if,"")
 
+  newdf = data.frame(matrix(nrow=blast$ASVs %>% unique() %>% length(), ncol = 9))
+  colnames(newdf) = c("ASV","superkingdom","kingdom","phylum","class","order","family","genus","species")
+  newdf$ASV = blast$ASVs %>% unique()
+
+  for (i in 1:nrow(newdf)) {
+    temp_blast = blast %>% dplyr::filter(ASVs == newdf$ASV[i])
+    if(temp_blast$method %>% unique() %>% length() >1){
+      x = temp_blast %>% summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(ASVs,method))
+      if(all(x %in% c(0,1))){
+        newdf[i,2:9] = temp_blast[which.min(temp_blast$nRb),5:12]
+      }else{
+        max_shared_rank = 8 - max(temp_blast$nRb)
+        newdf[i,2:c(max_shared_rank+1)] = temp_blast[which.min(temp_blast$nRb),5:(max_shared_rank+4)]
+      }
+    }
   }
+  return(newdf)
+}
 
 
 
