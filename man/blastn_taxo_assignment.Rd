@@ -6,9 +6,10 @@
 \usage{
 blastn_taxo_assignment(
   blastapp_path,
+  method = "both",
   queries,
   megablast_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
-  blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",
+  blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.7",
   db,
   output_path,
   nthreads,
@@ -27,6 +28,7 @@ blastn_taxo_assignment(
 }
 \arguments{
 \item{blastapp_path}{Path to the blastn program
+method             Method to be used for blast search. Options are 'megablast', 'blastn' and 'both' (default).
 queries            Fasta file to query
 megablast_opts     megablast options including evalue (default = 0.001), max_target_seqs (default = 5) and perc_identity (default = 0.8)
 blastn_opts        blastn options including evalue (default = 0.001), max_target_seqs (default = 5) and perc_identity (default = 0.5)
@@ -36,7 +38,7 @@ nthreads           Number of threads for the blast search
 minSim             Minimum similarity to assign species hits (default: 97)
 minCov             Minimum coverage to keep hits (default: 80)
 update             Should the taxonomy database be updated? (default: FALSE)
-pident             To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment
+pident             To reduce taxonomy assignment according to default percent identity thresholds. Options are: before or after LCA assingment
 pgenus             Minimum similarity to assign genus (default: 95)
 pfamily            Minimum similarity to assign family (default: 87)
 porder             Minimum similarity to assign order (default: 83)
@@ -46,16 +48,19 @@ pkingdom           Minimum similarity to assign kingdom (default: 71)}
 }
 \description{
 This wrapper function takes in a fasta file and returns a dataframe of
-taxonomic assignments. To do so, it first perform a blastn and megablast
+taxonomic assignments. It first perform a blastn and/or megablast
 search in a database such as NCBI. It then uses a Last Common Ancestor (LCA)
 approach and optionally, a minimum percent identity (pident; per taxonomic rank)
-to assign taxonomy. It then merges the results from blastn and megablast using
-the highest taxonomic resolution between the two if there is consensus across
+to assign taxonomy. If blastn and megablast were both chosen, it merges the results
+using the highest taxonomic resolution between the two, that is, if there is consensus across
 all assigned ranks. Otherwise, it assigns taxonomy using the LCA approach.
 The function will write files from each step and return a dataframe of
-taxonomic assignments. Users only interested in performing a LCA/pident taxonomic
+taxonomic assignments. Megablast and especially blastn can take several hours
+to run so if executed on a remote computer, best to execute as a sbatch job
+or using a terminal multiplexer like screen or tmux.
+Users only interested in performing a LCA/pident taxonomic
 assignment from multiple blast hits may refer to the lcaPident function (can be
-particularly useful to test different parameters).
+particularly useful to test overall taxonomic resolution using different parameters).
 }
 \examples{
 blastn_taxo_assignment(blastapp_path = "/home/miniconda3/bin/blastn",

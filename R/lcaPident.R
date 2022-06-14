@@ -38,9 +38,17 @@ lcaPident = function(blastn_file,
                      taxonly="TRUE")
 {
 
+.onLoad <- function(libname, pkgname) {
+    # use superassignment to update global reference to scipy
+  pandas <<- reticulate::import("pandas", delay_load = TRUE)
+  ete3 <<- reticulate::import("ete3", delay_load = TRUE)
+  argparse <<- reticulate::import("argparse", delay_load = TRUE)
+  tqdm <<- reticulate::import("tqdm", delay_load = TRUE)
+
+}
+
 # Taxonomic assignment using LCA and pident
 pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
-
 args_general = paste(
   paste("--minSim", minSim, collapse = " "),
   paste("--minCov", minCov, collapse = " "),
