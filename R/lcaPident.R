@@ -38,7 +38,7 @@ lcaPident = function(blastn_file,
                      taxonly="TRUE")
 {
 
-use_condaenv(condaenv = "r-reticulate")
+# reticulate::use_miniconda("r-reticulate")
 
 # Taxonomic assignment using LCA and pident
 pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
