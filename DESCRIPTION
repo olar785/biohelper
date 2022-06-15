@@ -36,7 +36,9 @@ Config/reticulate:
       list(package = "pandas"),
       list(package = "ete3"),
       list(package = "argparse"),
-      list(package = "tqdm")
+      list(package = "tqdm"),
+      list(package = "pytz"),
+      list(package = "dateutil")
     )
   )
 
