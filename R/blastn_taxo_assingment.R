@@ -71,21 +71,26 @@ blastn_taxo_assignment = function(blastapp_path,
   args <- paste(paste("-db", db, collapse = " "),
                 paste("-query", queries, collapse = " "),
                 paste("-num_threads", nthreads, collapse = " "))
+
   if(method == "both"){
     cat("\nPerforming megablast and blastn\n")
     system2(blastapp_path, args = c(args,megablast_opts,"-task megablast", paste0("-out"," ",output_path,"/megablast_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
     system2(blastapp_path, args = c(args,blastn_opts,"-task blastn", paste0("-out"," ",output_path,"/blastn_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
+
   }else if(method == "megablast"){
     cat("\nPerforming megablast only\n")
     system2(blastapp_path, args = c(args,megablast_opts,"-task megablast", paste0("-out"," ",output_path,"/megablast_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
+
   }else if(method == "blastn"){
     cat("\nPerforming blastn only\n")
     system2(blastapp_path, args = c(args,blastn_opts,"-task blastn", paste0("-out"," ",output_path,"/blastn_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
+
   }else{
     stop("The method specified is not available. Options are 'megablast', 'blastn' and 'both'", call. = FALSE)
   }
 
   # Taxonomic assignment using LCA and pident
+  reticulate::py_run_file(system.file("env.py",package = "biohelper"))
   pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
 
   args_general = paste(
@@ -149,7 +154,10 @@ blastn_taxo_assignment = function(blastapp_path,
     }
   }
 
-  write.table(x = newdf, file = paste0(output_path,"/blastn_taxo_assingment.csv"))
+  newdf$nRb = rowSums(is.na(newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) | newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] == "")
+  temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
+  cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
+  write.table(x = newdf %>% dplyr::select(-nRB), file = paste0(output_path,"/blastn_taxo_assingment.csv"))
   return(newdf)
 }
 

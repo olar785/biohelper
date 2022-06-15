@@ -28,29 +28,31 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   if("phyloseq" %in% class(obj)){
     df = obj@tax_table@.Data %>% as.data.frame()
   } else{
-    df = obj %>% as.data.frame() %>% janitor::clean_names()
+    df = obj %>% as.data.frame()
   }
 
-  ranks = str_to_lower(ranks)
-  colnames(df) = str_to_lower(colnames(df))
+  ranks = tolower(ranks)
+  colnames(df) = tolower(colnames(df))
   taxa_id = c("otu","otus","asv","asvs","feature_id","feature.id","nR")
 
   if("taxon" %in% colnames(df)){
     df$taxon = gsub("D_\\d+__","",taxo$taxon)
-    df = df %>% dplyr::select(c("feature_id","taxon")) %>% splitstackshape::cSplit('taxon', sep = ';')
+    df = df %>% dplyr::select(c(colnames(df)[which(colnames(df)%in%c(taxa_id,"taxon"))])) %>% splitstackshape::cSplit('taxon', sep = ';')
+  }else if("taxonomy" %in% colnames(df)){
+    df = df %>% dplyr::select(c(colnames(df)[which(colnames(df)%in%c(taxa_id,"taxonomy"))])) %>% splitstackshape::cSplit('taxonomy', sep = ';')
   }
 
   if(any(taxa_id %in% colnames(df))){
     taxa_id_df = which(colnames(df) %in% taxa_id)%>% as.numeric()
-    colnames(df)[taxa_id_df] = "asv"
+    colnames(df)[taxa_id_df] = "feature_id"
     if(any(duplicated(df))){
       cat("Duplicated rows! Keeping the first instance only.\n")
       df = df[!duplicated(df), ]
       rownames( df ) <- NULL
-      df = df %>% column_to_rownames("asv")
+      df = df %>% column_to_rownames("feature_id")
     }else{
       rownames( df ) <- NULL
-      df = df %>% column_to_rownames("asv")
+      df = df %>% column_to_rownames("feature_id")
     }
   }
 
@@ -67,7 +69,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   rpt_indexes = max.col(!is.na(df[ranks_indexes]), "last")
 
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
-  res_df = data.frame("asv" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
+  res_df = data.frame("feature_id" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
   res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
   length(res_df[which(is.na(res_df$id)),]$id)
   r = 1
@@ -78,7 +80,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     rpt_indexes = max.col(!is.na(df_temp[colnames(df_temp)%ni%non_taxo_ranks]), "last") - r
     rpt_indexes = pmax(rpt_indexes,1) # makes sure to have no negative or 0 values
     taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
-    res_df_temp = data.frame("ASV" = rownames(df_temp), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
+    res_df_temp = data.frame("feature_id" = rownames(df_temp), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
     res_df[which(is.na(res_df$id)),]$id = getId(taxa = res_df_temp$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
     length(res_df[which(is.na(res_df$id)),]$id)
     r = r + 1
@@ -130,7 +132,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   res_df[ranks] = getTaxonomy(res_df$id, sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
   res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")
-  res_df = res_df %>% column_to_rownames("asv")
+  res_df = res_df %>% column_to_rownames("feature_id")
   res_df=cbind(res_df,df[,colnames(df) %in% non_taxo_ranks,drop = FALSE])
 
   if(keepSAR & ("kingdom" %in% ranks)){
@@ -142,7 +144,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     obj@tax_table@.Data = res_df %>% as.matrix()
     return(obj)
   }else{
-    return(res_df %>% rownames_to_column("asv"))
+    return(res_df %>% rownames_to_column("feature_id"))
   }
 }
 

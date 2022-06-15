@@ -1,12 +1,12 @@
 #' Loads lcaPident
 #'
 #' @description
-#' This  function takes in the output of a blastn search with multiple hits and
+#' This function takes in the output of a blastn search with multiple hits and
 #' uses a Last Common Ancestor (LCA) approach and optionally, a minimum percent
 #' identity (pident; per taxonomic rank) to assign taxonomy.
 #'
 #' @param
-#' blastn_file        Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"
+#' blast_file        Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"
 #' minSim             Minimum similarity to assign species hits (default: 97)
 #' minCov             Minimum coverage to keep hits (default: 80)
 #' update             Should the taxonomy database be updated? (default: FALSE)
@@ -20,10 +20,10 @@
 #'
 #' @export
 #' @examples
-#' lcaPident(blastn_file = blastn_file, output = "taxo_assignment.csv", pident="no")
+#' lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="no")
 
 
-lcaPident = function(blastn_file,
+lcaPident = function(blast_file,
                      output,
                      minSim=97,
                      minCov=80,
@@ -38,8 +38,6 @@ lcaPident = function(blastn_file,
                      taxonly="TRUE")
 {
 
-#reticulate::use_miniconda("r-reticulate")
-  #reticulate::py_exe()
 reticulate::py_run_file(system.file("env.py",package = "biohelper"))
 
 # Taxonomic assignment using LCA and pident
@@ -58,13 +56,14 @@ args_general = paste(
   paste("--taxonly", taxonly, collapse = " "))
 
 args_blastn = paste(
-  paste("-b", blastn_file, collapse = " "),
+  paste("-b", blast_file, collapse = " "),
   paste("-o", output, collapse = " "),
   args_general
 )
 system2(pyscript, args_blastn)
-temp = fread(output) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
+temp = fread(output) %>% dplyr::mutate(colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
+temp$nRb = rowSums(!is.na(temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) & temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] != "")
 temp_summary = temp %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
 cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
-return(temp %>% dplyr::select(-nRb))
+return(temp %>% dplyr::select(-c(taxonomy,nRb,Percent_Identity,Sequence_coverage)))
 }
