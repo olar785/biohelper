@@ -81,8 +81,8 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     rpt_indexes = pmax(rpt_indexes,1) # makes sure to have no negative or 0 values
     taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
     res_df_temp = data.frame("feature_id" = rownames(df_temp), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
-    res_df[which(is.na(res_df$id)),]$id = getId(taxa = res_df_temp$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
-    length(res_df[which(is.na(res_df$id)),]$id)
+    id = getId(taxa = res_df_temp$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
+    res_df[which(is.na(res_df$id)),]$id = ifelse(!is.na(id),is,"")
     r = r + 1
   }
   # Deals with multiple ids
