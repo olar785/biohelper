@@ -1,11 +1,17 @@
-#' Loads ps_to_microDecon
+#' Loads ps_decon
 #'
 #' @description
-#' This function is a wrapper of the decon function from microDecon R package.
-#' It performs the decon function on a phyloseq object with sample data and
-#' returns a decontaminated phyloseq object with sample data, taxonomy and reference sequences if present.
+#' This function offers 3 different options to remove putative sequence contamination
+#' of a phyloseq object. The microDecon option is a wrapper of the decon function
+#' from microDecon R package. It performs the decon function on a phyloseq object
+#' with sample data and returns a decontaminated phyloseq object with sample data,
+#' taxonomy and reference sequences if present.
+#' The 'max_v' option subtract read associated to putative contaminant ASV by using
+#' their max read count in blank(s).
+#' Finally, the 'complete_asv_removal' removes all ASVs found all blanks from the dataset.
+#' Note that only the 'microDecon' option takes into account the compositional nature of the data.#'
 #' The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type
-#' Non blank samples must be labeled 'sample' or 'Sample'.
+#' Non blank samples must be labeled as 'sample'.
 #'
 #'For example:
 #'sample_id   amplicon_type         DNA_extraction_batch      extraction_method   etc.
@@ -15,12 +21,18 @@
 #'sample4     sample                2                         robot
 #'sample5     pcr_blank             2                         robot
 #'
+#' @param
+#' ps                   Phyloseq object to decontaminate
+#' groups               To be used in the numb.ind argument of the microDecon::decon function
+#' method               Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'
+#' (...)                  If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon
 #'
 #' @export
 #' @examples
 #' ps_to_microDecon(ps_test_data, groups = "extraction_method")
 
-ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0.00005, regression = 0, low.threshold=40, up.threshold=400){
+ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh = 0.7, prop.thresh = 0.00005, regression = 0, low.threshold=40, up.threshold=400){
+  # Creating custom microDecon function
   microDecon_2_phyloseq = function(ps_obj, env, decontaminated, taxo_ranks=NULL){
     if("Mean.blank" %in% colnames(decontaminated$decon.table)){
       otu_table_ps = otu_table(decontaminated$decon.table[colnames(decontaminated$decon.table) %ni% c("OTU_ID","Mean.blank","Taxonomy")], taxa_are_rows = T)
@@ -49,8 +61,11 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
     sample_data(ps_trimmed) = sample_data(env)
     return(ps_trimmed %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE))
   }
-
+  # Ensuring no empty samples exist
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
+
+  # Processing according to the chosen method
+  if(method == "microDecon"){
   #ps@sam_data$amplicon_type = suppressWarnings(str_replace_all(ps@sam_data$amplicon_type, pattern = c("NA","na","Na","NaN","nan",""), replacement = NA_character_))
   ps@sam_data$amplicon_type = ps@sam_data$amplicon_type %>% tolower()
   metadata = theseus::pstoveg_sample(ps) %>% dplyr::arrange(amplicon_type)
@@ -74,17 +89,34 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
     decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = FALSE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
     ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = theseus::pstoveg_sample(ps), decontaminated = decontaminated_ext)
   }
+
+  }else if(method == "max_v"){
+    Extraction_neg_max_vec <- apply(ps_blank %>% theseus::pstoveg_otu %>% t() %>% as.data.frame, 1, max) %>% as.vector()
+    names(Extraction_neg_max_vec) = taxa_names(ps_blank)
+    Extractiondf = ps %>% theseus::pstoveg_otu %>% as.data.frame() %>% dplyr::select(ASVs_in_Blanks)
+    Extractiondf = sweep(Extractiondf,MARGIN=2,Extraction_neg_max_vec,FUN="-")
+    Extractiondf <- replace(Extractiondf, Extractiondf < 0, 0)
+    new_df = ps %>% theseus::pstoveg_otu %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
+    new_df = cbind(new_df, Extractiondf)
+    ps_trimmed = ps
+    ps_trimmed@otu_table = otu_table(new_df, taxa_are_rows=FALSE)
+    ps_trimmed = ps_trimmed %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
+  } else{
+    ps_trimmed = ps %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
+    ps_trimmed = ps_trimmed %>% pop_taxa(ASVs_in_Blanks)
+  }
   # Printing results
-  ntaxa_before = ps %>% subset_samples(amplicon_type=="sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% ntaxa()
+  ntaxa_before = ps %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% ntaxa()
   ntaxa_after = ntaxa(ps_trimmed)
 
-  cat("\nContamination removal outcome with MicroDecon\n")
+  cat("\n")
+  cat(paste0("Contamination removal outcome using ",method),"\n")
   cat(paste0("Number of ASVs totally removed: ",ntaxa_before - ntaxa_after))
   cat("\n")
   cat(paste0("Percent of ASVs removed: ",round((1 - (ntaxa_after / ntaxa_before)) * 100,2), " %"))
   cat("\n")
 
-  reads_before = ps %>% subset_samples(amplicon_type=="sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% sample_sums() %>% sum()
+  reads_before = ps %>% subset_samples(amplicon_type == "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% sample_sums() %>% sum()
   reads_after = ps_trimmed %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% sample_sums() %>% sum()
 
   cat(paste0("Total number of reads  removed: ",reads_before - reads_after))
@@ -92,4 +124,3 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
   cat("\n")
   return(ps_trimmed)
 }
-#
