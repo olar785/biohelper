@@ -24,6 +24,16 @@ Imports:
     dplyr,
     magrittr
 Depends:
+    tidyverse,
+    phyloseq,
+    janitor,
+    taxonomizr,
+    reshape2,
+    stringr,
+    reticulate,
+    data.table,
+    dplyr,
+    magrittr,
     R (>= 2.10)
 Remotes:
     donaldtmcknight/microDecon,
