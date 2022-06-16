@@ -41,6 +41,8 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   }else if("taxonomy" %in% colnames(df)){
     df = df %>% dplyr::select(c(colnames(df)[which(colnames(df)%in%c(taxa_id,"taxonomy"))])) %>% splitstackshape::cSplit('taxonomy', sep = ';')
   }
+  df = df %>% mutate_if(is.factor, as.character)
+  df[is.na(df)]<-""
 
   if(any(taxa_id %in% colnames(df))){
     taxa_id_df = which(colnames(df) %in% taxa_id)%>% as.numeric()
@@ -56,7 +58,6 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     }
   }
 
-  df[df==""]<-NA
   paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.")
   df = df %>% mutate_all(list(~str_replace(.,paternsToRemove, ""))) %>% mutate_all(list(~na_if(.,"")))
   if("species" %in% colnames(df)){
@@ -71,7 +72,6 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
   res_df = data.frame("feature_id" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
   res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
-  length(res_df[which(is.na(res_df$id)),]$id)
   r = 1
   # Deals with NA ids
   while (r<length(ranks_indexes) & any(is.na(res_df$id))) {
@@ -85,7 +85,6 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     length(res_df[which(is.na(res_df$id)),]$id)
     r = r + 1
   }
-  length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id)
   # Deals with multiple ids
   n = 1
   number_ids = max(str_count(res_df$id, pattern = ","),na.rm = T) + 1
@@ -111,10 +110,10 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   # Deals with multiple ids again but at higher level
   n = 1
   number_ids = max(str_count(res_df$id, pattern = ","),na.rm = T) + 1
-  if(!is.na(any(str_detect(res_df$id, ",", negate = FALSE))))
+  if(!is.na(any(str_detect(res_df$id, ",", negate = FALSE)))){
     while (n<=number_ids & any(str_detect(res_df$id, ",", negate = FALSE))) {
       df_temp = df[which(str_detect(res_df$id, ",", negate = FALSE)),]
-      res_df_temp = res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]
+      res_df_temp = res_df[which(str_detect(res_df$id,",", negate = FALSE)),]
 
       rpt_indexes = max.col(!is.na(df_temp[colnames(df_temp)%ni%non_taxo_ranks]), "last") - 2
       rpt_indexes = pmax(rpt_indexes,1) # makes sure to have no negative or 0 values
@@ -129,6 +128,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
       length(res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]$id)
       n = n + 1
     }
+  }
   res_df[ranks] = getTaxonomy(res_df$id, sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
   res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")

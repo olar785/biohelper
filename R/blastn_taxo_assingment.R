@@ -157,7 +157,7 @@ blastn_taxo_assignment = function(blastapp_path,
   newdf$nRb = rowSums(is.na(newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) | newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] == "")
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
   cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
-  write.table(x = newdf %>% dplyr::select(-nRB), file = paste0(output_path,"/blastn_taxo_assingment.csv"))
+  write.table(x = newdf %>% dplyr::select(-nRb), file = paste0(output_path,"/blastn_taxo_assingment.csv"))
   return(newdf)
 }
 
