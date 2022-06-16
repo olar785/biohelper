@@ -9,7 +9,13 @@
 #' The 'max_v' option subtract read associated to putative contaminant ASV by using
 #' their max read count in blank(s).
 #' Finally, the 'complete_asv_removal' removes all ASVs found all blanks from the dataset.
-#' Note that only the 'microDecon' option takes into account the compositional nature of the data.#'
+#' Note that the 'max_v' option does not take into account the compositional nature of the data.
+#' Also note that microDecon assumes a common source of contamination. Quoting the authors,
+#' "If substantial differences among blanks occur only across experimental blocks, such as
+#' extraction kits (suggesting consistent contamination within a block), then use microDecon
+#' separately for each block. If, however, there is substantial variability among blanks within
+#' blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
+#'
 #' The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type
 #' Non blank samples must be labeled as 'sample'.
 #'
