@@ -20,7 +20,8 @@ Imports:
     reshape2,
     stringr,
     reticulate,
-    data.table
+    data.table,
+    dplyr
 Depends:
     R (>= 2.10)
 Remotes:
