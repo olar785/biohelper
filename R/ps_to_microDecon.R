@@ -53,8 +53,8 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
   #ps@sam_data$amplicon_type = suppressWarnings(str_replace_all(ps@sam_data$amplicon_type, pattern = c("NA","na","Na","NaN","nan",""), replacement = NA_character_))
   ps@sam_data$amplicon_type = ps@sam_data$amplicon_type %>% tolower()
-  metadata = pstoveg_sample(ps) %>% dplyr::arrange(amplicon_type)
-  ASV_table_ps = pstoveg_otu(ps) %>% t() %>% as.data.frame()
+  metadata = theseus::pstoveg_sample(ps) %>% dplyr::arrange(amplicon_type)
+  ASV_table_ps = theseus::pstoveg_otu(ps) %>% t() %>% as.data.frame()
   ASV_table_ps = ASV_table_ps[,match(metadata$sample_id, names(ASV_table_ps))] %>% rownames_to_column('OTU_ID')
   names_blanks_ps = c("OTU_ID",ps %>% subset_samples(amplicon_type!="sample") %>% sample_names())
   names_samples_ps = ps %>% subset_samples(amplicon_type=="sample") %>% sample_names()
@@ -68,11 +68,11 @@ ps_to_microDecon = function(ps, groups=NA, runs=2, thresh = 0.7, prop.thresh = 0
   df_temp = metadata %>% group_by_at(which(colnames(metadata) %in% c("amplicon_type",groups))) %>% dplyr::count()
   #MicroDecon function
   if(!is.null(ps@tax_table)){
-    decontaminated_ext <- decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = TRUE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
-    ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = pstoveg_sample(ps), decontaminated = decontaminated_ext, taxo_ranks = colnames(Taxo)[(colnames(Taxo)!="OTU_ID")])
+    decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = TRUE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
+    ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = theseus::pstoveg_sample(ps), decontaminated = decontaminated_ext, taxo_ranks = colnames(Taxo)[(colnames(Taxo)!="OTU_ID")])
   }else{
-    decontaminated_ext <- decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = FALSE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
-    ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = pstoveg_sample(ps), decontaminated = decontaminated_ext)
+    decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = FALSE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
+    ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = theseus::pstoveg_sample(ps), decontaminated = decontaminated_ext)
   }
   # Printing results
   ntaxa_before = ps %>% subset_samples(amplicon_type=="sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% ntaxa()
