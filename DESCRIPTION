@@ -11,6 +11,10 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports:
+	BiocManager,
+	remotes,
+	devtools,
+	ShortRead,
     tidyverse,
     phyloseq,
     janitor,
@@ -24,6 +28,10 @@ Imports:
     dplyr,
     magrittr
 Depends:
+	BiocManager,
+	remotes,
+	devtools,
+	ShortRead,
     tidyverse,
     phyloseq,
     janitor,
@@ -35,6 +43,7 @@ Depends:
     dplyr,
     magrittr,
     R (>= 2.10)
+biocViews:
 Remotes:
     donaldtmcknight/microDecon,
     sw1/theseus
