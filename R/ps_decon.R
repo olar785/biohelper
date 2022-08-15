@@ -24,28 +24,24 @@
 #' Non blank samples must be labeled as 'sample'.
 #'
 #'For example:\cr
-#'| sample_id | amplicon_type | DNA_extraction_batch | extraction_method | etc.\cr
-#'| sample1 | sample               | 1 | manual\cr
-#'| sample2 | sampling_blank       | 1 | manual\cr
-#'| sample3 | dna_extraction_blank | 2 | robot\cr
-#'| sample4 | sample               | 2 | robot\cr
-#'| sample5 | pcr_blank            | 2 | robot\cr
-#'
 #' \tabular{rrrrr}{
-#'   \strong{mpg} \tab \strong{cyl} \tab \strong{disp} \tab \strong{hp} \tab \strong{drat} \cr
-#'   21.0 \tab 6 \tab 160 \tab 110 \tab 3.90\cr
-#'   21.0 \tab 6 \tab 160 \tab 110 \tab 3.90\cr
-#'   22.8 \tab 4 \tab 108 \tab  93 \tab 3.85\cr
-#'   21.4 \tab 6 \tab 258 \tab 110 \tab 3.08\cr
-#'   18.7 \tab 8 \tab 360 \tab 175 \tab 3.15
+#'   \strong{sample_id} \tab \strong{amplicon_type} \tab \strong{DNA_extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr
+#'   sample1 \tab sample \tab 1 \tab manual \tab NA\cr
+#'   sample2 \tab sampling_blank \tab 1 \tab manual \tab NA\cr
+#'   sample3 \tab dna_extraction_blank \tab 2 \tab  robot \tab NA\cr
+#'   sample4 \tab sample \tab 2 \tab robot \tab NA\cr
+#'   sample5 \tab pcr_blank \tab 2 \tab robot \tab NA
 #' }
 #'
 #'
 #' @param
-#' ps                   Phyloseq object to decontaminate\cr
-#' groups               To be used in the numb.ind argument of the microDecon::decon function\cr
-#' method               Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
-#' (...)                  If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
+#' ps \tab Phyloseq object to decontaminate\cr
+#' @param
+#' groups \tab To be used in the numb.ind argument of the microDecon::decon function\cr
+#' @param
+#' method \tab Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
+#' @param
+#' (...) \tab If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
 #'
 #' @export
 #' @examples
