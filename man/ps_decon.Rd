@@ -17,13 +17,10 @@ ps_decon(
 )
 }
 \arguments{
-\item{ps}{\tab Phyloseq object to decontaminate\cr}
-
-\item{method}{\tab Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr}
-
-\item{groups}{\tab To be used in the numb.ind argument of the microDecon::decon function\cr}
-
-\item{(...)}{\tab If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr}
+\item{ps}{\tab Phyloseq object to decontaminate\cr
+groups \tab To be used in the numb.ind argument of the microDecon::decon function\cr
+method \tab Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
+(...) \tab If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr}
 }
 \description{
 This function offers 3 different options to remove putative sequence contamination
