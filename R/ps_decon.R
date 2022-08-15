@@ -5,33 +5,33 @@
 #' of a phyloseq object. The microDecon option is a wrapper of the decon function
 #' from microDecon R package. It performs the decon function on a phyloseq object
 #' with sample data and returns a decontaminated phyloseq object with sample data,
-#' taxonomy and reference sequences if present.
+#' taxonomy and reference sequences if present.\cr
 #' The 'max_v' option subtract read associated to putative contaminant ASV by using
-#' their max read count in blank(s).
-#' Finally, the 'complete_asv_removal' removes all ASVs found all blanks from the dataset.
-#' Note that the 'max_v' option does not take into account the compositional nature of the data.
+#' their max read count in blank(s).\cr
+#' Finally, the 'complete_asv_removal' removes all ASVs found all blanks from the dataset.\cr
+#' Note that the 'max_v' option does not take into account the compositional nature of the data.\cr
 #' Also note that microDecon assumes a common source of contamination. Quoting the authors,
 #' "If substantial differences among blanks occur only across experimental blocks, such as
 #' extraction kits (suggesting consistent contamination within a block), then use microDecon
 #' separately for each block. If, however, there is substantial variability among blanks within
 #' blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
 #'
-#' The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type
+#' The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type.\cr
 #' Non blank samples must be labeled as 'sample'.
 #'
-#'For example:
-#'sample_id   amplicon_type         DNA_extraction_batch      extraction_method   etc.
-#'sample1     sample                1                         manual
-#'sample2     sampling_blank        1                         manual
-#'sample3     dna_extraction_blank  2                         robot
-#'sample4     sample                2                         robot
-#'sample5     pcr_blank             2                         robot
+#'For example:\cr
+#'sample_id   amplicon_type         DNA_extraction_batch      extraction_method   etc.\cr
+#'sample1     sample                1                         manual\cr
+#'sample2     sampling_blank        1                         manual\cr
+#'sample3     dna_extraction_blank  2                         robot\cr
+#'sample4     sample                2                         robot\cr
+#'sample5     pcr_blank             2                         robot\cr
 #'
 #' @param
-#' ps                   Phyloseq object to decontaminate
-#' groups               To be used in the numb.ind argument of the microDecon::decon function
-#' method               Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'
-#' (...)                  If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon
+#' ps                   Phyloseq object to decontaminate\cr
+#' groups               To be used in the numb.ind argument of the microDecon::decon function\cr
+#' method               Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
+#' (...)                  If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
 #'
 #' @export
 #' @examples
@@ -72,37 +72,38 @@ ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh
 
   # Processing according to the chosen method
   if(method == "microDecon"){
-  #ps@sam_data$amplicon_type = suppressWarnings(str_replace_all(ps@sam_data$amplicon_type, pattern = c("NA","na","Na","NaN","nan",""), replacement = NA_character_))
-  ps@sam_data$amplicon_type = ps@sam_data$amplicon_type %>% tolower()
-  metadata = theseus::pstoveg_sample(ps) %>% dplyr::arrange(amplicon_type)
-  ASV_table_ps = theseus::pstoveg_otu(ps) %>% t() %>% as.data.frame()
-  ASV_table_ps = ASV_table_ps[,match(metadata$sample_id, names(ASV_table_ps))] %>% rownames_to_column('OTU_ID')
-  names_blanks_ps = c("OTU_ID",ps %>% subset_samples(amplicon_type!="sample") %>% sample_names())
-  names_samples_ps = ps %>% subset_samples(amplicon_type=="sample") %>% sample_names()
-  ASV_table_ps <- subset(ASV_table_ps, select=c(names_blanks_ps,names_samples_ps))
-  if(!is.null(ps@tax_table)){
-    Taxo=as.data.frame(ps@tax_table@.Data); Taxo$OTU_ID = rownames(Taxo)
-    sorted = Taxo %>% unite("Taxonomy", 1:(ncol(Taxo)-1),sep = ";")
-    ASV_table_ps = ASV_table_ps[match(sorted$OTU_ID,ASV_table_ps$OTU_ID),]
-    ASV_table_ps$Taxonomy = sorted$Taxonomy
-  }
-  df_temp = metadata %>% group_by_at(which(colnames(metadata) %in% c("amplicon_type",groups))) %>% dplyr::count()
-  #MicroDecon function
-  if(!is.null(ps@tax_table)){
-    decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = TRUE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
-    ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = theseus::pstoveg_sample(ps), decontaminated = decontaminated_ext, taxo_ranks = colnames(Taxo)[(colnames(Taxo)!="OTU_ID")])
-  }else{
-    decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = FALSE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
-    ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = theseus::pstoveg_sample(ps), decontaminated = decontaminated_ext)
-  }
+    #ps@sam_data$amplicon_type = suppressWarnings(str_replace_all(ps@sam_data$amplicon_type, pattern = c("NA","na","Na","NaN","nan",""), replacement = NA_character_))
+    ps@sam_data$amplicon_type = ps@sam_data$amplicon_type %>% tolower()
+    metadata = theseus::pstoveg_sample(ps) %>% dplyr::arrange(amplicon_type)
+    ASV_table_ps = theseus::pstoveg_otu(ps) %>% t() %>% as.data.frame()
+    ASV_table_ps = ASV_table_ps[,match(metadata$sample_id, names(ASV_table_ps))] %>% rownames_to_column('OTU_ID')
+    names_blanks_ps = c("OTU_ID",ps %>% subset_samples(amplicon_type!="sample") %>% sample_names())
+    names_samples_ps = ps %>% subset_samples(amplicon_type=="sample") %>% sample_names()
+    ASV_table_ps <- subset(ASV_table_ps, select=c(names_blanks_ps,names_samples_ps))
+    if(!is.null(ps@tax_table)){
+      Taxo=as.data.frame(ps@tax_table@.Data); Taxo$OTU_ID = rownames(Taxo)
+      sorted = Taxo %>% unite("Taxonomy", 1:(ncol(Taxo)-1),sep = ";")
+      ASV_table_ps = ASV_table_ps[match(sorted$OTU_ID,ASV_table_ps$OTU_ID),]
+      ASV_table_ps$Taxonomy = sorted$Taxonomy
+    }
+    df_temp = metadata %>% group_by_at(which(colnames(metadata) %in% c("amplicon_type",groups))) %>% dplyr::count()
+    #MicroDecon function
+    if(!is.null(ps@tax_table)){
+      decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = TRUE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
+      ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = theseus::pstoveg_sample(ps), decontaminated = decontaminated_ext, taxo_ranks = colnames(Taxo)[(colnames(Taxo)!="OTU_ID")])
+    }else{
+      decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = FALSE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
+      ps_trimmed = microDecon_2_phyloseq(ps_obj = ps, env = theseus::pstoveg_sample(ps), decontaminated = decontaminated_ext)
+    }
 
   }else if(method == "max_v"){
-    Extraction_neg_max_vec <- apply(ps_blank %>% theseus::pstoveg_otu %>% t() %>% as.data.frame, 1, max) %>% as.vector()
+    ps_blank = ps %>% subset_samples(amplicon_type!="sample")
+    Extraction_neg_max_vec <- apply(ps_blank %>% theseus::pstoveg_otu() %>% t() %>% as.data.frame(), 1, max) %>% as.vector()
     names(Extraction_neg_max_vec) = taxa_names(ps_blank)
-    Extractiondf = ps %>% theseus::pstoveg_otu %>% as.data.frame() %>% dplyr::select(ASVs_in_Blanks)
+    Extractiondf = ps %>% theseus::pstoveg_otu() %>% as.data.frame() %>% dplyr::select(ASVs_in_Blanks)
     Extractiondf = sweep(Extractiondf,MARGIN=2,Extraction_neg_max_vec,FUN="-")
     Extractiondf <- replace(Extractiondf, Extractiondf < 0, 0)
-    new_df = ps %>% theseus::pstoveg_otu %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
+    new_df = ps %>% theseus::pstoveg_otu() %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
     new_df = cbind(new_df, Extractiondf)
     ps_trimmed = ps
     ps_trimmed@otu_table = otu_table(new_df, taxa_are_rows=FALSE)

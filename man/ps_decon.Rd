@@ -17,37 +17,37 @@ ps_decon(
 )
 }
 \arguments{
-\item{ps}{Phyloseq object to decontaminate
-groups               To be used in the numb.ind argument of the microDecon::decon function
-method               Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'
-(...)                  If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon}
+\item{ps}{Phyloseq object to decontaminate\cr
+groups               To be used in the numb.ind argument of the microDecon::decon function\cr
+method               Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
+(...)                  If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr}
 }
 \description{
 This function offers 3 different options to remove putative sequence contamination
 of a phyloseq object. The microDecon option is a wrapper of the decon function
 from microDecon R package. It performs the decon function on a phyloseq object
 with sample data and returns a decontaminated phyloseq object with sample data,
-taxonomy and reference sequences if present.
+taxonomy and reference sequences if present.\cr
 The 'max_v' option subtract read associated to putative contaminant ASV by using
-their max read count in blank(s).
-Finally, the 'complete_asv_removal' removes all ASVs found all blanks from the dataset.
-Note that the 'max_v' option does not take into account the compositional nature of the data.
+their max read count in blank(s).\cr
+Finally, the 'complete_asv_removal' removes all ASVs found all blanks from the dataset.\cr
+Note that the 'max_v' option does not take into account the compositional nature of the data.\cr
 Also note that microDecon assumes a common source of contamination. Quoting the authors,
 "If substantial differences among blanks occur only across experimental blocks, such as
 extraction kits (suggesting consistent contamination within a block), then use microDecon
 separately for each block. If, however, there is substantial variability among blanks within
 blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
 
-The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type
+The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type.\cr
 Non blank samples must be labeled as 'sample'.
 
-For example:
-sample_id   amplicon_type         DNA_extraction_batch      extraction_method   etc.
-sample1     sample                1                         manual
-sample2     sampling_blank        1                         manual
-sample3     dna_extraction_blank  2                         robot
-sample4     sample                2                         robot
-sample5     pcr_blank             2                         robot
+For example:\cr
+sample_id   amplicon_type         DNA_extraction_batch      extraction_method   etc.\cr
+sample1     sample                1                         manual\cr
+sample2     sampling_blank        1                         manual\cr
+sample3     dna_extraction_blank  2                         robot\cr
+sample4     sample                2                         robot\cr
+sample5     pcr_blank             2                         robot\cr
 }
 \examples{
 ps_to_microDecon(ps_test_data, groups = "extraction_method")
