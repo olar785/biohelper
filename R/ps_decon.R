@@ -25,11 +25,11 @@
 #'
 #'For example:\cr
 #'| sample_id | amplicon_type | DNA_extraction_batch | extraction_method | etc.\cr
-#'| sample1 | sample | 1 | manual\cr
-#'| sample2 | sampling_blank | 1 | manual\cr
-#'sample3 | dna_extraction_blank | 2 | robot\cr
-#'sample4 | sample | 2 | robot\cr
-#'sample5 | pcr_blank | 2 | robot\cr
+#'| sample1 | sample               | 1 | manual\cr
+#'| sample2 | sampling_blank       | 1 | manual\cr
+#'| sample3 | dna_extraction_blank | 2 | robot\cr
+#'| sample4 | sample               | 2 | robot\cr
+#'| sample5 | pcr_blank            | 2 | robot\cr
 #'
 #' @param
 #' ps                   Phyloseq object to decontaminate\cr
