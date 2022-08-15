@@ -24,18 +24,18 @@
 #' Non blank samples must be labeled as 'sample'.
 #'
 #'For example:\cr
-#'sample_id\tab amplicon_type\tab DNA_extraction_batch\tab extraction_method\tab etc.\cr
-#'sample1\tab sample\tab 1\tab manual\cr
-#'sample2\tab sampling_blank\tab 1\tab manual\cr
-#'sample3\tab dna_extraction_blank\tab 2\tab robot\cr
-#'sample4\tab sample\tab 2\tab robot\cr
-#'sample5\tab pcr_blank\tab 2\tab robot\cr
+#'| sample_id | amplicon_type | DNA_extraction_batch | extraction_method | etc.\cr
+#'| sample1 | sample | 1 | manual\cr
+#'| sample2 | sampling_blank | 1 | manual\cr
+#'sample3 | dna_extraction_blank | 2 | robot\cr
+#'sample4 | sample | 2 | robot\cr
+#'sample5 | pcr_blank | 2 | robot\cr
 #'
 #' @param
-#' ps\tab\tab\tab Phyloseq object to decontaminate\cr
-#' groups\tab\tab\tab To be used in the numb.ind argument of the microDecon::decon function\cr
-#' method\tab\tab\tab Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
-#' (...)\tab\tab\tab If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
+#' ps                   Phyloseq object to decontaminate\cr
+#' groups               To be used in the numb.ind argument of the microDecon::decon function\cr
+#' method               Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
+#' (...)                  If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
 #'
 #' @export
 #' @examples
