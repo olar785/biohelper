@@ -35,10 +35,13 @@
 #'
 #'
 #' @param
-#' ps \tab Phyloseq object to decontaminate\cr
-#' groups \tab To be used in the numb.ind argument of the microDecon::decon function\cr
-#' method \tab Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
-#' (...) \tab If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
+#' ps Phyloseq object to decontaminate\cr
+#' @param
+#' groups To be used in the numb.ind argument of the microDecon::decon function\cr
+#' @param
+#' method Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
+#' @param
+#' (...) If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
 #'
 #' @export
 #' @examples
