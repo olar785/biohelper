@@ -52,6 +52,15 @@ For example:\cr
 | sample3 | dna_extraction_blank | 2 | robot\cr
 | sample4 | sample               | 2 | robot\cr
 | sample5 | pcr_blank            | 2 | robot\cr
+
+\tabular{rrrrr}{
+\strong{mpg} \tab \strong{cyl} \tab \strong{disp} \tab \strong{hp} \tab \strong{drat} \cr
+21.0 \tab 6 \tab 160 \tab 110 \tab 3.90\cr
+21.0 \tab 6 \tab 160 \tab 110 \tab 3.90\cr
+22.8 \tab 4 \tab 108 \tab  93 \tab 3.85\cr
+21.4 \tab 6 \tab 258 \tab 110 \tab 3.08\cr
+18.7 \tab 8 \tab 360 \tab 175 \tab 3.15
+}
 }
 \examples{
 ps_to_microDecon(ps_test_data, groups = "extraction_method")
