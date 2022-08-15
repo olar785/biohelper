@@ -2,17 +2,18 @@
 % Please edit documentation in R/pop_taxa.R
 \name{pop_taxa}
 \alias{pop_taxa}
-\title{Loads pop_taxa}
+\title{pop_taxa}
 \usage{
 pop_taxa(ps_obj, undesiredTaxa)
+}
+\arguments{
+\item{ps_obj}{Phyloseq object to trim.}
+
+\item{undesiredTaxa}{names of taxa to be removed (generally ASV or OTU id), as long as it is in taxa_names() of the phyloseq object.}
 }
 \description{
 This function takes in a phyloseq object and a list of taxa to be removed.
 Credit to joey711 (https://github.com/joey711/phyloseq/issues/652)
-}
-\details{
-ps_obj = Phyloseq object to trim.
-undesiredTaxa = names of taxa to be removed (generally ASV or OTU id), as long as it is in taxa_names() of the phyloseq object.
 }
 \examples{
 undesiredTaxa = c("3b8f1e9447e2b3f55113dcd5d04eb152", "3efe4018e327153524ce8feb1db016ea", "3efe4018e327153524ce8feb1db016ea")

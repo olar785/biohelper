@@ -2,7 +2,7 @@
 % Please edit documentation in R/lcaPident.R
 \name{lcaPident}
 \alias{lcaPident}
-\title{Loads lcaPident}
+\title{lcaPident}
 \usage{
 lcaPident(
   blast_file,
@@ -21,17 +21,27 @@ lcaPident(
 )
 }
 \arguments{
-\item{blast_file}{Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"
-minSim             Minimum similarity to assign species hits (default: 97)
-minCov             Minimum coverage to keep hits (default: 80)
-update             Should the taxonomy database be updated? (default: FALSE)
-pident             To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment
-pgenus             Minimum similarity to assign genus (default: 95)
-pfamily            Minimum similarity to assign family (default: 87)
-porder             Minimum similarity to assign order (default: 83)
-pclass             Minimum similarity to assign class (default: 81)
-pphylum            Minimum similarity to assign phylum (default: 79)
-pkingdom           Minimum similarity to assign kingdom (default: 71)}
+\item{blast_file}{Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"}
+
+\item{minSim}{Minimum similarity to assign species hits (default: 97)}
+
+\item{minCov}{Minimum coverage to keep hits (default: 80)}
+
+\item{update}{Should the taxonomy database be updated? (default: FALSE)}
+
+\item{pident}{To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment}
+
+\item{pgenus}{Minimum similarity to assign genus (default: 95)}
+
+\item{pfamily}{Minimum similarity to assign family (default: 87)}
+
+\item{porder}{Minimum similarity to assign order (default: 83)}
+
+\item{pclass}{Minimum similarity to assign class (default: 81)}
+
+\item{pphylum}{Minimum similarity to assign phylum (default: 79)}
+
+\item{pkingdom}{Minimum similarity to assign kingdom (default: 71)}
 }
 \description{
 This function takes in the output of a blastn search with multiple hits and

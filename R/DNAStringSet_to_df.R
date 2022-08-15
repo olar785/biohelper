@@ -1,4 +1,4 @@
-#' Loads DNAStringSet_to_df
+#' DNAStringSet_to_df
 #'
 #' This function takes in a DNAStringSet object and return a dataframe.
 #'

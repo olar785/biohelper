@@ -1,13 +1,15 @@
-#' Loads NAs_to_Xs
+#' NAs_to_Xs
 #'
 #' This function replaces NA entries in a taxonomic table by the previous (higher)
 #' taxonomic information and adds Xs according to the number of NA entries for each organism.
 #'
-#' The first column must contain ASV/OTU identifiers as the example below:
-#' ASV     Kingdom     Phylum   Genus
-#' ASV_1   Eukaryota
-#' ASV_2   Eukaryota   Chordata  Mus
-#' ASV_3   Eukaryota   Chordata
+#' The first column must contain ASV/OTU identifiers as the example below:\cr
+#' \tabular{rrrrr}{
+#'   \strong{ASV} \tab \strong{Kingdom} \tab \strong{Phylum} \tab \strong{Genus} \cr
+#'   ASV_1 \tab Eukaryota \tab NA \tab NA \cr
+#'   ASV_2 \tab Eukaryota \tab Chordata \tab Mus \cr
+#'   ASV_3 \tab Eukaryota \tab Chordata \tab  NA
+#' }
 #'
 #' @export
 #' @examples

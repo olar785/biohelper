@@ -8,13 +8,17 @@
 #' (e.g. from Qiime2) or a phyloseq object.
 #'
 #' Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
-#' This takes few minutes to install using the following command:
+#'
+#' This takes few minutes to install using the following command:\cr
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
 #'
 #' @param
 #' obj = Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
+#' @param
 #' sqlFile = Path to the local NCBI taxonomy db
+#' @param
 #' ranks = Ranks to return
+#' @param
 #' keepSAR = Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)
 #'
 #' @export

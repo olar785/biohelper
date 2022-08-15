@@ -1,4 +1,4 @@
-#' Loads ps_decon
+#' ps_decon
 #'
 #' @description
 #' This function offers 3 different options to remove putative sequence contamination
@@ -25,7 +25,7 @@
 #'
 #'For example:\cr
 #' \tabular{rrrrr}{
-#'   \strong{sample_id} \tab \strong{amplicon_type} \tab \strong{DNA_extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr
+#'   \strong{sample_id} \tab \strong{amplicon_type} \tab \strong{extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr
 #'   sample1 \tab sample \tab 1 \tab manual \tab NA\cr
 #'   sample2 \tab sampling_blank \tab 1 \tab manual \tab NA\cr
 #'   sample3 \tab dna_extraction_blank \tab 2 \tab  robot \tab NA\cr
@@ -41,7 +41,7 @@
 #' @param
 #' method Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
 #' @param
-#' (...) If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr
+#' (...) If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon.\cr
 #'
 #' @export
 #' @examples

@@ -1,4 +1,4 @@
-#' Loads taxo_merge
+#' taxo_merge
 #'
 #' @description
 #' This function takes in two taxonomic assignment dataframes, normalises the
@@ -6,15 +6,21 @@
 #' taxonomic resolution between the two assignments if there is consensus across
 #' all assigned ranks. Otherwise, it assigns taxonomy using a Last common
 #' ancestor approach (LCA).
+#'
 #' Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
+#'
 #' This takes few minutes to install using the following command:
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package.
 #'
 #' @param
 #' df1            First dataframe with taxonomic assignment
+#' @param
 #' df2            Second dataframe with taxonomic assignment
+#' @param
 #' sqlFile        Path to NCBI taxonomic reference database
+#' @param
 #' ranks          Ranks to return
+#' @param
 #' keepSAR        Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)
 #'
 #' @export

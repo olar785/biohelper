@@ -2,16 +2,20 @@
 % Please edit documentation in R/taxo_merge.R
 \name{taxo_merge}
 \alias{taxo_merge}
-\title{Loads taxo_merge}
+\title{taxo_merge}
 \usage{
 taxo_merge(df1, df2, sqlFile, ranks, keepSAR = F)
 }
 \arguments{
-\item{df1}{First dataframe with taxonomic assignment
-df2            Second dataframe with taxonomic assignment
-sqlFile        Path to NCBI taxonomic reference database
-ranks          Ranks to return
-keepSAR        Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)}
+\item{df1}{First dataframe with taxonomic assignment}
+
+\item{df2}{Second dataframe with taxonomic assignment}
+
+\item{sqlFile}{Path to NCBI taxonomic reference database}
+
+\item{ranks}{Ranks to return}
+
+\item{keepSAR}{Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)}
 }
 \description{
 This function takes in two taxonomic assignment dataframes, normalises the
@@ -19,7 +23,9 @@ taxonomy using NCBI curated taxonomic database, and uses the highest
 taxonomic resolution between the two assignments if there is consensus across
 all assigned ranks. Otherwise, it assigns taxonomy using a Last common
 ancestor approach (LCA).
+
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
+
 This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package.
 }

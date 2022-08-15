@@ -2,7 +2,7 @@
 % Please edit documentation in R/DNAStringSet_to_df.R
 \name{DNAStringSet_to_df}
 \alias{DNAStringSet_to_df}
-\title{Loads DNAStringSet_to_df}
+\title{DNAStringSet_to_df}
 \usage{
 DNAStringSet_to_df(dss)
 }

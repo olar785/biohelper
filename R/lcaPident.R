@@ -1,4 +1,4 @@
-#' Loads lcaPident
+#' lcaPident
 #'
 #' @description
 #' This function takes in the output of a blastn search with multiple hits and
@@ -7,15 +7,25 @@
 #'
 #' @param
 #' blast_file        Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"
+#' @param
 #' minSim             Minimum similarity to assign species hits (default: 97)
+#' @param
 #' minCov             Minimum coverage to keep hits (default: 80)
+#' @param
 #' update             Should the taxonomy database be updated? (default: FALSE)
+#' @param
 #' pident             To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment
+#' @param
 #' pgenus             Minimum similarity to assign genus (default: 95)
+#' @param
 #' pfamily            Minimum similarity to assign family (default: 87)
+#' @param
 #' porder             Minimum similarity to assign order (default: 83)
+#' @param
 #' pclass             Minimum similarity to assign class (default: 81)
+#' @param
 #' pphylum            Minimum similarity to assign phylum (default: 79)
+#' @param
 #' pkingdom           Minimum similarity to assign kingdom (default: 71)
 #'
 #' @export

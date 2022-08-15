@@ -2,7 +2,7 @@
 % Please edit documentation in R/ps_decon.R
 \name{ps_decon}
 \alias{ps_decon}
-\title{Loads ps_decon}
+\title{ps_decon}
 \usage{
 ps_decon(
   ps,
@@ -23,7 +23,7 @@ ps_decon(
 
 \item{groups}{To be used in the numb.ind argument of the microDecon::decon function\cr}
 
-\item{(...)}{If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon\cr}
+\item{(...)}{If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon.\cr}
 }
 \description{
 This function offers 3 different options to remove putative sequence contamination
@@ -50,7 +50,7 @@ Non blank samples must be labeled as 'sample'.
 
 For example:\cr
 \tabular{rrrrr}{
-\strong{sample_id} \tab \strong{amplicon_type} \tab \strong{DNA_extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr
+\strong{sample_id} \tab \strong{amplicon_type} \tab \strong{extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr
 sample1 \tab sample \tab 1 \tab manual \tab NA\cr
 sample2 \tab sampling_blank \tab 1 \tab manual \tab NA\cr
 sample3 \tab dna_extraction_blank \tab 2 \tab  robot \tab NA\cr

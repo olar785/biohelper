@@ -1,4 +1,4 @@
-#' Loads taxo_bar_plot
+#' taxo_bar_plot
 #'
 #' @description
 #' This function takes in a phyloseq object with taxonomy and returns a bar plot with colours and shades per
@@ -7,16 +7,20 @@
 #'
 #' @param
 #' rank1                Taxonomic rank to be associated with colours (e.g. Phylum)
+#' @param
 #' rank2                Taxonomic rank to be associated with shades of colours (e.g. Family)
+#' @param
 #' colors               Colors to be used
+#' @param
 #' n_rank2              Number of shades to use per colour. Taxa which rank below that number will be assigned to "Other".
+#' @param
 #' alpha_num_ordering   Whether to order samples alpha-numerically (default == F)
 #'
 #' @export
 #' @examples
-#' colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")
-#' ps_test_data_t = ps_test_data %>% tax_glom('Family') %>% microbiome::transform(transform = "compositional")
-#' p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors,  f = "extraction_method")
+#' colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")\cr
+#' ps_test_data_t = ps_test_data %>% tax_glom('Family') %>% microbiome::transform(transform = "compositional")\cr
+#' p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors,  f = "extraction_method")\cr
 #' p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
 
 taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = NA, n_rank2 = 6, colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon"), alpha_num_ordering=F){
