@@ -30,7 +30,7 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   # Creating dataframe
   dfn = psmelt(ps_obj)
   # Removing taxa with zero abundance
-  dff = dfn[dfn$Abundance>0,]
+  dff = dfn %>% filter(Abundance >0)
   # Converting all factors to character strings
   dff = dff %>% mutate_if(is.factor, as.character)
   # Changing rare rank1 to 'Others'
