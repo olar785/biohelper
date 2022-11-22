@@ -151,4 +151,3 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     return(res_df %>% rownames_to_column("feature_id"))
   }
 }
-

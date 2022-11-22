@@ -65,7 +65,7 @@
 #' queries="uniqueSeqsTest.fasta",\cr
 #' megablast_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",\cr
 #' blastn_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",db="nt",\cr
-#' output="blast_results",\cr
+#' output_path="blast_results",\cr
 #' nthreads=10)
 
 
@@ -98,8 +98,9 @@ blastn_taxo_assignment = function(blastapp_path,
   if(method == "both"){
     cat("\nPerforming megablast and blastn\n")
     system2(blastapp_path, args = c(args,megablast_opts,"-task megablast", paste0("-out"," ",output_path,"/megablast_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
+    cat("\nDone with megablast, now starting blastn\n")
     system2(blastapp_path, args = c(args,blastn_opts,"-task blastn", paste0("-out"," ",output_path,"/blastn_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
-
+    cat("\nDone with blastn\n")
   }else if(method == "megablast"){
     cat("\nPerforming megablast only\n")
     system2(blastapp_path, args = c(args,megablast_opts,"-task megablast", paste0("-out"," ",output_path,"/megablast_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
@@ -112,8 +113,24 @@ blastn_taxo_assignment = function(blastapp_path,
     stop("The method specified is not available. Options are 'megablast', 'blastn' and 'both'", call. = FALSE)
   }
 
+  # R packages used
+  list.of.packages <- c("tidyverse", "data.table","reshape2","reticulate")
+  # Install packages not yet installed
+  installed_packages <- packages %in% rownames(installed.packages())
+  if (any(installed_packages == FALSE)) {
+    install.packages(packages[!installed_packages])
+  }
+  # Packages loading
+  invisible(lapply(packages, library, character.only = TRUE))
+
   # Taxonomic assignment using LCA and pident
-  reticulate::py_run_file(system.file("env.py",package = "biohelper"))
+  for (i in c("pandas","ete3","csv","re","argparse","numpy", "time", "tqdm")) {
+    if(reticulate::py_module_available(!i)){
+      reticulate::py_install(i)
+    }
+  }
+
+  reticulate::py_run_file(file = system.file("env.py",package = "biohelper"))
   pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
 
   args_general = paste(
@@ -176,7 +193,6 @@ blastn_taxo_assignment = function(blastapp_path,
       }
     }
   }
-
   newdf$nRb = rowSums(is.na(newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) | newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] == "")
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
   cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())

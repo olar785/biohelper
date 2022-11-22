@@ -106,4 +106,3 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
            guides(fill=guide_legend(title=paste0(str_to_title(rank1),"; ",str_to_title(rank2))))
   )
 }
-

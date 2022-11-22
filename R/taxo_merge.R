@@ -65,8 +65,8 @@ taxo_merge = function(df1,
     }
   }
 
-newdf$nRb = rowSums(!is.na(newdf[,ranks] ) & newdf[,ranks] != "")
-temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
-cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
-return(newdf %>% dplyr::select(-nRb))
+  newdf$nRb = rowSums(!is.na(newdf[,ranks] ) & newdf[,ranks] != "")
+  temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
+  cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
+  return(newdf %>% dplyr::select(-nRb))
 }

@@ -48,32 +48,50 @@ lcaPident = function(blast_file,
                      taxonly="TRUE")
 {
 
-reticulate::py_run_file(system.file("env.py",package = "biohelper"))
+  # R packages used
+  list.of.packages <- c("tidyverse", "data.table","reshape2","reticulate")
+  # Install packages not yet installed
+  installed_packages <- packages %in% rownames(installed.packages())
+  if (any(installed_packages == FALSE)) {
+    install.packages(packages[!installed_packages])
+  }
+  # Packages loading
+  invisible(lapply(packages, library, character.only = TRUE))
 
-# Taxonomic assignment using LCA and pident
-pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
-args_general = paste(
-  paste("--minSim", minSim, collapse = " "),
-  paste("--minCov", minCov, collapse = " "),
-  paste("--update", update, collapse = " "),
-  paste("--pident", pident, collapse = " "),
-  paste("--pgenus", pgenus, collapse = " "),
-  paste("--pfamily", pfamily, collapse = " "),
-  paste("--porder", porder, collapse = " "),
-  paste("--pclass", pclass, collapse = " "),
-  paste("--pphylum", pphylum, collapse = " "),
-  paste("--pkingdom", pkingdom, collapse = " "),
-  paste("--taxonly", taxonly, collapse = " "))
+  # Taxonomic assignment using LCA and pident
+  for (i in c("pandas","ete3","csv","re","argparse","numpy", "time", "tqdm")) {
+    if(reticulate::py_module_available(!i)){
+      reticulate::py_install(i)
+    }
+  }
 
-args_blastn = paste(
-  paste("-b", blast_file, collapse = " "),
-  paste("-o", output, collapse = " "),
-  args_general
-)
-system2(pyscript, args_blastn)
-temp = fread(output) %>% dplyr::mutate(colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
-temp$nRb = rowSums(!is.na(temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) & temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] != "")
-temp_summary = temp %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
-cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
-return(temp %>% dplyr::select(-c(taxonomy,nRb,Percent_Identity,Sequence_coverage)))
+  reticulate::py_run_file(file = system.file("env.py",package = "biohelper"))
+
+
+  # Taxonomic assignment using LCA and pident
+  pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
+  args_general = paste(
+    paste("--minSim", minSim, collapse = " "),
+    paste("--minCov", minCov, collapse = " "),
+    paste("--update", update, collapse = " "),
+    paste("--pident", pident, collapse = " "),
+    paste("--pgenus", pgenus, collapse = " "),
+    paste("--pfamily", pfamily, collapse = " "),
+    paste("--porder", porder, collapse = " "),
+    paste("--pclass", pclass, collapse = " "),
+    paste("--pphylum", pphylum, collapse = " "),
+    paste("--pkingdom", pkingdom, collapse = " "),
+    paste("--taxonly", taxonly, collapse = " "))
+
+  args_blastn = paste(
+    paste("-b", blast_file, collapse = " "),
+    paste("-o", output, collapse = " "),
+    args_general
+  )
+  system2(pyscript, args_blastn)
+  temp = fread(output) %>% dplyr::mutate(colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
+  temp$nRb = rowSums(!is.na(temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) & temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] != "")
+  temp_summary = temp %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
+  cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
+  return(temp %>% dplyr::select(-c(taxonomy,nRb,Percent_Identity,Sequence_coverage)))
 }
