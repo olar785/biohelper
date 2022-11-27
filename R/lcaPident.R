@@ -49,7 +49,7 @@ lcaPident = function(blast_file,
 {
 
   # R packages used
-  list.of.packages <- c("tidyverse", "data.table","reshape2","reticulate")
+  packages <- c("tidyverse", "data.table","reshape2","reticulate")
   # Install packages not yet installed
   installed_packages <- packages %in% rownames(installed.packages())
   if (any(installed_packages == FALSE)) {
