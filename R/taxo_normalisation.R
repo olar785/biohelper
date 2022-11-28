@@ -141,7 +141,9 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
 
   if(keepSAR & ("kingdom" %in% ranks)){
     index = which(Reduce(`|`, lapply(df[-1], grepl, pattern="SAR")))
-    res_df[index,]$kingdom = "SAR"
+    if(length(index)>0){
+      res_df[index,]$kingdom = "SAR"
+    }
   }
 
   if("phyloseq" %in% class(obj)){
