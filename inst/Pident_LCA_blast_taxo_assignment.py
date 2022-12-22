@@ -55,7 +55,7 @@ def handle_program_options():
                         help='Minimum similarity to assign phylum (default: 79)')
     parser.add_argument('--pkingdom', default=71, type=int,
                         help='Minimum similarity to assign kingdom (default: 71)')                        
-    parser.add_argument('--taxonly', default="False", type=str,
+    parser.add_argument('--taxonly', default="True", type=str,
                         help='Do not require the ASV/OTU table')
     parser.add_argument('-v', '--verbose', action='store_true')
 
@@ -97,8 +97,7 @@ def taxo_assignment(tabl, dict_blast):
 
 # PIDENT
 # Function to reduce taxonomy assignment depending on pident value
-def pidentThresholds(row):
-    # print(row.taxonomy)
+def pidentThresholds(row, minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus):
     if row['pident'] < pkingdom:
         row[["kingdom", 'phylum', 'class', 'order', 'family', 'genus',
              'species']] = "NA", "NA", "NA", "NA", "NA", "NA", "NA"
@@ -182,32 +181,32 @@ def taxo_consensus(tabl, tabl2, minSim):
 
 
 # Functions for taxo assignment based on any of the 3 options
-def pident_bef_LCA(b_trimmed, mS):
+def pident_bef_LCA(b_trimmed, minSim, pkingdom, pphylum, pclass ,porder, pfamily, pgenus):
     b_trimmed = b_trimmed[b_trimmed.taxonomy != "NA"]
     # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
-    b_trimmed = b_trimmed.apply(pidentThresholds, axis=1)
+    b_trimmed = b_trimmed.apply(pidentThresholds, args = (minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus), axis=1)
     b_trimmed = b_trimmed.replace(r'NA', "", regex=True)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
-    f_btbl = taxo_consensus(dummy2, b_trimmed, mS)
+    f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     print('\nPident trimming and LCA completed')
     return f_btbl
 
 
-def LCA_bef_pident(b_trimmed, mS):
+def LCA_bef_pident(b_trimmed, minSim, pkingdom, pphylum, pclass, porder, pfamily, pgenus):
     # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
-    f_btbl = taxo_consensus(dummy2, b_trimmed, mS)
+    f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     # Pident thresholds
-    f_btbl = f_btbl[f_btbl.taxonomy != "NA"]
-    f_btbl = f_btbl.apply(pidentThresholds, axis=1)
+    f_btbl2 = f_btbl[f_btbl.taxonomy != "NA"]
+    f_btbl = f_btbl2.apply(pidentThresholds, args = (minSim, pkingdom, pphylum, pclass, porder, pfamily, pgenus), axis=1)
     #f_btbl = f_btbl.replace([None], ['NA'], regex=True)
     f_btbl = f_btbl.replace(r'^\s*$', 'NA', regex = True)
-    f_btbl = tt.replace(np.nan, 'NA', regex=True)
+    f_btbl = f_btbl.replace(np.nan, 'NA', regex=True)
     f_btbl['taxonomy'] = f_btbl[['superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']].apply(lambda x: ';'.join(x), axis=1)
-    f_btbl['taxonomy'] = f_btbl.taxonomy.str.replace("[", "").str.replace("]", "").str.replace("'", "").str.replace(" ,", "").str.replace(", ", "").str.replace(",", "").str.replace("nan", "").str.replace("NA", "").str.replace("^;;;;;;;", "Unknown")
+    f_btbl['taxonomy'] = f_btbl.taxonomy.str.replace("[", "", regex=False).str.replace("]", "", regex=False).str.replace("'", "", regex=False).str.replace(" ,", "", regex=False).str.replace(", ", "", regex=False).str.replace(",", "", regex=False).str.replace("nan", "", regex=False).str.replace("NA", "", regex=False).str.replace("^;;;;;;;", "Unknown", regex=True)
     print('\nLCA and Pident trimming completed')
     return f_btbl
 
@@ -216,7 +215,7 @@ def LCA_only(b_trimmed, mS):
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
-    f_btbl = taxo_consensus(dummy2, b_trimmed, mS)
+    f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     print('\nLCA completed')
     return f_btbl
 
@@ -277,8 +276,6 @@ def blast_to_taxonomy_tbl(btbl, ftbl):
 ##############################        MAIN        #################################################
 def main():
     args = handle_program_options()
-    minSim = args.minSim
-    minCov = args.minCov
     taxonly = args.taxonly.lower()
     update = args.update.lower()
     blast = pd.read_table(args.btbl,
@@ -298,7 +295,7 @@ def main():
         'unidentified', na=False)]
     blast_trimmed = blast_trimmed[~blast_trimmed.sscinames.str.contains(
         'environmental sample', na=False)]
-    blast_trimmed = blast_trimmed[blast_trimmed.qcovs >= minCov]
+    blast_trimmed = blast_trimmed[blast_trimmed.qcovs >= args.minCov]
 
     # 2- Make a list of all unique staxids
     blast_trimmed.staxids = blast_trimmed.staxids.apply(str)
@@ -333,15 +330,15 @@ def main():
     # Insert taxonomy into blast table
     if args.pident == "before":
         print('\nReducing taxonomy resolution based on percent identity thresholds and then LCA')
-        final_btbl = pident_bef_LCA(blast_trimmed, minSim)
+        final_btbl = pident_bef_LCA(b_trimmed = blast_trimmed, minSim = args.minSim, pkingdom = args.pkingdom, pphylum = args.pphylum, pclass = args.pclass, porder = args.porder, pfamily = args.pfamily, pgenus = args.pgenus)
     elif args.pident == "after":
         print('\nReducing taxonomy resolution based on LCA and then percent identity thresholds')
-        final_btbl = LCA_bef_pident(blast_trimmed, minSim)
+        final_btbl = LCA_bef_pident(b_trimmed = blast_trimmed, minSim = args.minSim, pkingdom = args.pkingdom, pphylum = args.pphylum, pclass = args.pclass, porder = args.porder, pfamily = args.pfamily, pgenus = args.pgenus)
 
     else:
         # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
         print('\nReducing taxonomy resolution based on LCA only')
-        final_btbl = LCA_only(blast_trimmed, minSim)
+        final_btbl = LCA_only(blast_trimmed, args.minSim)
 
     # 7- Assign taxonomy to each feature-id
     if taxonly == "false":
