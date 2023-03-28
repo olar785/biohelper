@@ -60,7 +60,7 @@ lcaPident = function(blast_file,
 
   # Taxonomic assignment using LCA and pident
   for (i in c("pandas","ete3","csv","re","argparse","numpy", "time", "tqdm")) {
-    if(reticulate::py_module_available(!i)){
+    if(!reticulate::py_module_available(i)){
       reticulate::py_install(i)
     }
   }
