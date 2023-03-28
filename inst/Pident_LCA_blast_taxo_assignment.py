@@ -132,9 +132,8 @@ def pidentThresholds(row, minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus):
         return row
 
 # LCA
-# If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
+# If similarity of best hit => minSim%, assign to species level, otherwise assign to last common ancestor
 def taxo_consensus(tabl, tabl2, minSim):
-    print('\nKeeping species name if %similarity is >= minSim (default 97%) otherwise find LCA\n')
     new = tabl
     #new['species'] = ["" if new[new.index == ind]["pident"].iat[0] < minSim else new[new.index == ind]["species"].iat[0] for ind in new.index]
 
@@ -183,7 +182,6 @@ def taxo_consensus(tabl, tabl2, minSim):
 # Functions for taxo assignment based on any of the 3 options
 def pident_bef_LCA(b_trimmed, minSim, pkingdom, pphylum, pclass ,porder, pfamily, pgenus):
     b_trimmed = b_trimmed[b_trimmed.taxonomy != "NA"]
-    # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
     b_trimmed = b_trimmed.apply(pidentThresholds, args = (minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus), axis=1)
     b_trimmed = b_trimmed.replace(r'NA', "", regex=True)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
@@ -194,7 +192,6 @@ def pident_bef_LCA(b_trimmed, minSim, pkingdom, pphylum, pclass ,porder, pfamily
 
 
 def LCA_bef_pident(b_trimmed, minSim, pkingdom, pphylum, pclass, porder, pfamily, pgenus):
-    # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
@@ -211,7 +208,6 @@ def LCA_bef_pident(b_trimmed, minSim, pkingdom, pphylum, pclass, porder, pfamily
     return f_btbl
 
 def LCA_only(b_trimmed, minSim):
-    # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
