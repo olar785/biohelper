@@ -29,7 +29,7 @@
 #' taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), keepSAR=F)
 
 
-taxo_merge_v2 = function(
+taxo_merge = function(
     df_list,
     sqlFile,
     ranks,
