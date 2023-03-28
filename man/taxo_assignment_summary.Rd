@@ -16,5 +16,5 @@ This function takes in a dataframe of taxonomic assignment and returns the mean 
 }
 \examples{
 df = ps_test_data@tax_table \%>\% as.data.frame()
-taxo_assingment_summary(df = df, ranks = c("Kingdom","Phylum","CLass","Order","Family","Genus"))
+taxo_assignment_summary(df = df, ranks = c("Kingdom","Phylum","Class","Order","Family","Genus"))
 }
