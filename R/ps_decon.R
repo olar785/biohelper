@@ -45,7 +45,7 @@
 #'
 #' @export
 #' @examples
-#' ps_to_microDecon(ps_test_data, groups = "extraction_method")
+#' ps_to_Decon(ps_test_data, groups = "extraction_method")
 
 ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh = 0.7, prop.thresh = 0.00005, regression = 0, low.threshold=40, up.threshold=400){
   # Creating custom microDecon function
