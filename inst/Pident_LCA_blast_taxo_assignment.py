@@ -2,11 +2,10 @@
 
 
 '''
-This scripts uses python 3 and the following libraries need to be installed 'pandas', 'ete3' and 'argparse' installed.
+This scripts uses python 3 and the following libraries need to be installed 'pandas', 'ete3' and 'argparse'.
 
-The blastn file needs NO modification. As long as blastn format 6 output with options 
+The blastn file needs no modification. As long as it is the blastn format 6 output with options 
 "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp" 
-are used
 
 If you use the taxonly option because you do not want to or do not have the ASV/OTU table, the output taxonomy file may be missing some entries compared to the number of ASVs/OTUs you are expecting. This is because some ASVs/OTUs will either have no hits with blastn or that no taxonomy could be returned (e.g. minimun coverage not respected, conflicting taxonomy at Kingdom level, etc.).
 
