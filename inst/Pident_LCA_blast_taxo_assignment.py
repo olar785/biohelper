@@ -210,7 +210,7 @@ def LCA_bef_pident(b_trimmed, minSim, pkingdom, pphylum, pclass, porder, pfamily
     print('\nLCA and Pident trimming completed')
     return f_btbl
 
-def LCA_only(b_trimmed, mS):
+def LCA_only(b_trimmed, minSim):
     # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
@@ -338,7 +338,7 @@ def main():
     else:
         # LCA assingment. If similarity of best hit => 97%, assign to species level, otherwise assign to last common ancestor
         print('\nReducing taxonomy resolution based on LCA only')
-        final_btbl = LCA_only(blast_trimmed, args.minSim)
+        final_btbl = LCA_only(blast_trimmed, minSim = args.minSim)
 
     # 7- Assign taxonomy to each feature-id
     if taxonly == "false":
