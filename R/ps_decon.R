@@ -79,6 +79,7 @@ ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh
   }
   # Ensuring no empty samples exist
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
+  ASVs_in_Blanks = ps %>% phyloseq::subset_samples(amplicon_type != "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% phyloseq::taxa_names()
 
   # Processing according to the chosen method
   if(method == "microDecon"){
