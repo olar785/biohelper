@@ -43,7 +43,7 @@ taxo_merge = function(
     df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = ranks, keepSAR = keepSAR)
     df_list[[i]] = df_list[[i]] %>%
       dplyr::mutate(df=as.character(i)) %>%
-      mutate_all(funs(na_if(., "Unknown")))
+      mutate_all(list(~na_if(., "Unknown")))
   }
 
   dfall = data.table::rbindlist(df_list)
