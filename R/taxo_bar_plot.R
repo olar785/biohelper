@@ -44,9 +44,11 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
   # Changing rare families to 'Others' including those with _X...
   dff[,rank2][grepl("_X", dff[,rank2], ignore.case=FALSE)] <- "Others"
   temp = dff %>% dplyr::group_by_at(c(which(colnames(dff)=="OTU"), which(colnames(dff)==ranks[1]):which(colnames(dff)==ranks[length(ranks)]))) %>% dplyr::summarise(ran2_Sum = sum(Abundance)) %>% as.data.frame()
-
-  temp_3 = temp %>% arrange(desc(ran2_Sum))
-  temp_3 = temp %>% group_by_at(which(colnames(temp)==ranks[1]):which(colnames(temp)==rank1)) %>% slice_max(order_by = ran2_Sum, n = 5)
+  temp_3 = temp %>% 
+    dplyr::group_by_at(c(which(colnames(temp) == ranks[1]):which(colnames(temp) == rank1))) %>% 
+    dplyr::arrange(desc(ran2_Sum), .by_group = T) %>%  
+    as.data.frame() %>% 
+    slice_head(n = 5,by = rank1)
   list_of_rare_rank2 = temp[(temp[,rank2] %>% as_vector() %>% unname()) %ni% (temp_3[,rank2] %>% as_vector() %>% unname()),]$OTU
   list_of_rare_rank2 = c(list_of_rare_rank2,temp[temp[,which(colnames(temp)==rank2)]=="NA",]$OTU)
   dff[dff$OTU %in% list_of_rare_rank2,rank2] = "Others"
