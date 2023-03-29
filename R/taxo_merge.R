@@ -48,7 +48,8 @@ taxo_merge = function(
 
   dfall = data.table::rbindlist(df_list)
   dfall$nRb = rowSums(is.na(dfall[,..ranks] ) | dfall[,..ranks] == "")
-  dfall <- dfall %>% mutate_all(na_if,"")
+  #dfall <- dfall %>% mutate_all(na_if,"")
+  dfall <- dfall %>% mutate(across(where(is.character), ~ na_if(.x, "")))
   dfall = dfall[!nRb==length(ranks),]
 
   newdf = data.frame(matrix(nrow=dfall$feature_id %>% unique() %>% length(), ncol = length(ranks)+1))
