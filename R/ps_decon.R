@@ -75,7 +75,10 @@ ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh
     env=env[rownames(env) %in% sample_names(ps_trimmed),]
     env=env[match(sample_names(ps_trimmed),rownames(env)),]
     sample_data(ps_trimmed) = sample_data(env)
-    return(ps_trimmed %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE))
+    ps_trimmed = ps_trimmed %>% 
+      phyloseq::subset_samples(amplicon_type=="sample") %>% 
+      phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
+    return(ps_trimmed)
   }
   # Ensuring no empty samples exist
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
