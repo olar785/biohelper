@@ -7,10 +7,10 @@
 #' information of additional desired ranks. It can either take in a taxonomy table
 #' (e.g. from Qiime2) or a phyloseq object.
 #'
-#' Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
+#' Importantly, this function requires the download of NCBI taxonomic database.
 #'
 #' This takes few minutes to install using the following command:\cr
-#' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
+#' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The database is ~65 GB but the user can set getAccessions=FALSE to drastically reduce its size.
 #'
 #' @param
 #' obj = Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
