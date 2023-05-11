@@ -7,7 +7,7 @@
 ps_decon(
   ps,
   method = "complete_asv_removal",
-  groups = NA,
+  group = NA,
   runs = 2,
   thresh = 0.7,
   prop.thresh = 5e-05,
@@ -21,7 +21,7 @@ ps_decon(
 
 \item{method}{Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr}
 
-\item{groups}{To be used in the numb.ind argument of the microDecon::decon function\cr}
+\item{group}{Will be used in the numb.ind argument of the microDecon::decon function\cr}
 
 \item{(...)}{If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon.\cr}
 }
@@ -59,5 +59,5 @@ sample5 \tab pcr_blank \tab 2 \tab robot \tab NA
 }
 }
 \examples{
-ps_to_microDecon(ps_test_data, groups = "extraction_method")
+ps_decon(ps_test_data, method = "microDecon", group = "extraction_method")
 }
