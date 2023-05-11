@@ -18,14 +18,14 @@ taxo_normalisation(obj, sqlFile, ranks, keepSAR = F)
 \description{
 This function performs normalisation of taxonomic assignments of 18S and COI data
 identified via silva, midori or any other reference databases, using NCBI curated
-classification and nomenclatureand database. It can also provide further taxonomic
+classification, nomenclature and database. It can also provide further taxonomic
 information of additional desired ranks. It can either take in a taxonomy table
 (e.g. from Qiime2) or a phyloseq object.
 
-Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
+Importantly, this function requires the download of NCBI taxonomic database. 
 
 This takes few minutes to install using the following command:\cr
-prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package
+prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The database is relatively large (~65GB) but the size can be drastically reduced by setting getAccessions=FALSE
 }
 \examples{
 data("ps_test_data")
