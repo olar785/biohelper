@@ -20,8 +20,9 @@
 #' separately for each block. If, however, there is substantial variability among blanks within
 #' blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
 #'
-#' The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type.
-#' Non blank samples must be labeled as 'sample'.
+#' The sample_data must have a column labeled sample_id and a column labeled amplicon_type, and the 
+#' non blank samples must be labeled as 'sample'. Alternatively, the user can provide a list of samples
+#' to use as controls.
 #'
 #'For example:\cr
 #' \tabular{rrrrr}{
@@ -37,17 +38,17 @@
 #' @param
 #' ps Phyloseq object to decontaminate\cr
 #' @param
-#' groups To be used in the numb.ind argument of the microDecon::decon function\cr
-#' @param
 #' method Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
+#' @param
+#' group Will be used in the numb.ind argument of the microDecon::decon function\cr
 #' @param
 #' (...) If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon.\cr
 #'
 #' @export
 #' @examples
-#' ps_to_Decon(ps_test_data, groups = "extraction_method")
+#' ps_decon(ps_test_data, method = "microDecon", group = "extraction_method")
 
-ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh = 0.7, prop.thresh = 0.00005, regression = 0, low.threshold=40, up.threshold=400){
+ps_decon = function(ps, method= "complete_asv_removal", group=NA, runs=2, thresh = 0.7, prop.thresh = 0.00005, regression = 0, low.threshold=40, up.threshold=400){
   # Creating custom microDecon function
   microDecon_2_phyloseq = function(ps_obj, env, decontaminated, taxo_ranks=NULL){
     if("Mean.blank" %in% colnames(decontaminated$decon.table)){
@@ -80,7 +81,8 @@ ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh
       phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
     return(ps_trimmed)
   }
-  # Ensuring no empty samples exist
+  
+  # Ensuring no empty sample exist
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
   ASVs_in_Blanks = ps %>% phyloseq::subset_samples(amplicon_type != "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% phyloseq::taxa_names()
 
@@ -100,7 +102,8 @@ ps_decon = function(ps, method= "complete_asv_removal",groups=NA, runs=2, thresh
       ASV_table_ps = ASV_table_ps[match(sorted$OTU_ID,ASV_table_ps$OTU_ID),]
       ASV_table_ps$Taxonomy = sorted$Taxonomy
     }
-    df_temp = metadata %>% group_by_at(which(colnames(metadata) %in% c("amplicon_type",groups))) %>% dplyr::count()
+    df_temp = metadata %>% 
+    _by_at(which(colnames(metadata) %in% c("amplicon_type",group))) %>% dplyr::count()
     #MicroDecon function
     if(!is.null(ps@tax_table)){
       decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = TRUE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
