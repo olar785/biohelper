@@ -102,8 +102,7 @@ ps_decon = function(ps, method= "complete_asv_removal", group=NA, runs=2, thresh
       ASV_table_ps = ASV_table_ps[match(sorted$OTU_ID,ASV_table_ps$OTU_ID),]
       ASV_table_ps$Taxonomy = sorted$Taxonomy
     }
-    df_temp = metadata %>% 
-    _by_at(which(colnames(metadata) %in% c("amplicon_type",group))) %>% dplyr::count()
+    df_temp = metadata %>% group_by_at(which(colnames(metadata) %in% c("amplicon_type",group))) %>% dplyr::count()
     #MicroDecon function
     if(!is.null(ps@tax_table)){
       decontaminated_ext <- microDecon::decon(data = ASV_table_ps, numb.blanks=sum(df_temp[df_temp$amplicon_type!="sample",]$n), numb.ind = df_temp[df_temp$amplicon_type=="sample",]$n, taxa = TRUE,runs, thresh, prop.thresh, regression, low.threshold, up.threshold)
