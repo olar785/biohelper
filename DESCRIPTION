@@ -26,7 +26,9 @@ Imports:
     reticulate,
     data.table,
     dplyr,
-    magrittr
+    magrittr,
+    cowplot,
+    microbiome
 Depends:
 	BiocManager,
 	remotes,
@@ -42,6 +44,8 @@ Depends:
     data.table,
     dplyr,
     magrittr,
+    cowplot,
+    microbiome,
     R (>= 2.10)
 biocViews:
 Remotes:
