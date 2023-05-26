@@ -45,8 +45,9 @@ extraction kits (suggesting consistent contamination within a block), then use m
 separately for each block. If, however, there is substantial variability among blanks within
 blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
 
-The sample_data MUST have a column labeled sample_id and a column labeled amplicon_type.
-Non blank samples must be labeled as 'sample'.
+The sample_data must have a column labeled sample_id and a column labeled amplicon_type, and the
+non blank samples must be labeled as 'sample'. Alternatively, the user can provide a list of samples
+to use as controls.
 
 For example:\cr
 \tabular{rrrrr}{
