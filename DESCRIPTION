@@ -4,7 +4,7 @@ Version: 0.0.5.000
 Authors@R: 
     person("Olivier", "Laroche", , "olar785@aucklanduni.ac.nz", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0755-0083"))
-Description: This package contains helper functions for various bioinformatics, data visualisation and analyses operations, including taxonomic normalisation, data decontamination, barplot of taxonomic composition, etc.
+Description: Helper functions for various bioinformatics, data visualisation and data analysis operations, including taxonomic normalisation, ASV decontamination, barplot of taxonomic composition, etc.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
