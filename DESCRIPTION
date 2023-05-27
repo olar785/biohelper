@@ -1,6 +1,6 @@
 Package: biohelper
 Title: Helper bioinformatics and data analysis functions
-Version: 0.0.6.000
+Version: 0.0.7.000
 Authors@R: 
     person("Olivier", "Laroche", , "olar785@aucklanduni.ac.nz", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0755-0083"))
@@ -50,7 +50,8 @@ Depends:
 biocViews:
 Remotes:
     donaldtmcknight/microDecon,
-    sw1/theseus
+    sw1/theseus,
+    mikemc/speedyseq
 Suggests: 
     knitr
 VignetteBuilder: knitr
