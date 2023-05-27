@@ -3,6 +3,8 @@
 #' @description
 #' This function takes in a phyloseq object and perform iNEXT from the iNEXT R package (Hsieh et al., 2022) on incidence frequency data (Chao2 method).
 #' Briefly, the data is split into a list of dataframes based on the grouping variable and frequency of incidence per group is calculated.
+#' If you use this function for a publication, please cite the creators of the iNEXT R package (citation('iNEXT')).
+#'
 #' @param
 #' pst            Phyloseq object
 #' @param

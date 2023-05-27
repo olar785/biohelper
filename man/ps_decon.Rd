@@ -49,6 +49,8 @@ The sample_data must have a column labeled sample_id and a column labeled amplic
 non blank samples must be labeled as 'sample'. Alternatively, the user can provide a list of samples
 to use as controls.
 
+If you use the decon function for a publication, please cite the creators of the microDecon R package (citation('microDecon')).
+
 For example:\cr
 \tabular{rrrrr}{
 \strong{sample_id} \tab \strong{amplicon_type} \tab \strong{extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr

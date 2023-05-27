@@ -20,9 +20,12 @@
 #' separately for each block. If, however, there is substantial variability among blanks within
 #' blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
 #'
-#' The sample_data must have a column labeled sample_id and a column labeled amplicon_type, and the 
+#' The sample_data must have a column labeled sample_id and a column labeled amplicon_type, and the
 #' non blank samples must be labeled as 'sample'. Alternatively, the user can provide a list of samples
 #' to use as controls.
+#'
+#' If you use the decon function for a publication, please cite the creators of the microDecon R package (citation('microDecon')).
+
 #'
 #'For example:\cr
 #' \tabular{rrrrr}{
@@ -76,12 +79,12 @@ ps_decon = function(ps, method= "complete_asv_removal", group=NA, runs=2, thresh
     env=env[rownames(env) %in% sample_names(ps_trimmed),]
     env=env[match(sample_names(ps_trimmed),rownames(env)),]
     sample_data(ps_trimmed) = sample_data(env)
-    ps_trimmed = ps_trimmed %>% 
-      phyloseq::subset_samples(amplicon_type=="sample") %>% 
+    ps_trimmed = ps_trimmed %>%
+      phyloseq::subset_samples(amplicon_type=="sample") %>%
       phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
     return(ps_trimmed)
   }
-  
+
   # Ensuring no empty sample exist
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
   ASVs_in_Blanks = ps %>% phyloseq::subset_samples(amplicon_type != "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% phyloseq::taxa_names()

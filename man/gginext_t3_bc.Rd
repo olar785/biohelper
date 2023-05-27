@@ -11,6 +11,7 @@ gginext_t3_bc(inext)
 }
 \description{
 This function takes in an iNEXT object and create a ggiNEXT plot of type 3 (Diversity per sample coverage) that contains a vertical line at base coverage (defined as the highest coverage value between minimum extrapolated values and maximum interpolated values)
+If you use this function for a publication, please cite the creators of the iNEXT R package (citation('iNEXT')).
 }
 \examples{
 inext_test = inext_ifreq_wrapper(pst = ps_test_data,  grp = "biome", q = 0, knots = 100, nboot = 200)

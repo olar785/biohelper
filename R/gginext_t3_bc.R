@@ -2,6 +2,8 @@
 #'
 #' @description
 #' This function takes in an iNEXT object and create a ggiNEXT plot of type 3 (Diversity per sample coverage) that contains a vertical line at base coverage (defined as the highest coverage value between minimum extrapolated values and maximum interpolated values)
+#' If you use this function for a publication, please cite the creators of the iNEXT R package (citation('iNEXT')).
+#'
 #' @param
 #' inext          iNEXT onject
 #'

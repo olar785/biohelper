@@ -33,7 +33,8 @@ upset_wrapper(
 }
 \description{
 This function is a wrapper to create an 'upset' figure from a phyloseq object and using the UpSetR package by Gehlenborg (2019).
-It returns a dataframe for UpsetR, the plot obtained directly from the 'upset' function and a ggplot2 object obtained from the cowplot::plot_grid function for conveniency.
+It returns a dataframe for UpsetR, the plot obtained directly from the 'upset' function and a ggplot2 object obtained from the cowplot::plot_grid function for convenience.
+If you use this function for a publication, please cite the creators of the UpSetR and cowplot R packages (citation('UpSetR') and citation('cowplot')).
 }
 \examples{
 upset_wrapper(pst = ps_test_data, grp = "biome")

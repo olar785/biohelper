@@ -2,7 +2,8 @@
 #'
 #' @description
 #' This function is a wrapper to create an 'upset' figure from a phyloseq object and using the UpSetR package by Gehlenborg (2019).
-#' It returns a dataframe for UpsetR, the plot obtained directly from the 'upset' function and a ggplot2 object obtained from the cowplot::plot_grid function for conveniency.
+#' It returns a dataframe for UpsetR, the plot obtained directly from the 'upset' function and a ggplot2 object obtained from the cowplot::plot_grid function for convenience.
+#' If you use this function for a publication, please cite the creators of the UpSetR and cowplot R packages (citation('UpSetR') and citation('cowplot')).
 #'
 #' @param
 #' pst            Phyloseq object
@@ -25,9 +26,9 @@
 
 upset_wrapper = function(pst, grp, order.by = "freq", sets.x.label = "Taxa richness", nrow = NULL, align = NULL, rel_heights = NULL, rel_widths = NULL,...){
   mylist <- sapply(c("upset_df","upset_plot","upset_plotv2"),function(x) NULL)
-  upset = pst %>% 
+  upset = pst %>%
     phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) %>%
-    merge_samples(grp) %>% 
+    merge_samples(grp) %>%
     microbiome::transform("pa")
   mylist[[1]] = upset %>% pstoveg_otu() %>% t() %>% as.data.frame()
   ups = upset(mylist[[1]], order.by = order.by, sets.x.label = sets.x.label, nsets = nrow(mylist[[1]]), ...)

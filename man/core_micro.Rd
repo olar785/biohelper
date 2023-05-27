@@ -25,6 +25,7 @@ core_micro(pst, grp, method = NULL, n = NULL, d = NULL, p = NULL, ...)
 This function takes in a phyloseq object and subset core taxa per a specified group as opposed to subsetting by the overall data.
 Two methods  currently available are 1) the 'core' function of the microbiome R package (Lahti et al., 2019) and 2) subsetting by Cumulative Relative ABundance (crab).
 The latter is defined by setting a divider to the maximum cumulative abundance, which will be used as a minimum threshold value to keep taxa.
+If you use this function for a publication, please cite the creators of the microbiome R package (citation('microbiome')).
 }
 \examples{
 core_micro(pst = ps_test_data,  grp = "biome", method = "crab", n = 10)
