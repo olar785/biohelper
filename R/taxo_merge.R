@@ -14,9 +14,7 @@
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package.
 #'
 #' @param
-#' df1            First dataframe with taxonomic assignment
-#' @param
-#' df2            Second dataframe with taxonomic assignment
+#' df_list        List of dataframes with taxonomic assignment
 #' @param
 #' sqlFile        Path to NCBI taxonomic reference database
 #' @param
@@ -43,13 +41,13 @@ taxo_merge = function(
     df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = ranks, keepSAR = keepSAR)
     df_list[[i]] = df_list[[i]] %>%
       dplyr::mutate(df=as.character(i)) %>%
-      mutate_all(list(~na_if(., "Unknown")))
+      dplyr::mutate_all(list(~na_if(., "Unknown")))
   }
 
   dfall = data.table::rbindlist(df_list)
   dfall$nRb = rowSums(is.na(dfall[,..ranks] ) | dfall[,..ranks] == "")
   #dfall <- dfall %>% mutate_all(na_if,"")
-  dfall <- dfall %>% mutate(across(where(is.character), ~ na_if(.x, "")))
+  dfall <- dfall %>% dplyr::mutate(across(where(is.character), ~ na_if(.x, "")))
   dfall = dfall[!nRb==length(ranks),]
 
   newdf = data.frame(matrix(nrow=dfall$feature_id %>% unique() %>% length(), ncol = length(ranks)+1))
@@ -60,15 +58,15 @@ taxo_merge = function(
   for (i in 1:nrow(newdf)) {
     temp = dfall %>% dplyr::filter(feature_id == newdf$feature_id[i])
     if(temp$df %>% unique() %>% length() >1){
-      x = temp %>% summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(feature_id,df))
+      x = temp %>% dplyr::summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(feature_id,df))
       while (!all(x %in% c(0,1))) {
         r = min(which(apply(temp, 2, function(x) length(unique(x[!is.na(x)]))) > 1))
         if(which.max(table(temp[,..r])) > nrow(temp)/2){
           temp = temp[which(temp[,..r] == names(which.max(table(temp[,..r])))),]
-          x = temp %>% summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(feature_id,df))
+          x = temp %>% dplyr::summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(feature_id,df))
         }else{
           temp[,r:which(colnames(temp)==tail(ranks,1))] = NA
-          x = temp %>% summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(feature_id,df))
+          x = temp %>% dplyr::summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(feature_id,df))
         }
       }
       newdf[i,1:(length(ranks)+1)] = temp[which.min(temp$nRb),1:(length(ranks)+1)]

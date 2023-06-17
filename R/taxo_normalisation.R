@@ -45,7 +45,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   }else if("taxonomy" %in% colnames(df)){
     df = df %>% dplyr::select(c(colnames(df)[which(colnames(df)%in%c(taxa_id,"taxonomy"))])) %>% splitstackshape::cSplit('taxonomy', sep = ';')
   }
-  df = df %>% mutate_if(is.factor, as.character)
+  df = df %>% dplyr::mutate_if(is.factor, as.character)
   df[is.na(df)]<-""
 
   if(any(taxa_id %in% colnames(df))){
@@ -62,13 +62,13 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     }
   }
 
-  paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.")
-  df = df %>% mutate_all(list(~str_replace(.,paternsToRemove, ""))) %>% mutate_all(list(~na_if(.,"")))
+  paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.|s__|g__|f__|c__|o__|c__|p__|'")
+  df = df %>% dplyr::mutate_all(list(~str_replace(.,paternsToRemove, ""))) %>% dplyr::mutate_all(list(~na_if(.,"")))
   if("species" %in% colnames(df)){
-    df$Species = paste0(sapply(strsplit(df$species,"_"), `[`, 1)," ", sapply(strsplit(df$species,"_"), `[`, 2))
+    df$species = paste0(sapply(strsplit(df$species,"_"), `[`, 1)," ", sapply(strsplit(df$species,"_"), `[`, 2))
   }
 
-  df = df %>% mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% mutate_all(list(~na_if(.,"")))
+  df = df %>% dplyr::mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% dplyr::mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% dplyr::mutate_all(list(~na_if(.,"")))
   ranks_indexes = which(colnames(df) %ni% c("otu","otus","asv","asvs","feature_id","feature.id","nR"))
   non_taxo_ranks = c("otu","otus","asv","asvs","feature_id","feature.id","nR")
   rpt_indexes = max.col(!is.na(df[ranks_indexes]), "last")

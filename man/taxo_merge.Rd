@@ -7,15 +7,13 @@
 taxo_merge(df_list, sqlFile, ranks, keepSAR = F)
 }
 \arguments{
+\item{df_list}{List of dataframes with taxonomic assignment}
+
 \item{sqlFile}{Path to NCBI taxonomic reference database}
 
 \item{ranks}{Ranks to return}
 
 \item{keepSAR}{Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)}
-
-\item{df1}{First dataframe with taxonomic assignment}
-
-\item{df2}{Second dataframe with taxonomic assignment}
 }
 \description{
 This function takes in a list of taxonomic assignment dataframes, normalises the
