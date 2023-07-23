@@ -175,7 +175,7 @@ blastn_taxo_assignment = function(blastapp_path,
 
     blast = rbind(megablast, blastn) %>% dplyr::select(- c(taxonomy))
     blast$nRb = rowSums(is.na(blast[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) | blast[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] == "")
-    blast <- blast %>% mutate_all(na_if,"")
+    blast[blast==""]=NA
 
     newdf = data.frame(matrix(nrow=blast$ASVs %>% unique() %>% length(), ncol = 9))
     colnames(newdf) = c("ASV","superkingdom","kingdom","phylum","class","order","family","genus","species")
@@ -185,7 +185,8 @@ blastn_taxo_assignment = function(blastapp_path,
     for (i in 1:nrow(newdf)) {
       temp_blast = blast %>% dplyr::filter(ASVs == newdf$ASV[i])
       if(temp_blast$method %>% unique() %>% length() >1){
-        x = temp_blast %>% summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(ASVs,method))
+        #x = temp_blast %>% summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(ASVs,method))
+        x = temp_blast %>% summarise(across(where(is.character), \(x) n_distinct(x, na.rm = T))) %>% dplyr::select(-c(ASVs,method))
         if(all(x %in% c(0,1))){
           newdf[i,2:9] = temp_blast[which.min(temp_blast$nRb),5:12]
         }else{
@@ -197,10 +198,12 @@ blastn_taxo_assignment = function(blastapp_path,
       close(pb)
     }
   }
-  newdf$nRb = rowSums(!is.na(newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) | newdf[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] != "")
-  temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
-  cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric(),"\n\n")
-  write.table(x = newdf %>% dplyr::select(-nRb), file = paste0(output_path,"/blastn_taxo_assingment.csv"),row.names = F)
-  return(newdf %>% dplyr::select(-nRb))
+  newdf$nR = rowSums(!is.na(newdf[, c("superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species")]))
+  temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(sd(nR), 2))
+  cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
+        as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%
+        as.numeric(), "\n\n")
+  write.table(x = newdf %>% dplyr::select(-nR), file = paste0(output_path, "/blastn_taxo_assingment.csv"), row.names = F)
+  return(newdf %>% dplyr::select(-nR))
 }
 
