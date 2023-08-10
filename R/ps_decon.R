@@ -85,6 +85,19 @@ ps_decon = function(ps, method= "complete_asv_removal", group=NA, runs=2, thresh
     return(ps_trimmed)
   }
 
+  # Ensuring sample_id and amplicon_type are present in the metadata
+  if(is.null(ps@sam_data$amplicon_type)){
+    cat("\n")
+    cat("The 'amplicon_type' column is missing from the metadata. Please indicate which rows are 'samples' and which are 'blanks' under 'amplicon_type'.","\n")
+    stop()
+  }
+  if(is.null(ps@sam_data$sample_id)){
+    cat("\n")
+    cat("The 'sample_id' column is missing from the metadata. Adding it to the phyloseq object using sample_names.","\n")
+    ps@sam_data$sample_id = sample_names(ps)
+    stop()
+  }
+
   # Ensuring no empty sample exist
   ps = prune_samples(sample_sums(ps) > 0, ps) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
   ASVs_in_Blanks = ps %>% phyloseq::subset_samples(amplicon_type != "sample") %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>% phyloseq::taxa_names()

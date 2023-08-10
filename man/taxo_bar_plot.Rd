@@ -12,6 +12,7 @@ taxo_bar_plot(
   n_rank2 = 6,
   colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue",
     "lightsalmon"),
+  label = NA,
   alpha_num_ordering = F
 )
 }
