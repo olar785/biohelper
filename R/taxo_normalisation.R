@@ -19,8 +19,7 @@
 #' @param
 #' ranks = Ranks to return
 #' @param
-#' keepSAR = Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)
-#'
+#' keepSAR = Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db. If false, SAR taxa are kept but the 'SAR' assignation is removed. Note that some databases may not use the 'SAR' label so if merging data assigned with different databases and KeepSAR is TRUE, there may be discrepancies in the data (default is FALSE)
 #' @export
 #' @examples
 #' data("ps_test_data")
@@ -35,6 +34,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     df = obj %>% as.data.frame()
   }
 
+  df <- df[,!is.na(colnames(df))]
   ranks = tolower(ranks)
   colnames(df) = tolower(colnames(df))
   taxa_id = c("otu","otus","asv","asvs","feature_id","feature.id","nR")

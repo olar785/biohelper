@@ -13,7 +13,7 @@ taxo_normalisation(obj, sqlFile, ranks, keepSAR = F)
 
 \item{ranks}{= Ranks to return}
 
-\item{keepSAR}{= Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)}
+\item{keepSAR}{= Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db. If false, SAR taxa are kept but the 'SAR' assignation is removed. Note that some databases may not use the 'SAR' label so if merging data assigned with different databases and KeepSAR is TRUE, there may be discrepancies in the data (default is FALSE)}
 }
 \description{
 This function performs normalisation of taxonomic assignments of 18S and COI data
