@@ -10,8 +10,7 @@
 #'
 #' @export
 #' @examples
-#' df = ps_test_data@tax_table %>% as.data.frame()
-#' taxo_assignment_summary(df = df, ranks = c("Kingdom","Phylum","Class","Order","Family","Genus"))
+#' taxo_assignment_summary(obj = ps_test_data, ranks = c("Kingdom","Phylum","Class","Order","Family","Genus"))
 
 taxo_assignment_summary = function(obj, ranks = NA, print_only = T){
   if(any(class(obj) %in% "phyloseq")){
