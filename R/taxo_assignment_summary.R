@@ -36,5 +36,5 @@ taxo_assignment_summary = function(obj, ranks = NA, print_only = T){
   }else{
     print(temp_summary_per_rank)
   }
-  cat("\nMean number of assigned taxonomic rank: ",temp_summary_overall$mean %>% as.numeric(),"( out of",length(ranks),")","\nStandard deviation: ",temp_summary$sd %>% as.numeric(),"\n\n")
+  cat("\nMean number of assigned taxonomic rank: ",temp_summary_overall$mean %>% as.numeric(),"( out of",length(ranks),")","\nStandard deviation: ",temp_summary_overall$sd %>% as.numeric(),"\n\n")
 }
