@@ -2,17 +2,18 @@
 % Please edit documentation in R/taxo_assignment_summary.R
 \name{taxo_assignment_summary}
 \alias{taxo_assignment_summary}
-\title{taxo_assingment_summary}
+\title{taxo_assignment_summary}
 \usage{
-taxo_assignment_summary(df, ranks)
+taxo_assignment_summary(obj, ranks = NA, print_only = T)
 }
 \arguments{
-\item{df}{Dataframe of taxonomic assignment}
+\item{obj}{A phyloseq object with taxonomy or a dataframe of taxonomic assignment}
 
-\item{ranks}{Taxonomic ranks in the dataframe}
+\item{ranks}{Taxonomic ranks of interest from the taxonomic assignment. By default, the function uses colnames of the tax_table of the phyloseq object or of the dataframe, depending on what is provided.
+print_only If TRUE (default), results are printed only. If FALSE, a dataframe is returned.}
 }
 \description{
-This function takes in a dataframe of taxonomic assignment and returns the mean number and standard deviation of taxonomic ranks assigned.
+This function takes in a phyloseq object with taxonomy or a dataframe of taxonomic assignment and returns the percent of assigned taxa per taxonomic rank, and the mean number and standard deviation of taxonomic rank assigned.
 }
 \examples{
 df = ps_test_data@tax_table \%>\% as.data.frame()

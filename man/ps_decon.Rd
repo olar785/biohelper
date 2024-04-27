@@ -5,7 +5,7 @@
 \title{ps_decon}
 \usage{
 ps_decon(
-  ps,
+  ps_temp,
   method = "complete_asv_removal",
   group = NA,
   runs = 2,
@@ -13,15 +13,16 @@ ps_decon(
   prop.thresh = 5e-05,
   regression = 0,
   low.threshold = 40,
-  up.threshold = 400
+  up.threshold = 400,
+  min_reads = 10
 )
 }
 \arguments{
-\item{ps}{Phyloseq object to decontaminate\cr}
-
 \item{method}{Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr}
 
 \item{group}{Will be used in the numb.ind argument of the microDecon::decon function\cr}
+
+\item{ps}{Phyloseq object to decontaminate\cr}
 
 \item{(...)}{If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon.\cr}
 }
@@ -35,7 +36,7 @@ taxonomy and reference sequences if present.
 The 'max_v' option subtract read associated to putative contaminant ASV by using
 their max read count in blank(s).
 
-Finally, the 'complete_asv_removal' removes all ASVs found all blanks from the dataset.
+Finally, the 'complete_asv_removal' removes all ASVs found in blanks from the dataset.
 
 Note that the 'max_v' option does not take into account the compositional nature of the data.
 
@@ -49,7 +50,7 @@ The sample_data must have a column labeled sample_id and a column labeled amplic
 non blank samples must be labeled as 'sample'. Alternatively, the user can provide a list of samples
 to use as controls.
 
-If you use the decon function for a publication, please cite the creators of the microDecon R package (citation('microDecon')).
+If you use the decon function for publication, please cite the authors of the microDecon R package (citation('microDecon')).
 
 For example:\cr
 \tabular{rrrrr}{
