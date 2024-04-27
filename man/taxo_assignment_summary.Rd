@@ -10,11 +10,17 @@ taxo_assignment_summary(obj, ranks = NA, print_only = T)
 \item{obj}{A phyloseq object with taxonomy or a dataframe of taxonomic assignment}
 
 \item{ranks}{Taxonomic ranks of interest from the taxonomic assignment. By default, the function uses colnames of the tax_table of the phyloseq object or of the dataframe, depending on what is provided.
-print_only If TRUE (default), results are printed only. If FALSE, a dataframe is returned.}
+print_only If TRUE (default), results are printed only. If FALSE, a list containing 1) a dataframe of percent of assigned taxa per taxonomic rank, and 2) a dataframe of assignment per taxonomic rank per taxa (0 = unassigned, 1 = assigned) are returned.}
 }
 \description{
 This function takes in a phyloseq object with taxonomy or a dataframe of taxonomic assignment and returns the percent of assigned taxa per taxonomic rank, and the mean number and standard deviation of taxonomic rank assigned.
 }
 \examples{
 taxo_assignment_summary(obj = ps_test_data, ranks = c("Kingdom","Phylum","Class","Order","Family","Genus"))
+
+# Testing if taxonomic assignation at a specific rank is different between two groups:
+ps_manual_ta = ps_test_data \%>\% subset_samples(extraction_method == "manual") \%>\% phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) \%>\% taxo_assignment_summary(print_only = F)
+ps_robot_ta = ps_test_data \%>\% subset_samples(extraction_method == "robot") \%>\% phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) \%>\% taxo_assignment_summary(print_only = F)
+t.test(x = ps_manual_ta$df_assignment_per_taxaNrank \%>\% dplyr::filter(taxonomic_rank == "Family") \%>\% dplyr::pull(assignment),
+       y = ps_robot_ta$df_assignment_per_taxaNrank \%>\% dplyr::filter(taxonomic_rank == "Family") \%>\% dplyr::pull(assignment))
 }
