@@ -16,6 +16,5 @@ print_only If TRUE (default), results are printed only. If FALSE, a dataframe is
 This function takes in a phyloseq object with taxonomy or a dataframe of taxonomic assignment and returns the percent of assigned taxa per taxonomic rank, and the mean number and standard deviation of taxonomic rank assigned.
 }
 \examples{
-df = ps_test_data@tax_table \%>\% as.data.frame()
-taxo_assignment_summary(df = df, ranks = c("Kingdom","Phylum","Class","Order","Family","Genus"))
+taxo_assignment_summary(obj = ps_test_data, ranks = c("Kingdom","Phylum","Class","Order","Family","Genus"))
 }
