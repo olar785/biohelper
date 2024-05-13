@@ -1,4 +1,4 @@
-#' upset_wrapper
+#' psto_upset
 #'
 #' @description
 #' This function is a wrapper to create an 'upset' figure from a phyloseq object and using the UpSetR package by Gehlenborg (2019).
@@ -24,14 +24,19 @@
 #' @examples
 #' upset_wrapper(pst = ps_test_data, grp = "biome")
 
-upset_wrapper = function(pst, grp, order.by = "freq", sets.x.label = "Taxa richness", nrow = NULL, align = NULL, rel_heights = NULL, rel_widths = NULL,...){
+psto_upset = function(pst, grp, order.by = "freq", sets.x.label = "Taxa richness", nrow = NULL, align = NULL, rel_heights = NULL, rel_widths = NULL,...){
   mylist <- sapply(c("upset_df","upset_plot","upset_plotv2"),function(x) NULL)
+  mtemp = pst %>% pstoveg_sample() %>%
+    #dplyr::group_by(grp) %>%
+    dplyr::count(get(grp),name = "n")
+  colnames(mtemp)[1]=grp
+  labls = paste0(mtemp %>% dplyr::pull(get(grp)),"_n",mtemp$n)
   upset = pst %>%
     phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) %>%
     merge_samples(grp) %>%
     microbiome::transform("pa")
-  mylist[[1]] = upset %>% pstoveg_otu() %>% t() %>% as.data.frame()
-  ups = upset(mylist[[1]], order.by = order.by, sets.x.label = sets.x.label, nsets = nrow(mylist[[1]]), ...)
+  mylist[[1]] = upset %>% pstoveg_otu() %>% t() %>% as.data.frame() %>% magrittr::set_colnames(value = labls)
+  mylist[[2]] = upset(mylist[[1]], order.by = order.by, sets.x.label = sets.x.label, nsets = nrow(mylist[[1]]), ...)
   mylist[[3]] = cowplot::plot_grid(NULL, mylist[[2]]$Main_bar, mylist[[2]]$Sizes, mylist[[2]]$Matrix,nrow= 2, align='hv', rel_heights = rel_heights, rel_widths = rel_widths)
   return(mylist)
 }
