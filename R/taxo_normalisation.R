@@ -1,11 +1,12 @@
 #' Loads taxo_normalisation
 #'
 #' @description
-#' This function performs normalisation of taxonomic assignments of 18S and COI data
+#' This function performs normalisation of taxonomic assignments of eukaryotic data
 #' identified via silva, midori or any other reference databases, using NCBI curated
-#' classification and nomenclatureand database. It can also provide further taxonomic
+#' classification and nomenclature database. It can also provide further taxonomic
 #' information of additional desired ranks. It can either take in a taxonomy table
-#' (e.g. from Qiime2) or a phyloseq object.
+#' (e.g. from Qiime2) or a phyloseq object. For species assignation, make sure that
+#' the species column contains both the Genus and Species names. If it doesn't, use "spcn = T".
 #'
 #' Importantly, this function requires the download of NCBI taxonomic database.
 #'
@@ -20,13 +21,15 @@
 #' ranks = Ranks to return
 #' @param
 #' keepSAR = Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db. If false, SAR taxa are kept but the 'SAR' assignation is removed. Note that some databases may not use the 'SAR' label so if merging data assigned with different databases and KeepSAR is TRUE, there may be discrepancies in the data (default is FALSE)
+#' @param
+#' spnc = Only needs to be applied if the Genus is not present under the Species column (default is FALSE).
 #' @export
 #' @examples
 #' data("ps_test_data")
-#' taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
+#' taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
 #'
 
-taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
+taxo_normalisation = function(obj, sqlFile, keepSAR = F, spnc = F, ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){
 
   if("phyloseq" %in% class(obj)){
     df = obj@tax_table@.Data %>% as.data.frame()
@@ -39,6 +42,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   colnames(df) = tolower(colnames(df))
   taxa_id = c("otu","otus","asv","asvs","feature_id","feature.id","nR")
 
+  # Formatting the df
   if("taxon" %in% colnames(df)){
     df$taxon = gsub("D_\\d+__","",taxo$taxon)
     df = df %>% dplyr::select(c(colnames(df)[which(colnames(df)%in%c(taxa_id,"taxon"))])) %>% splitstackshape::cSplit('taxon', sep = ';')
@@ -65,7 +69,19 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
   paternsToRemove = c("^.+_environmental.+|environmental_.+|uncultured_.+|_sp\\..+|_sp.|_sp.+| sp\\..+| sp.| sp.+|_\\(.+|^.+_metagenome|_cf.|s__|g__|f__|c__|o__|c__|p__|'")
   df = df %>% dplyr::mutate_all(list(~str_replace(.,paternsToRemove, ""))) %>% dplyr::mutate_all(list(~na_if(.,"")))
   if("species" %in% colnames(df)){
-    df$species = paste0(sapply(strsplit(df$species,"_"), `[`, 1)," ", sapply(strsplit(df$species,"_"), `[`, 2))
+    if(spnc == F){
+      df = df %>% dplyr::mutate(species = paste0(sapply(strsplit(species,"_"), `[`, 1)," ", sapply(strsplit(species,"_"), `[`, 2)),
+                                species = gsub("NA","",species),
+                                species = gsub("^\\s+$",NA,species)) %>%
+        dplyr::mutate_all(list(~na_if(.,"")))
+    }
+    if(spnc == T){
+      df = df %>% dplyr::mutate(species = paste0(genus," ",species),
+                                species = gsub("NA","",species),
+                                species = gsub("^\\s+$",NA,species),
+                                species = gsub("^\\s+(.+)","\\1",species)) %>%
+        dplyr::mutate_all(list(~na_if(.,"")))
+    }
   }
 
   df = df %>% dplyr::mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% dplyr::mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% dplyr::mutate_all(list(~na_if(.,"")))
@@ -86,7 +102,7 @@ taxo_normalisation = function(obj, sqlFile, ranks, keepSAR = F){
     taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
     res_df_temp = data.frame("feature_id" = rownames(df_temp), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
     id = getId(taxa = res_df_temp$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
-    res_df[which(is.na(res_df$id)),]$id = ifelse(!is.na(id),id,"")
+    res_df[which(is.na(res_df$id)),]$id = ifelse(!is.na(id),id,NA)
     r = r + 1
   }
   # Deals with multiple ids
