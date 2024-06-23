@@ -108,7 +108,7 @@ taxo_normalisation = function(obj, sqlFile, keepSAR = F, spnc = F, ranks = c("Su
   # Deals with multiple ids
   n = 1
   number_ids = max(str_count(res_df$id, pattern = ","),na.rm = T) + 1
-  while (n<=number_ids & any(str_detect(res_df$id, ",", negate = FALSE))) {
+  while (n<=number_ids & any(str_detect(res_df$id, ",", negate = FALSE), na.rm = T)) {
     df_temp = df[which(str_detect(res_df$id, ",", negate = FALSE)),]
     res_df_temp = res_df[which(str_detect(res_df$id, ",", negate = FALSE)),]
 
@@ -130,8 +130,8 @@ taxo_normalisation = function(obj, sqlFile, keepSAR = F, spnc = F, ranks = c("Su
   # Deals with multiple ids again but at higher level
   n = 1
   number_ids = max(str_count(res_df$id, pattern = ","),na.rm = T) + 1
-  if(!is.na(any(str_detect(res_df$id, ",", negate = FALSE)))){
-    while (n<=number_ids & any(str_detect(res_df$id, ",", negate = FALSE))) {
+  if(!is.na(any(str_detect(res_df$id, ",", negate = FALSE), na.rm = T))){
+    while (n<=number_ids & any(str_detect(res_df$id, ",", negate = FALSE), na.rm = T)) {
       df_temp = df[which(str_detect(res_df$id, ",", negate = FALSE)),]
       res_df_temp = res_df[which(str_detect(res_df$id,",", negate = FALSE)),]
 
