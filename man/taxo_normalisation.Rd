@@ -4,23 +4,33 @@
 \alias{taxo_normalisation}
 \title{Loads taxo_normalisation}
 \usage{
-taxo_normalisation(obj, sqlFile, ranks, keepSAR = F)
+taxo_normalisation(
+  obj,
+  sqlFile,
+  keepSAR = F,
+  spnc = F,
+  ranks = c("Superkingdom", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
+    "Species")
+)
 }
 \arguments{
 \item{obj}{= Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object}
 
 \item{sqlFile}{= Path to the local NCBI taxonomy db}
 
-\item{ranks}{= Ranks to return}
-
 \item{keepSAR}{= Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db. If false, SAR taxa are kept but the 'SAR' assignation is removed. Note that some databases may not use the 'SAR' label so if merging data assigned with different databases and KeepSAR is TRUE, there may be discrepancies in the data (default is FALSE)}
+
+\item{spnc}{= Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
+
+\item{ranks}{= Ranks to return}
 }
 \description{
-This function performs normalisation of taxonomic assignments of 18S and COI data
+This function performs normalisation of taxonomic assignments of eukaryotic data
 identified via silva, midori or any other reference databases, using NCBI curated
-classification and nomenclatureand database. It can also provide further taxonomic
+classification and nomenclature database. It can also provide further taxonomic
 information of additional desired ranks. It can either take in a taxonomy table
-(e.g. from Qiime2) or a phyloseq object.
+(e.g. from Qiime2) or a phyloseq object. For species assignation, make sure that
+the species column contains both the Genus and Species names. If it doesn't, use "spcn = T".
 
 Importantly, this function requires the download of NCBI taxonomic database.
 
@@ -29,6 +39,6 @@ prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The databa
 }
 \examples{
 data("ps_test_data")
-taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql', ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus"))
+taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
 
 }

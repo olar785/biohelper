@@ -84,7 +84,9 @@ taxo_normalisation = function(obj, sqlFile, keepSAR = F, spnc = F, ranks = c("Su
     }
   }
 
-  df = df %>% dplyr::mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% dplyr::mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% dplyr::mutate_all(list(~na_if(.,"")))
+  df = df %>% dplyr::mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% dplyr::mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% dplyr::mutate_all(list(~na_if(.,""))) %>%
+    dplyr::mutate(across(everything(), gsub, pattern = "^\\s+|\\s+$", replacement = "")) # The latter is to removing leading and trailing spaces
+
   ranks_indexes = which(colnames(df) %ni% c("otu","otus","asv","asvs","feature_id","feature.id","nR"))
   non_taxo_ranks = c("otu","otus","asv","asvs","feature_id","feature.id","nR")
   rpt_indexes = max.col(!is.na(df[ranks_indexes]), "last")
