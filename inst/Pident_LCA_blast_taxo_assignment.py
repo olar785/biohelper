@@ -155,11 +155,10 @@ def taxo_consensus(tabl, tabl2, minSim):
     for query, row in new.iterrows():
         a = new.columns.get_loc('superkingdom')
         b = new.columns.get_loc('species')
-        c = str(row[a:b + 1].str.cat(sep=';'))
+        c = row[a:b + 1].fillna('').astype(str).str.cat(sep=';')
         c = re.sub(r"[\{\}\[\]',]|NA|nan| ,|, ", "", c)
         c = re.sub(' sp\\..*', ' sp.', c)
-        # need to correspond to number of ranks...
-        c = re.sub('^;;;;;;;', 'Unknown', c)
+        c = re.sub('^;*$', 'Unknown', c)
         new.loc[query, 'taxonomy'] = c
     return new
 
