@@ -136,21 +136,17 @@ def taxo_consensus(tabl, tabl2, minSim):
         for query, row in tqdm(new.iterrows()):
             setTaxo = set(tabl2[tabl2['query.id'] == query][listRanks[i]])
             setTaxo = Remove(setTaxo)
-            if row['pident'] < minSim and len(setTaxo) > 1:
+            if len(setTaxo) > 1:
                 new.loc[query, listRanks[i]] = ""
                 x = rankLevel
                 while x > 0:
                     new.loc[query, listRanks[i-x]] = ""
                     x -= 1
             
-            elif row['pident'] < minSim:
+            else:
               s = list(setTaxo)
               s = ['' if v is None else v for v in s]
-              # If multiple values, join them with a separator (e.g., ','). Unlikely to happen, unless minSim is relatively low or misslabeling in reference sequences
-              if len(s) > 1:
-                new.loc[query, listRanks[i]] = ', '.join(s)  # Join elements with a separator
-              else:
-                new.loc[query, listRanks[i]] = s[0] if s else ''  # Get the first element or empty string
+              new.loc[query, listRanks[i]] = s[0] if s else ''  # Get the first element or empty string
         rankLevel += 1
 
     for query, row in new.iterrows():
