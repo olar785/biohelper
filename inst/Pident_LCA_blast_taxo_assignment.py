@@ -29,9 +29,9 @@ def handle_program_options():
     parser = argparse.ArgumentParser(
         description='Takes blastn multiple hits, trim uncultured or unidentified hits or environmental samples, assign taxo to feature based on percent similarity (for species) and Last Common Ancestor method')
     parser.add_argument('-b', "--btbl", required=True,
-                        help='blastn format 6 output with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp", [REQUIRED]')
+                        help='blastn format 6 output with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"')
     parser.add_argument("-f", "--ftbl", required=False,
-                        help="Feature id table in txt format [REQUIRED]")
+                        help="Feature id table in txt format")
     parser.add_argument("-o", "--output_ftbl", required=True,
                         help="Output path for the transformed feature_id table. [REQUIRED]")
     parser.add_argument('--minSim', default=97, type=int,
@@ -59,16 +59,6 @@ def handle_program_options():
     parser.add_argument('-v', '--verbose', action='store_true')
 
     return parser.parse_args()
-
-# Progress bar
-def progress(count, total, status=''):
-    bar_len = 60
-    filled_len = int(round(bar_len * count / float(total)))
-    percents = round(100.0 * count / float(total), 1)
-    bar = '=' * filled_len + '-' * (bar_len - filled_len)
-
-    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
-    sys.stdout.flush()
 
 # Function to retrieve taxonomy
 def get_desired_ranks(ncbi, taxid, desired_ranks):
@@ -134,8 +124,6 @@ def pidentThresholds(row, minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus):
 # If similarity of best hit => minSim%, assign to species level, otherwise assign to last common ancestor
 def taxo_consensus(tabl, tabl2, minSim):
     new = tabl
-    #new['species'] = ["" if new[new.index == ind]["pident"].iat[0] < minSim else new[new.index == ind]["species"].iat[0] for ind in new.index]
-
     def Remove(sets):
         sets.discard("")
         return(sets)
@@ -143,10 +131,7 @@ def taxo_consensus(tabl, tabl2, minSim):
     rankLevel = 0
     listRanks = ['species', 'genus', 'family', 'order',
                  'class', 'phylum', 'kingdom', 'superkingdom']
-    #t0 = time.time()
     for i in tqdm(range(len(listRanks))):
-        #t1 = time.time()
-        #progress(rankLevel,len(listRanks[i]), status = "Progress")
         for query, row in tqdm(new.iterrows()):
             setTaxo = set(tabl2[tabl2['query.id'] == query][listRanks[i]])
             setTaxo = Remove(setTaxo)
@@ -156,21 +141,23 @@ def taxo_consensus(tabl, tabl2, minSim):
                 while x > 0:
                     new.loc[query, listRanks[i-x]] = ""
                     x -= 1
+            
             elif row['pident'] < minSim:
-                s = list(setTaxo)
-                s = ['' if v is None else v for v in s]
-                s = ''.join(str(s))
-                new.loc[query, listRanks[i]] = s
+              s = list(setTaxo)
+              s = ['' if v is None else v for v in s]
+              # If multiple values, join them with a separator (e.g., ','). Unlikely to happen, unless minSim is relatively low or misslabeling in reference sequences
+              if len(s) > 1:
+                new.loc[query, listRanks[i]] = ', '.join(s)  # Join elements with a separator
+              else:
+                new.loc[query, listRanks[i]] = s[0] if s else ''  # Get the first element or empty string
         rankLevel += 1
-        #t2 = time.time()
-        #print(" {}s (estimated remaining time: {}m,s)".format(t2-t1, t2-t0))
 
     for query, row in new.iterrows():
         a = new.columns.get_loc('superkingdom')
         b = new.columns.get_loc('species')
         c = str(row[a:b + 1].str.cat(sep=';'))
-        c = c.replace("{", "").replace("}", "").replace("[", "").replace("]", "").replace("'", "").replace(
-            " ,", "").replace(", ", "").replace(",", "").replace("NA", "").replace("nan", "")
+        #c = c.replace("{", "").replace("}", "").replace("[", "").replace("]", "").replace("'", "").replace(" ,", "").replace(", ", "").replace(",", "").replace("NA", "").replace("nan", "")
+        c = re.sub(r"[\{\}\[\]',]|NA|nan| ,|, ", "", c)
         c = re.sub(' sp\..*', ' sp.', c)
         # need to correspond to number of ranks...
         c = re.sub('^;;;;;;;', 'Unknown', c)
@@ -283,7 +270,7 @@ def main():
     else:
         pass
 
-    # 1-  Remove uncultured and unidentified, and remove hit with coverage less than 80%
+    # 1-  Remove uncultured and unidentified, and remove hit with coverage less than X%
     blast_trimmed = blast[~blast.sscinames.str.contains(
         'uncultured', na=False)]  # May have to remove
     blast_trimmed = blast_trimmed[~blast_trimmed.sscinames.str.contains(
