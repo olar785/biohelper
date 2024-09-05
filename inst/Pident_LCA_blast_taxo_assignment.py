@@ -125,8 +125,9 @@ def pidentThresholds(row, minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus):
 def taxo_consensus(tabl, tabl2, minSim):
     new = tabl
     def Remove(sets):
-        sets.discard("")
-        return(sets)
+      sets.discard("")  # Remove empty string
+      sets.discard(np.nan)  # Remove NaN if present
+      return sets
 
     rankLevel = 0
     listRanks = ['species', 'genus', 'family', 'order',
