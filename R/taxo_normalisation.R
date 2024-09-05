@@ -6,7 +6,7 @@
 #' classification and nomenclature database. It can also provide further taxonomic
 #' information of additional desired ranks. It can either take in a taxonomy table
 #' (e.g. from Qiime2) or a phyloseq object. For species assignation, make sure that
-#' the species column contains both the Genus and Species names. If it doesn't, use "spcn = T".
+#' the species column contains both the Genus and Species names. If it doesn't, use "spnc = T".
 #'
 #' Importantly, this function requires the download of NCBI taxonomic database.
 #'
@@ -30,6 +30,7 @@
 #'
 
 taxo_normalisation = function(obj, sqlFile, keepSAR = F, spnc = F, ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){
+  `%ni%` <- Negate(`%in%`)
 
   if("phyloseq" %in% class(obj)){
     df = obj@tax_table@.Data %>% as.data.frame()
@@ -93,7 +94,7 @@ taxo_normalisation = function(obj, sqlFile, keepSAR = F, spnc = F, ranks = c("Su
 
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
   res_df = data.frame("feature_id" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
-  res_df$id = getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
+  res_df$id = taxonomizr::getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
   r = 1
   # Deals with NA ids
   while (r<length(ranks_indexes) & any(is.na(res_df$id))) {
@@ -119,7 +120,7 @@ taxo_normalisation = function(obj, sqlFile, keepSAR = F, spnc = F, ranks = c("Su
     res_df_temp$p_taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
 
     taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
-    test = getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile, desiredTaxa = ranks) %>% as.data.frame()
+    test = taxonomizr::getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile, desiredTaxa = ranks) %>% as.data.frame()
     for (i in 1:nrow(res_df_temp)) {
       res_df_temp$id[i] = ifelse(res_df_temp$p_taxa[i] %in% test[i,], res_df_temp$id[i] %>% strsplit( "," ) %>% sapply( "[", n ),res_df_temp$id[i])
     }
