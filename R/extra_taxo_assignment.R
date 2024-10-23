@@ -1,7 +1,7 @@
 #' extra_taxo_assignment
 #'
 #' @description
-#' This function takes in a pyloseq object with taxonomy data and currently add the Protozoa and
+#' This function takes in a pyloseq object with taxonomy data or a dataframe containing taxonomy information and currently adds the Protozoa and
 #' Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank. This script is particularly useful
 #' if taxonomy has been normalised using NCBI curated classification and nomenclature database
 #' (using the taxo_normalisation function of this package for example) where protozoans and Archaeplastida (excl. Viridiplantae)
@@ -11,7 +11,7 @@
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The database is ~65 GB but the user can set getAccessions=FALSE to drastically reduce its size.
 #'
 #' @param
-#' physeq_obj         Phyloseq object
+#' obj                Object
 #' @param
 #' sqlFile_path       Path to the local NCBI taxonomy db
 #'
@@ -19,9 +19,9 @@
 #' @export
 #' @examples
 #' data("ps_test_data")
-#' extra_taxo_assignment(ps_test_data, sqlFile = 'accessionTaxa.sql')
+#' extra_taxo_assignment(obj = ps_test_data, sqlFile_path = 'accessionTaxa.sql')
 
-extra_taxo_assignment = function(physeq_obj, sqlFile_path){
+extra_taxo_assignment = function(obj, sqlFile_path){
   # Taxonomic ID for protists
   proto_names <- c("Telonemia", "Stramenopiles", "Alveolata", "Rhizaria","Chromeraceae", # TSAR
                    "Tubulinea", "Discosea", "Evosea","Elardia","Flabellinia","Echinamoebida","Breviatea","Filasterea", # Amoebozoa
@@ -47,7 +47,28 @@ extra_taxo_assignment = function(physeq_obj, sqlFile_path){
   aphelidea_taxa = c(aphelidea_taxa,aphelidea_names)
 
   # Step 3: Extract the taxonomic table
-  tax_table_df <- as.data.frame(phyloseq::tax_table(physeq_obj))
+  handle_input <- function(obj) {
+    # If the input is a phyloseq object, extract taxonomy as a dataframe
+    if (inherits(obj, "phyloseq")) {
+      if (!is.null(tax_table(obj, errorIfNULL = FALSE))) {
+        df <- as.data.frame(as(tax_table(obj), "matrix"))
+      } else {
+        stop("No taxonomy table found in the phyloseq object.")
+      }
+    }
+    # If the input is a matrix, convert it to a dataframe
+    else if (is.matrix(obj)) {
+      df <- as.data.frame(obj)
+    }
+    # If the input is not recognized, return an error
+    else {
+      stop("Unsupported input type. Please provide a phyloseq object or a dataframe.")
+    }
+    # Return the result
+    return(df)
+  }
+  tax_table_df = handle_input(obj)
+
   # Step 4: Define a function to check and update the kingdom level
   update_kingdom <- function(tax_row) {
     # Check if Kingdom is NA or an empty string, and if any of the higher ranks belong to TSAR

@@ -6,8 +6,8 @@
 \usage{
 taxo_normalisation(
   obj,
-  sqlFile,
-  keepSAR = F,
+  sqlFile_path,
+  addExtra = T,
   spnc = F,
   ranks = c("Superkingdom", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
     "Species")
@@ -16,9 +16,9 @@ taxo_normalisation(
 \arguments{
 \item{obj}{= Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object}
 
-\item{sqlFile}{= Path to the local NCBI taxonomy db}
+\item{sqlFile_path}{= Path to the local NCBI taxonomy db}
 
-\item{keepSAR}{= Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db. If false, SAR taxa are kept but the 'SAR' assignation is removed. Note that some databases may not use the 'SAR' label so if merging data assigned with different databases and KeepSAR is TRUE, there may be discrepancies in the data (default is FALSE)}
+\item{addExtra}{= Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans}
 
 \item{spnc}{= Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
 
@@ -39,6 +39,6 @@ prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The databa
 }
 \examples{
 data("ps_test_data")
-taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
+taxo_normalisation(ps_test_data, sqlFile_path = 'accessionTaxa.sql')
 
 }

@@ -4,15 +4,15 @@
 \alias{extra_taxo_assignment}
 \title{extra_taxo_assignment}
 \usage{
-extra_taxo_assignment(physeq_obj, sqlFile_path)
+extra_taxo_assignment(obj, sqlFile_path)
 }
 \arguments{
-\item{physeq_obj}{Phyloseq object}
+\item{obj}{Object}
 
 \item{sqlFile_path}{Path to the local NCBI taxonomy db}
 }
 \description{
-This function takes in a pyloseq object with taxonomy data and currently add the Protozoa and
+This function takes in a pyloseq object with taxonomy data or a dataframe containing taxonomy information and currently adds the Protozoa and
 Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank. This script is particularly useful
 if taxonomy has been normalised using NCBI curated classification and nomenclature database
 (using the taxo_normalisation function of this package for example) where protozoans and Archaeplastida (excl. Viridiplantae)
@@ -23,5 +23,5 @@ prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The databa
 }
 \examples{
 data("ps_test_data")
-extra_taxo_assignment(ps_test_data, sqlFile = 'accessionTaxa.sql')
+extra_taxo_assignment(obj = ps_test_data, sqlFile_path = 'accessionTaxa.sql')
 }
