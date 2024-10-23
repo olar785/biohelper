@@ -63,5 +63,5 @@ sample5 \tab pcr_blank \tab 2 \tab robot \tab NA
 }
 }
 \examples{
-ps_decon(ps_test_data, method = "microDecon", group = "extraction_method")
+ps_decon(ps_test_data, method = "microDecon", group = "dna_extraction_batch_id")
 }

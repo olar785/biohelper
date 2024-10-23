@@ -30,7 +30,7 @@ identified via silva, midori or any other reference databases, using NCBI curate
 classification and nomenclature database. It can also provide further taxonomic
 information of additional desired ranks. It can either take in a taxonomy table
 (e.g. from Qiime2) or a phyloseq object. For species assignation, make sure that
-the species column contains both the Genus and Species names. If it doesn't, use "spcn = T".
+the species column contains both the Genus and Species names. If it doesn't, use "spnc = T".
 
 Importantly, this function requires the download of NCBI taxonomic database.
 
