@@ -103,8 +103,10 @@ extra_taxo_assignment = function(obj, sqlFile_path){
   # Step 5: Apply the update function to all rows in the tax_table_df
   tax_table_df <- as.data.frame(t(apply(tax_table_df, 1, update_kingdom)))
 
-  # Step 6: Reassign the modified tax_table to the phyloseq object
-  phyloseq::tax_table(physeq_obj) <- phyloseq::tax_table(as.matrix(tax_table_df))
-  return(physeq_obj)
+  # Step 6: Returning the modified tax_table
+  if(class(obj) %in% "phyloseq"){
+    phyloseq::tax_table(obj) <- phyloseq::tax_table(as.matrix(tax_table_df))
+  }
+  return(obj)
 }
 
