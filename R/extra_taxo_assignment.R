@@ -21,7 +21,7 @@
 #' data("ps_test_data")
 #' extra_taxo_assignment(ps_test_data, sqlFile = 'accessionTaxa.sql')
 
-proto_assignment = function(physeq_obj, sqlFile_path){
+extra_taxo_assignment = function(physeq_obj, sqlFile_path){
   # Taxonomic ID for protists
   proto_names <- c("Telonemia", "Stramenopiles", "Alveolata", "Rhizaria","Chromeraceae", # TSAR
                    "Tubulinea", "Discosea", "Evosea","Elardia","Flabellinia","Echinamoebida","Breviatea","Filasterea", # Amoebozoa
