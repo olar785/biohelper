@@ -20,25 +20,25 @@
 #' @param
 #' ranks          Ranks to return
 #' @param
-#' keepSAR        Keep the SAR assignment from the input data, which is not a valid group in NCBI taxonomy db (default is FALSE)
+#' addExtra       Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans
 #'
 #' @export
 #' @examples
-#' taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), keepSAR=F)
+#' taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), addExtra=T)
 
 
 taxo_merge = function(
     df_list,
     sqlFile,
     ranks,
-    keepSAR = F)
+    addExtra = T)
 {
   ranks = tolower(ranks)
 
   for (i in 1:length(df_list)) {
     colnames(df_list[[i]]) = colnames(df_list[[i]]) %>% tolower()
     colnames(df_list[[i]])[1] = "feature_id"
-    df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = ranks, keepSAR = keepSAR)
+    df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = ranks, addExtra = addExtra)
     df_list[[i]] = df_list[[i]] %>%
       dplyr::mutate(df=as.character(i)) %>%
       dplyr::mutate_all(list(~na_if(., "Unknown")))
