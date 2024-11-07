@@ -4,12 +4,12 @@
 \alias{extra_taxo_assignment}
 \title{extra_taxo_assignment}
 \usage{
-extra_taxo_assignment(obj, sqlFile_path)
+extra_taxo_assignment(obj, sqlFile)
 }
 \arguments{
 \item{obj}{Object}
 
-\item{sqlFile_path}{Path to the local NCBI taxonomy db}
+\item{sqlFile}{Path to the local NCBI taxonomy db}
 }
 \description{
 This function takes in a pyloseq object with taxonomy data or a dataframe containing taxonomy information and currently adds the Protozoa and
@@ -23,5 +23,5 @@ prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The databa
 }
 \examples{
 data("ps_test_data")
-extra_taxo_assignment(obj = ps_test_data, sqlFile_path = 'accessionTaxa.sql')
+extra_taxo_assignment(obj = ps_test_data, sqlFile = 'accessionTaxa.sql')
 }

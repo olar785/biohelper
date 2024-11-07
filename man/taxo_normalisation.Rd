@@ -6,7 +6,7 @@
 \usage{
 taxo_normalisation(
   obj,
-  sqlFile_path,
+  sqlFile,
   addExtra = T,
   spnc = F,
   ranks = c("Superkingdom", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
@@ -16,7 +16,7 @@ taxo_normalisation(
 \arguments{
 \item{obj}{= Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object}
 
-\item{sqlFile_path}{= Path to the local NCBI taxonomy db}
+\item{sqlFile}{= Path to the local NCBI taxonomy db}
 
 \item{addExtra}{= Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans}
 
@@ -39,6 +39,6 @@ prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The databa
 }
 \examples{
 data("ps_test_data")
-taxo_normalisation(ps_test_data, sqlFile_path = 'accessionTaxa.sql')
+taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
 
 }

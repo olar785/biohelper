@@ -13,15 +13,15 @@
 #' @param
 #' obj                Object
 #' @param
-#' sqlFile_path       Path to the local NCBI taxonomy db
+#' sqlFile       Path to the local NCBI taxonomy db
 #'
 #'
 #' @export
 #' @examples
 #' data("ps_test_data")
-#' extra_taxo_assignment(obj = ps_test_data, sqlFile_path = 'accessionTaxa.sql')
+#' extra_taxo_assignment(obj = ps_test_data, sqlFile = 'accessionTaxa.sql')
 
-extra_taxo_assignment = function(obj, sqlFile_path){
+extra_taxo_assignment = function(obj, sqlFile){
   # Taxonomic ID for protists
   proto_names <- c("Telonemia", "Stramenopiles", "Alveolata", "Rhizaria","Chromeraceae", # TSAR
                    "Tubulinea", "Discosea", "Evosea","Elardia","Flabellinia","Echinamoebida","Breviatea","Filasterea", # Amoebozoa
@@ -34,16 +34,16 @@ extra_taxo_assignment = function(obj, sqlFile_path){
   aphelidea_names <- c("Aphelidea") #fungi
 
   # Step 1: Use getId() to get the taxonomic ID for each taxon name
-  proto_ids <- taxonomizr::getId(taxa = proto_names, sqlFile = sqlFile_path)
-  archaeplastida_ids <- taxonomizr::getId(taxa = archaeplastida_names, sqlFile = sqlFile_path)
-  aphelidea_ids <- taxonomizr::getId(taxa = aphelidea_names, sqlFile = sqlFile_path)
+  proto_ids <- taxonomizr::getId(taxa = proto_names, sqlFile = sqlFile)
+  archaeplastida_ids <- taxonomizr::getId(taxa = archaeplastida_names, sqlFile = sqlFile)
+  aphelidea_ids <- taxonomizr::getId(taxa = aphelidea_names, sqlFile = sqlFile)
 
   # Step 2: Get all descendant taxa for TSAR taxa
-  proto_taxa <- taxonomizr::getDescendants(ids = proto_ids, sqlFile = sqlFile_path, desiredTaxa = c("phylum", "class","order"))
+  proto_taxa <- taxonomizr::getDescendants(ids = proto_ids, sqlFile = sqlFile, desiredTaxa = c("phylum", "class","order"))
   proto_taxa = c(proto_taxa,proto_names)
-  archaeplastida_taxa <- taxonomizr::getDescendants(ids = archaeplastida_ids, sqlFile = sqlFile_path, desiredTaxa = c("phylum", "class","order"))
+  archaeplastida_taxa <- taxonomizr::getDescendants(ids = archaeplastida_ids, sqlFile = sqlFile, desiredTaxa = c("phylum", "class","order"))
   archaeplastida_taxa = c(archaeplastida_taxa,archaeplastida_names)
-  aphelidea_taxa <- taxonomizr::getDescendants(ids = aphelidea_ids, sqlFile = sqlFile_path, desiredTaxa = c("phylum", "class","order"))
+  aphelidea_taxa <- taxonomizr::getDescendants(ids = aphelidea_ids, sqlFile = sqlFile, desiredTaxa = c("phylum", "class","order"))
   aphelidea_taxa = c(aphelidea_taxa,aphelidea_names)
 
   # Step 3: Extract the taxonomic table
@@ -61,7 +61,7 @@ extra_taxo_assignment = function(obj, sqlFile_path){
       df <- as.data.frame(obj)
     }
     # If the input is not recognized, return an error
-    else {
+    else if (!inherits(obj, "data.frame")) {
       stop("Unsupported input type. Please provide a phyloseq object or a dataframe.")
     }
     # Return the result

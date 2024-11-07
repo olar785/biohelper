@@ -16,7 +16,7 @@
 #' @param
 #' obj = Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
 #' @param
-#' sqlFile_path = Path to the local NCBI taxonomy db
+#' sqlFile = Path to the local NCBI taxonomy db
 #' @param
 #' ranks = Ranks to return
 #' @param
@@ -26,10 +26,10 @@
 #' @export
 #' @examples
 #' data("ps_test_data")
-#' taxo_normalisation(ps_test_data, sqlFile_path = 'accessionTaxa.sql')
+#' taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
 #'
 
-taxo_normalisation = function(obj, sqlFile_path, addExtra = T, spnc = F, ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){
+taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){
   `%ni%` <- Negate(`%in%`)
 
   if("phyloseq" %in% class(obj)){
@@ -94,7 +94,7 @@ taxo_normalisation = function(obj, sqlFile_path, addExtra = T, spnc = F, ranks =
 
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
   res_df = data.frame("feature_id" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
-  res_df$id = taxonomizr::getId(taxa = res_df$taxa, sqlFile = sqlFile_path, onlyScientific = TRUE)
+  res_df$id = taxonomizr::getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
   r = 1
   # Deals with NA ids
   while (r<length(ranks_indexes) & any(is.na(res_df$id))) {
@@ -104,7 +104,7 @@ taxo_normalisation = function(obj, sqlFile_path, addExtra = T, spnc = F, ranks =
     rpt_indexes = pmax(rpt_indexes,1) # makes sure to have no negative or 0 values
     taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
     res_df_temp = data.frame("feature_id" = rownames(df_temp), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
-    id = getId(taxa = res_df_temp$taxa, sqlFile = sqlFile_path, onlyScientific = TRUE)
+    id = getId(taxa = res_df_temp$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
     res_df[which(is.na(res_df$id)),]$id = ifelse(!is.na(id),id,NA)
     r = r + 1
   }
@@ -120,7 +120,7 @@ taxo_normalisation = function(obj, sqlFile_path, addExtra = T, spnc = F, ranks =
     res_df_temp$p_taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
 
     taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
-    test = taxonomizr::getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile = sqlFile_path, desiredTaxa = ranks) %>% as.data.frame()
+    test = taxonomizr::getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile = sqlFile, desiredTaxa = ranks) %>% as.data.frame()
     for (i in 1:nrow(res_df_temp)) {
       res_df_temp$id[i] = ifelse(res_df_temp$p_taxa[i] %in% test[i,], res_df_temp$id[i] %>% strsplit( "," ) %>% sapply( "[", n ),res_df_temp$id[i])
     }
@@ -143,7 +143,7 @@ taxo_normalisation = function(obj, sqlFile_path, addExtra = T, spnc = F, ranks =
       res_df_temp$p_taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
 
       taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
-      test = getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile = sqlFile_path, desiredTaxa = ranks) %>% as.data.frame()
+      test = getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile = sqlFile, desiredTaxa = ranks) %>% as.data.frame()
       for (i in 1:nrow(res_df_temp)) {
         res_df_temp$id[i] = ifelse(res_df_temp$p_taxa[i] %in% test[i,], res_df_temp$id[i] %>% strsplit( "," ) %>% sapply( "[", n ),res_df_temp$id[i])
       }
@@ -152,14 +152,14 @@ taxo_normalisation = function(obj, sqlFile_path, addExtra = T, spnc = F, ranks =
       n = n + 1
     }
   }
-  res_df[ranks] = getTaxonomy(res_df$id, sqlFile = sqlFile_path, desiredTaxa = str_to_lower(ranks))
+  res_df[ranks] = getTaxonomy(res_df$id, sqlFile = sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
   res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")
   res_df = res_df %>% column_to_rownames("feature_id")
   res_df=cbind(res_df,df[,colnames(df) %in% non_taxo_ranks,drop = FALSE])
 
   if(addExtra & ("kingdom" %in% ranks)){
-    res_df = res_df %>% biohelper::extra_taxo_assignment(sqlFile_path = sqlFile_path)
+    res_df = biohelper::extra_taxo_assignment(obj = res_df, sqlFile = sqlFile)
   }
 
   if("phyloseq" %in% class(obj)){
