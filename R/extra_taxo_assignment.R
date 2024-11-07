@@ -109,6 +109,8 @@ extra_taxo_assignment = function(obj, sqlFile){
   # Step 6: Returning the modified tax_table
   if(any(class(obj) %in% "phyloseq")){
     phyloseq::tax_table(obj) <- phyloseq::tax_table(as.matrix(tax_table_df))
+  }else{
+    obj = tax_table_df
   }
   return(obj)
 }

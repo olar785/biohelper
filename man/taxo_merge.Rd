@@ -4,7 +4,7 @@
 \alias{taxo_merge}
 \title{taxo_merge}
 \usage{
-taxo_merge(df_list, sqlFile, ranks, addExtra = T)
+taxo_merge(df_list, sqlFile, ranks, addExtra = T, spnc = F)
 }
 \arguments{
 \item{df_list}{List of dataframes with taxonomic assignment}
@@ -13,7 +13,9 @@ taxo_merge(df_list, sqlFile, ranks, addExtra = T)
 
 \item{ranks}{Ranks to return}
 
-\item{addExtra}{Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans}
+\item{addExtra}{Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans
+#' @param
+spnc           Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
 }
 \description{
 This function takes in a list of taxonomic assignment dataframes, normalises the
@@ -29,5 +31,5 @@ This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package.
 }
 \examples{
-taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), addExtra=T)
+taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), addExtra=T, spnc = F)
 }

@@ -21,17 +21,20 @@
 #' ranks          Ranks to return
 #' @param
 #' addExtra       Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans
+#'#' @param
+#' spnc           Only needs to be applied if the Genus is not present under the Species column (default is FALSE).
 #'
 #' @export
 #' @examples
-#' taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), addExtra=T)
+#' taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), addExtra=T, spnc = F)
 
 
 taxo_merge = function(
     df_list,
     sqlFile,
     ranks,
-    addExtra = T)
+    addExtra = T,
+    spnc = F)
 {
   ranks = tolower(ranks)
 
@@ -39,7 +42,7 @@ taxo_merge = function(
     cat("\nNormalizing taxonomy of object #",i,"\n")
     colnames(df_list[[i]]) = colnames(df_list[[i]]) %>% tolower()
     colnames(df_list[[i]])[1] = "feature_id"
-    df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = ranks, addExtra = addExtra)
+    df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = ranks, addExtra = addExtra, spnc = F)
     df_list[[i]] = df_list[[i]] %>%
       dplyr::mutate(df=as.character(i)) %>%
       dplyr::mutate_all(list(~na_if(., "Unknown")))

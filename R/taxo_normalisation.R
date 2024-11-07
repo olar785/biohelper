@@ -91,9 +91,9 @@ taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("S
   ranks_indexes = which(colnames(df) %ni% c("otu","otus","asv","asvs","feature_id","feature.id","nR"))
   non_taxo_ranks = c("otu","otus","asv","asvs","feature_id","feature.id","nR")
   rpt_indexes = max.col(!is.na(df[ranks_indexes]), "last")
-
   taxa = unlist(lapply(1:length(rpt_indexes), function(x) df[x, rpt_indexes[x]]))
   res_df = data.frame("feature_id" = rownames(df), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
+
   res_df$id = taxonomizr::getId(taxa = res_df$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
   r = 1
   # Deals with NA ids
