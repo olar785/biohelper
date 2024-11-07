@@ -113,12 +113,12 @@ ps_decon = function (ps_temp, method = "complete_asv_removal", group = NA, runs 
     ps_temp@sam_data$amplicon_type = ps_temp@sam_data$amplicon_type %>%tolower()
 
     if(!is.na(group)){
-      metadata = theseus::pstoveg_sample(ps_temp) %>% dplyr::arrange(amplicon_type,base::get(group))
+      metadata = pstoveg_sample(ps_temp) %>% dplyr::arrange(amplicon_type,base::get(group))
     }else{
-      metadata = theseus::pstoveg_sample(ps_temp) %>% dplyr::arrange(amplicon_type)
+      metadata = pstoveg_sample(ps_temp) %>% dplyr::arrange(amplicon_type)
     }
 
-    ASV_table_ps = theseus::pstoveg_otu(ps_temp) %>% t() %>% as.data.frame()
+    ASV_table_ps = pstoveg_otu(ps_temp) %>% t() %>% as.data.frame()
     ASV_table_ps = ASV_table_ps[, match(metadata$sample_id, names(ASV_table_ps))] %>% rownames_to_column("OTU_ID")
     names_blanks_ps = c("OTU_ID", ps_temp %>% subset_samples(amplicon_type !="sample") %>% sample_names())
     names_samples_ps = ps_temp %>% subset_samples(amplicon_type =="sample") %>% sample_names()
@@ -148,7 +148,7 @@ ps_decon = function (ps_temp, method = "complete_asv_removal", group = NA, runs 
                                               up.threshold)
 
       ps_trimmed = microDecon_2_phyloseq(ps_obj = ps_temp,
-                                         env = theseus::pstoveg_sample(ps_temp),
+                                         env = pstoveg_sample(ps_temp),
                                          decontaminated = decontaminated_ext,
                                          taxo_ranks = colnames(Taxo)[(colnames(Taxo) !="OTU_ID")])
     }
@@ -164,18 +164,18 @@ ps_decon = function (ps_temp, method = "complete_asv_removal", group = NA, runs 
                                               low.threshold,
                                               up.threshold)
       ps_trimmed = microDecon_2_phyloseq(ps_obj = ps_temp,
-                                         env = theseus::pstoveg_sample(ps_temp),
+                                         env = pstoveg_sample(ps_temp),
                                          decontaminated = decontaminated_ext)
     }
   }
   else if (method == "max_v") {
     ps_blank = ps_temp %>% subset_samples(amplicon_type != "sample")
-    Extraction_neg_max_vec <- apply(ps_blank %>% theseus::pstoveg_otu() %>%t() %>% as.data.frame(), 1, max) %>% as.vector()
+    Extraction_neg_max_vec <- apply(ps_blank %>% pstoveg_otu() %>%t() %>% as.data.frame(), 1, max) %>% as.vector()
     names(Extraction_neg_max_vec) = taxa_names(ps_blank)
-    Extractiondf = ps_temp %>% theseus::pstoveg_otu() %>% as.data.frame() %>% dplyr::select(ASVs_in_Blanks)
+    Extractiondf = ps_temp %>% pstoveg_otu() %>% as.data.frame() %>% dplyr::select(ASVs_in_Blanks)
     Extractiondf = sweep(Extractiondf, MARGIN = 2, Extraction_neg_max_vec, FUN = "-")
     Extractiondf <- replace(Extractiondf, Extractiondf < 0, 0)
-    new_df = ps_temp %>% theseus::pstoveg_otu() %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
+    new_df = ps_temp %>% pstoveg_otu() %>% as.data.frame() %>% dplyr::select(!ASVs_in_Blanks)
     new_df = cbind(new_df, Extractiondf)
     ps_trimmed = ps_temp
     ps_trimmed@otu_table = otu_table(new_df, taxa_are_rows = FALSE)

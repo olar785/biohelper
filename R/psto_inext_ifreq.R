@@ -20,7 +20,7 @@
 
 psto_inext_ifreq = function (pst, q = 0, grp, ...)
 {
-  mt = pst %>% theseus::pstoveg_sample()
+  mt = pst %>% pstoveg_sample()
   mylist.names = mt %>% dplyr::pull(grp) %>% unique()
   mylist_pst <- sapply(mylist.names, function(x) NULL)
   pstmelt = speedyseq::psmelt(pst)
@@ -32,7 +32,7 @@ psto_inext_ifreq = function (pst, q = 0, grp, ...)
       phyloseq::sample_data()
     mylist_pst[[i]] = phyloseq::merge_phyloseq(otu_tab, sam_tab) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
     mylist_pst[[i]] = mylist_pst[[i]] %>% microbiome::transform(transform = "pa") %>%
-      theseus::pstoveg_otu() %>% t() %>% as.data.frame()
+      pstoveg_otu() %>% t() %>% as.data.frame()
   }
   B = lapply(mylist_pst, iNEXT::as.incfreq)
   inext_q0 <- iNEXT::iNEXT(B, q = q, datatype = "incidence_freq", ...)
