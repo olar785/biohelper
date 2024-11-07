@@ -36,6 +36,7 @@ taxo_merge = function(
   ranks = tolower(ranks)
 
   for (i in 1:length(df_list)) {
+    print(i)
     colnames(df_list[[i]]) = colnames(df_list[[i]]) %>% tolower()
     colnames(df_list[[i]])[1] = "feature_id"
     df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = ranks, addExtra = addExtra)

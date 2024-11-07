@@ -158,7 +158,7 @@ taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("S
   res_df = res_df %>% column_to_rownames("feature_id")
   res_df=cbind(res_df,df[,colnames(df) %in% non_taxo_ranks,drop = FALSE])
 
-  if(addExtra & ("kingdom" %in% ranks)){
+  if(addExtra & ("kingdom" %in% str_to_lower(ranks))){
     res_df = biohelper::extra_taxo_assignment(obj = res_df, sqlFile = sqlFile)
   }
 

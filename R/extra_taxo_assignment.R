@@ -61,7 +61,10 @@ extra_taxo_assignment = function(obj, sqlFile){
       df <- as.data.frame(obj)
     }
     # If the input is not recognized, return an error
-    else if (!inherits(obj, "data.frame")) {
+    else if (inherits(obj, "data.frame")) {
+      df = obj
+    }
+    else {
       stop("Unsupported input type. Please provide a phyloseq object or a dataframe.")
     }
     # Return the result
