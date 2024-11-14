@@ -35,6 +35,6 @@ Sample can also be ordered using the s_order argument.
 \examples{
 colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")\cr
 ps_test_data_t = ps_test_data \%>\% tax_glom('Family') \%>\% microbiome::transform(transform = "compositional")\cr
-p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors,  f = "extraction_method")\cr
+p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors)\cr
 p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
 }
