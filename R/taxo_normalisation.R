@@ -104,7 +104,7 @@ taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("S
     rpt_indexes = pmax(rpt_indexes,1) # makes sure to have no negative or 0 values
     taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
     res_df_temp = data.frame("feature_id" = rownames(df_temp), "rpt_indexes" = rpt_indexes, "taxa" = taxa)
-    id = getId(taxa = res_df_temp$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
+    id = taxonomizr::getId(taxa = res_df_temp$taxa, sqlFile = sqlFile, onlyScientific = TRUE)
     res_df[which(is.na(res_df$id)),]$id = ifelse(!is.na(id),id,NA)
     r = r + 1
   }
