@@ -2,4 +2,6 @@
 
 Helper functions for various bioinformatics, data visualisation and analysis operations, including taxonomic normalisation, ASV decontamination, barplot of taxonomic composition, etc.
 
-The package can be installed with: remotes::install_github("olar785/biohelper")
+The package can be installed with: 
+if (!require("remotes")) install.packages("remotes")
+remotes::install_github("olar785/biohelper")

@@ -31,10 +31,8 @@ Depends:
 biocViews:
 Remotes:
     donaldtmcknight/microDecon,
-    mikemc/speedyseq,
     microbiome/microbiome,
     bioc::phyloseq
-    
 Suggests: 
     knitr
 VignetteBuilder: knitr
