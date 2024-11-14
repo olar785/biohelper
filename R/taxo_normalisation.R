@@ -143,7 +143,7 @@ taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("S
       res_df_temp$p_taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
 
       taxa = unlist(lapply(1:length(rpt_indexes), function(x) df_temp[x, rpt_indexes[x]]))
-      test = getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile = sqlFile, desiredTaxa = ranks) %>% as.data.frame()
+      test = taxonomizr::getTaxonomy(res_df_temp$id %>% strsplit( "," ) %>% sapply( "[", n ), sqlFile = sqlFile, desiredTaxa = ranks) %>% as.data.frame()
       for (i in 1:nrow(res_df_temp)) {
         res_df_temp$id[i] = ifelse(res_df_temp$p_taxa[i] %in% test[i,], res_df_temp$id[i] %>% strsplit( "," ) %>% sapply( "[", n ),res_df_temp$id[i])
       }
@@ -152,7 +152,7 @@ taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("S
       n = n + 1
     }
   }
-  res_df[ranks] = getTaxonomy(res_df$id, sqlFile = sqlFile, desiredTaxa = str_to_lower(ranks))
+  res_df[ranks] = taxonomizr::getTaxonomy(res_df$id, sqlFile = sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
   res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")
   res_df = res_df %>% column_to_rownames("feature_id")
