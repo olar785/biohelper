@@ -37,8 +37,8 @@ core_micro = function(pst, grp, method = NULL, n = NULL, d = NULL, p = NULL, ...
 
   mylist_taxa <- sapply(mylist.names,function(x) NULL)
   mylist_pst <- sapply(mylist.names,function(x) NULL)
-  pstmergedmelt = biohelper::psmelt(pstmerged)
-  pstmelt = biohelper::psmelt(pst)
+  pstmergedmelt = speedyseq::psmelt(pstmerged)
+  pstmelt = speedyseq::psmelt(pst)
   taxn = pst@tax_table@.Data %>% colnames()
   seqs = pst@refseq
 

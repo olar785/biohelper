@@ -32,7 +32,7 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
     n_rank1 = length(colors)-1
   }
   # Creating dataframe
-  dfn = biohelper::psmelt(ps_obj) %>% base::replace(is.na(.), "Others")
+  dfn = speedyseq::psmelt(ps_obj) %>% base::replace(is.na(.), "Others")
   # Removing taxa with zero abundance
   dff = dfn %>% filter(Abundance >0)
   # Converting all factors to character strings

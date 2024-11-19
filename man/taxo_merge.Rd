@@ -4,7 +4,7 @@
 \alias{taxo_merge}
 \title{taxo_merge}
 \usage{
-taxo_merge(df_list, sqlFile, ranks, addExtra = T, spnc = F)
+taxo_merge(df_list, sqlFile, ranks, priority_df = NA, addExtra = T, spnc = F)
 }
 \arguments{
 \item{df_list}{List of dataframes with taxonomic assignment}
@@ -13,16 +13,19 @@ taxo_merge(df_list, sqlFile, ranks, addExtra = T, spnc = F)
 
 \item{ranks}{Ranks to return}
 
+\item{priority_df}{Taxonomic dataframe to prioritize in case of discrepancy between assignments (default is NA).}
+
 \item{addExtra}{Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans
 #' @param
 spnc           Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
 }
 \description{
-This function takes in a list of taxonomic assignment dataframes, normalises the
+This function takes in a list of taxonomic assignment dataframes, normalizes the
 taxonomy using NCBI curated taxonomic database, and uses the highest
 taxonomic resolution between the assignments if there is consensus across
 all assigned ranks and dataframes. Otherwise, it assigns taxonomy the Last common
 ancestor (LCA) if there is a consensus (>50\%) across dataframes.
+By using the 'priority_df' option, it is also possible to use the taxonomy of a specific dataframe (assignment) instead of using LCA.
 
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 Additionally, the first column of the dataframe needs to be the feature id (e.g. ASV, OTU, MOTU, ZOTU identifier, etc.).
@@ -31,5 +34,5 @@ This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package.
 }
 \examples{
-taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), addExtra=T, spnc = F)
+taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), priority_df = NA, addExtra=T, spnc = F)
 }

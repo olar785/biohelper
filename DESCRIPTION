@@ -11,19 +11,20 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 Imports:
-  phyloseq,
-  janitor,
+Depends:
   taxonomizr,
   microDecon,
-  reshape2,
   stringr,
   reticulate,
   data.table,
   dplyr,
   magrittr,
   cowplot,
-  microbiome
-Depends:
+  microbiome,
+  reshape2,
+  janitor,
+  speedyseq,
+  phyloseq,
   tidyverse,
 	BiocManager,
 	remotes,
@@ -32,6 +33,7 @@ biocViews:
 Remotes:
     donaldtmcknight/microDecon,
     microbiome/microbiome,
+    mikemc/speedyseq,
     bioc::phyloseq
 Suggests: 
     knitr
