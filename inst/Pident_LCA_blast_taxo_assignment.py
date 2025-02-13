@@ -291,6 +291,11 @@ def main():
 
     # 4- Insert taxonomy into blast table
     blast_trimmed['taxonomy'] = taxo_assignment(blast_trimmed, dict_blast)
+
+    # Troubleshooting 
+    print(blast_trimmed['taxonomy'].unique())
+    blast_trimmed['taxonomy'] = blast_trimmed['taxonomy'].fillna('').astype(str)
+    
     dummy1 = blast_trimmed['taxonomy'].str.split(';', expand=True)
     dummy1.columns = ['superkingdom', "kingdom", 'phylum',
                       'class', 'order', 'family', 'genus', 'species']
