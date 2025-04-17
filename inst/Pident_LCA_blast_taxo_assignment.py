@@ -278,6 +278,7 @@ def main():
             dict_blast[i] = "NA"
 
     # 4- Insert taxonomy into blast table
+    dummy1 = blast_trimmed['taxonomy'].str.split(';', expand=True)
     for rank in desired_ranks:
         blast_trimmed[rank] = dummy1[rank]
 
