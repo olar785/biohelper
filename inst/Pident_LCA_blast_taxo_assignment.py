@@ -280,8 +280,15 @@ def main():
     # 4- Insert taxonomy into blast table
     blast_trimmed['taxonomy'] = taxo_assignment(blast_trimmed, dict_blast)
     dummy1 = blast_trimmed['taxonomy'].str.split(';', expand=True)
+    # Assign desired column names to the split result
+    dummy1.columns = desired_ranks[:dummy1.shape[1]]
+    
     for rank in desired_ranks:
+      if rank in dummy1.columns:
         blast_trimmed[rank] = dummy1[rank]
+      else:
+        print("Issue with colnames of dummy1")
+        blast_trimmed[rank] = ""
 
     # 5-6 If pidentThresholds is True, reduce taxo assingment using pident threshold values
     # Insert taxonomy into blast table
