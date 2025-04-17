@@ -163,20 +163,20 @@ blastn_taxo_assignment = function(blastapp_path,
     system2(pyscript, args_blastn)
   }else if(method == "megablast"){
     system2(pyscript, args_megablast)
-    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
+    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
   }else{
     system2(pyscript, args_blastn)
-    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
+    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
   }
 
   # Merging results from blastn and megablast
   if(method =="both"){
     cat("\nMerging results from blast output\n")
-    megablast = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% dplyr::mutate(method = "megablast", colsplit(taxonomy,";", names = ranks))
-    blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = ranks))
+    megablast = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(method = "megablast", colsplit(taxonomy,";", names = ranks))
+    blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = ranks))
 
     blast = rbind(megablast, blastn) %>% dplyr::select(- c(taxonomy))
-    blast$nRb = rowSums(is.na(blast[, ..ranks]) | blast[, ..ranks] == "")
+    blast$nRb = rowSums(is.na(blast[,ranks]) | blast[,ranks] == "")
 
     blast[blast==""]=NA
 
@@ -201,7 +201,7 @@ blastn_taxo_assignment = function(blastapp_path,
       close(pb)
     }
   }
-  newdf$nR = rowSums(!is.na(newdf[, ..ranks]))
+  newdf$nR = rowSums(!is.na(newdf[,ranks]))
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(sd(nR), 2))
   cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
         as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%
