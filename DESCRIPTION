@@ -13,6 +13,7 @@ RoxygenNote: 7.3.2
 Imports:
 Depends:
   taxonomizr,
+  splitstackshape,
   microDecon,
   stringr,
   reticulate,

@@ -176,7 +176,8 @@ blastn_taxo_assignment = function(blastapp_path,
     blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = ranks))
 
     blast = rbind(megablast, blastn) %>% dplyr::select(- c(taxonomy))
-    blast$nRb = rowSums(is.na(blast[,ranks] ) | blast[,ranks] == "")
+    blast$nRb = rowSums(is.na(blast[, ..ranks]) | blast[, ..ranks] == "")
+
     blast[blast==""]=NA
 
     newdf = data.frame(matrix(nrow=blast$ASVs %>% unique() %>% length(), ncol = length(c("ASV", ranks))))
@@ -200,7 +201,7 @@ blastn_taxo_assignment = function(blastapp_path,
       close(pb)
     }
   }
-  newdf$nR = rowSums(!is.na(newdf[, ranks]))
+  newdf$nR = rowSums(!is.na(newdf[, ..ranks]))
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(sd(nR), 2))
   cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
         as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%

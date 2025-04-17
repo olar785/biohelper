@@ -99,7 +99,8 @@ lcaPident = function(blast_file,
 
   ranks = c("domain","superkingdom","kingdom","phylum","class","order","family","genus","species")
   temp = fread(output) %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks))
-  temp$nRb = rowSums(!is.na(temp[,ranks] ) & temp[,ranks] != "")
+  temp$nRb = rowSums(!is.na(temp[, ..ranks] ) & temp[, ..ranks] != "")
+
   temp_summary = temp %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
   cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
   return(temp %>% dplyr::select(-c(taxonomy,nRb,Percent_Identity,Sequence_coverage)))
