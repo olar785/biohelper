@@ -122,35 +122,32 @@ def pidentThresholds(row, minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus):
 
 # LCA
 # If similarity of best hit => minSim%, assign to species level, otherwise assign to last common ancestor
+# LCA
+# If similarity of best hit => minSim%, assign to species level, otherwise assign to last common ancestor
 def taxo_consensus(tabl, tabl2, minSim):
-    new = tabl
+    new = tabl.copy()
     def Remove(sets):
-      sets.discard("")  # Remove empty string
-      sets.discard(np.nan)  # Remove NaN if present
-      return sets
-
+        # Clean set by removing NaNs and empty strings
+        return {v for v in sets if pd.notna(v) and v != ""}
     rankLevel = 0
-    listRanks = ['species', 'genus', 'family', 'order',
-                 'class', 'phylum', 'kingdom', 'superkingdom']
+    listRanks = ['species', 'genus', 'family', 'order','class', 'phylum', 'kingdom', 'superkingdom', "domain"]
     for i in tqdm(range(len(listRanks))):
         for query, row in tqdm(new.iterrows()):
             setTaxo = set(tabl2[tabl2['query.id'] == query][listRanks[i]])
-            setTaxo = Remove(setTaxo)
+            setTaxo = Remove(setTaxo)        
             if len(setTaxo) > 1:
                 new.loc[query, listRanks[i]] = ""
                 x = rankLevel
                 while x > 0:
                     new.loc[query, listRanks[i-x]] = ""
                     x -= 1
-            
             else:
-              s = list(setTaxo)
-              s = ['' if v is None else v for v in s]
-              new.loc[query, listRanks[i]] = s[0] if s else ''  # Get the first element or empty string
+                s = list(setTaxo)
+                s = ['' if v is None else v for v in s]
+                new.loc[query, listRanks[i]] = s[0] if s else '' # Get the first element or empty string
         rankLevel += 1
-
     for query, row in new.iterrows():
-        a = new.columns.get_loc('superkingdom')
+        a = new.columns.get_loc('domain')
         b = new.columns.get_loc('species')
         c = row[a:b + 1].fillna('').astype(str).str.cat(sep=';')
         c = re.sub(r"[\{\}\[\]',]|NA|nan| ,|, ", "", c)
@@ -159,43 +156,39 @@ def taxo_consensus(tabl, tabl2, minSim):
         new.loc[query, 'taxonomy'] = c
     return new
 
-
 # Functions for taxo assignment based on any of the 3 options
 def pident_bef_LCA(b_trimmed, minSim, pkingdom, pphylum, pclass ,porder, pfamily, pgenus):
     b_trimmed = b_trimmed[b_trimmed.taxonomy != "NA"]
     b_trimmed = b_trimmed.apply(pidentThresholds, args = (minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus), axis=1)
-    b_trimmed = b_trimmed.replace(r'NA', "", regex=True)
+    b_trimmed = b_trimmed.replace(r'NA', "", regex=True).infer_objects(copy=False)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
     f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     print('\nPident trimming and LCA completed')
     return f_btbl
 
-
 def LCA_bef_pident(b_trimmed, minSim, pkingdom, pphylum, pclass, porder, pfamily, pgenus):
-    b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
+    b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True).infer_objects(copy=False)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
     f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     # Pident thresholds
     f_btbl2 = f_btbl[f_btbl.taxonomy != "NA"]
     f_btbl = f_btbl2.apply(pidentThresholds, args = (minSim, pkingdom, pphylum, pclass, porder, pfamily, pgenus), axis=1)
-    #f_btbl = f_btbl.replace([None], ['NA'], regex=True)
     f_btbl = f_btbl.replace(r'^\s*$', 'NA', regex = True)
     f_btbl = f_btbl.replace(np.nan, 'NA', regex=True)
-    f_btbl['taxonomy'] = f_btbl[['superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']].apply(lambda x: ';'.join(x), axis=1)
-    f_btbl['taxonomy'] = f_btbl.taxonomy.str.replace("[", "", regex=False).str.replace("]", "", regex=False).str.replace("'", "", regex=False).str.replace(" ,", "", regex=False).str.replace(", ", "", regex=False).str.replace(",", "", regex=False).str.replace("nan", "", regex=False).str.replace("NA", "", regex=False).str.replace("^;;;;;;;", "Unknown", regex=True)
+    f_btbl['taxonomy'] = f_btbl[['domain', 'superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']].apply(lambda x: ';'.join(x), axis=1)
+    f_btbl['taxonomy'] = f_btbl.taxonomy.str.replace("[", "", regex=False).str.replace("]", "", regex=False).str.replace("'", "", regex=False).str.replace(" ,", "", regex=False).str.replace(", ", "", regex=False).str.replace(",", "", regex=False).str.replace("nan", "", regex=False).str.replace("NA", "", regex=False).str.replace("^;;;;;;;;", "Unknown", regex=True)
     print('\nLCA and Pident trimming completed')
     return f_btbl
 
 def LCA_only(b_trimmed, minSim):
-    b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True)
+    b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True).infer_objects(copy=False)
     dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
         lambda x: x.loc[x.evalue.idxmin()])
     f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     print('\nLCA completed')
     return f_btbl
-
 
 # Assign taxonomy to each feature-id
 def blast_to_feature_tbl(btbl, ftbl):
@@ -213,10 +206,8 @@ def blast_to_feature_tbl(btbl, ftbl):
             new_ftbl.at[query, 'taxonomy'] = a
             new_ftbl.at[query, 'Percent_Identity'] = round(b)
             new_ftbl.at[query, 'Sequence_coverage'] = round(c)
-
         else:
             new_ftbl.at[query, 'taxonomy'] = "No hit"
-
     # To return only taxo assingment information
     new_ftbl = new_ftbl[["#OTU ID", "taxonomy",
                          "Percent_Identity", "Sequence_coverage"]]
@@ -239,15 +230,12 @@ def blast_to_taxonomy_tbl(btbl, ftbl):
             new_ftbl.at[query, 'taxonomy'] = a
             new_ftbl.at[query, 'Percent_Identity'] = round(b)
             new_ftbl.at[query, 'Sequence_coverage'] = round(c)
-
         else:
             new_ftbl.at[query, 'taxonomy'] = "No hit"
     # To return only taxo assingment information
     new_ftbl = new_ftbl[["ASVs", "taxonomy",
                          "Percent_Identity", "Sequence_coverage"]]
     return new_ftbl
-
-
 
 
 ##############################        MAIN        #################################################
@@ -280,7 +268,7 @@ def main():
     l_staxids = list(set(blast_trimmed['staxids']))
 
     # 3- Create a dictionary with staxids as Key and taxonomy as value
-    desired_ranks = ['superkingdom', "kingdom", 'phylum',
+    desired_ranks = ['domain','superkingdom', "kingdom", 'phylum',
                      'class', 'order', 'family', 'genus', 'species']
     dict_blast = {}
     for i in l_staxids:
@@ -290,18 +278,8 @@ def main():
             dict_blast[i] = "NA"
 
     # 4- Insert taxonomy into blast table
-    blast_trimmed['taxonomy'] = taxo_assignment(blast_trimmed, dict_blast)
-    dummy1 = blast_trimmed['taxonomy'].str.split(';', expand=True)
-    dummy1.columns = ['superkingdom', "kingdom", 'phylum',
-                      'class', 'order', 'family', 'genus', 'species']
-    blast_trimmed['superkingdom'] = dummy1['superkingdom']
-    blast_trimmed['kingdom'] = dummy1['kingdom']
-    blast_trimmed['phylum'] = dummy1['phylum']
-    blast_trimmed['class'] = dummy1['class']
-    blast_trimmed['order'] = dummy1['order']
-    blast_trimmed['family'] = dummy1['family']
-    blast_trimmed['genus'] = dummy1['genus']
-    blast_trimmed['species'] = dummy1['species']
+    for rank in desired_ranks:
+        blast_trimmed[rank] = dummy1[rank]
 
     # 5-6 If pidentThresholds is True, reduce taxo assingment using pident threshold values
     # Insert taxonomy into blast table

@@ -156,41 +156,43 @@ blastn_taxo_assignment = function(blastapp_path,
     paste("-o", paste0(output_path,"/blastn_output_processed.csv"), collapse = " "),
     args_general)
 
+  ranks = c("domain","superkingdom","kingdom","phylum","class","order","family","genus","species")
+
   if(method == "both"){
     system2(pyscript, args_megablast)
     system2(pyscript, args_blastn)
   }else if(method == "megablast"){
     system2(pyscript, args_megablast)
-    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% dplyr::mutate(colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species"))) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
+    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
   }else{
     system2(pyscript, args_blastn)
-    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species"))) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
+    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
   }
 
   # Merging results from blastn and megablast
   if(method =="both"){
     cat("\nMerging results from blast output\n")
-    megablast = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% dplyr::mutate(method = "megablast", colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
-    blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
+    megablast = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% dplyr::mutate(method = "megablast", colsplit(taxonomy,";", names = ranks))
+    blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = ranks))
 
     blast = rbind(megablast, blastn) %>% dplyr::select(- c(taxonomy))
-    blast$nRb = rowSums(is.na(blast[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) | blast[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] == "")
+    blast$nRb = rowSums(is.na(blast[,ranks] ) | blast[,ranks] == "")
     blast[blast==""]=NA
 
-    newdf = data.frame(matrix(nrow=blast$ASVs %>% unique() %>% length(), ncol = 9))
-    colnames(newdf) = c("ASV","superkingdom","kingdom","phylum","class","order","family","genus","species")
+    newdf = data.frame(matrix(nrow=blast$ASVs %>% unique() %>% length(), ncol = length(c("ASV", ranks))))
+    colnames(newdf) = c("ASV", ranks)
     newdf$ASV = blast$ASVs %>% unique()
 
     pb = txtProgressBar(min = 0, max = nrow(newdf), initial = 0,  style = 3)
     for (i in 1:nrow(newdf)) {
       temp_blast = blast %>% dplyr::filter(ASVs == newdf$ASV[i])
       if(temp_blast$method %>% unique() %>% length() >1){
-        #x = temp_blast %>% summarise(across(where(is.character), n_distinct,na.rm = T)) %>% dplyr::select(-c(ASVs,method))
         x = temp_blast %>% summarise(across(where(is.character), \(x) n_distinct(x, na.rm = T))) %>% dplyr::select(-c(ASVs,method))
         if(all(x %in% c(0,1))){
-          newdf[i,2:9] = temp_blast[which.min(temp_blast$nRb),5:12]
+          index_tax = 4+length(ranks) # temp_blast initially contains 4 columns (ASVs, taxonomy, Percent_Identity, Sequence_coverage) + taxonomy split by ';'
+          newdf[i,2:length(colnames(newdf))] = temp_blast[which.min(temp_blast$nRb),5:index_tax]
         }else{
-          max_shared_rank = 8 - max(temp_blast$nRb)
+          max_shared_rank = length(ranks) - max(temp_blast$nRb)
           newdf[i,2:c(max_shared_rank+1)] = temp_blast[which.min(temp_blast$nRb),5:(max_shared_rank+4)]
         }
       }
@@ -198,7 +200,7 @@ blastn_taxo_assignment = function(blastapp_path,
       close(pb)
     }
   }
-  newdf$nR = rowSums(!is.na(newdf[, c("superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species")]))
+  newdf$nR = rowSums(!is.na(newdf[, ranks]))
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(sd(nR), 2))
   cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
         as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%
