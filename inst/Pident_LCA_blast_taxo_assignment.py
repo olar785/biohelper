@@ -132,8 +132,8 @@ def taxo_consensus(tabl, tabl2, minSim):
     rankLevel = 0
     listRanks = ['species', 'genus', 'family', 'order','class', 'phylum', 'kingdom', 'superkingdom', "domain"]
     # Ensure columns can hold strings (avoids dtype warnings)
-    for col in listRanks + ['taxonomy']: ###################################################################################
-      new[col] = new[col].astype("object") ################################################################################# 
+    for col in listRanks + ['taxonomy']: ############################
+      new[col] = new[col].astype("object") ##########################
     for i in tqdm(range(len(listRanks))):
         for query, row in tqdm(new.iterrows()):
             setTaxo = set(tabl2[tabl2['query.id'] == query][listRanks[i]])
@@ -164,26 +164,16 @@ def pident_bef_LCA(b_trimmed, minSim, pkingdom, pphylum, pclass ,porder, pfamily
     b_trimmed = b_trimmed[b_trimmed.taxonomy != "NA"]
     b_trimmed = b_trimmed.apply(pidentThresholds, args = (minSim,pkingdom,pphylum,pclass,porder,pfamily,pgenus), axis=1)
     b_trimmed = b_trimmed.replace(r'NA', "", regex=True).infer_objects(copy=False)
-    #dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply( ####################################################################################
-    #    lambda x: x.loc[x.evalue.idxmin()])                         ####################################################################################
-    dummy2 = (
-    b_trimmed.drop(columns='query.id')
-    .groupby(b_trimmed['query.id'], group_keys=False)
-    .apply(lambda x: x.loc[x.evalue.idxmin()])
-    )
+    dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
+        lambda x: x.loc[x.evalue.idxmin()])
     f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     print('\nPident trimming and LCA completed')
     return f_btbl
 
 def LCA_bef_pident(b_trimmed, minSim, pkingdom, pphylum, pclass, porder, pfamily, pgenus):
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True).infer_objects(copy=False)
-    #dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply( ####################################################################################
-    #    lambda x: x.loc[x.evalue.idxmin()])                         ####################################################################################
-    dummy2 = (
-    b_trimmed.drop(columns='query.id')
-    .groupby(b_trimmed['query.id'], group_keys=False)
-    .apply(lambda x: x.loc[x.evalue.idxmin()])
-    )
+    dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
+        lambda x: x.loc[x.evalue.idxmin()])
     f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     # Pident thresholds
     f_btbl2 = f_btbl[f_btbl.taxonomy != "NA"]
@@ -197,13 +187,8 @@ def LCA_bef_pident(b_trimmed, minSim, pkingdom, pphylum, pclass, porder, pfamily
 
 def LCA_only(b_trimmed, minSim):
     b_trimmed = b_trimmed.replace(r'NA', np.nan, regex=True).infer_objects(copy=False)
-    #dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply( ####################################################################################
-    #    lambda x: x.loc[x.evalue.idxmin()])                         ####################################################################################
-    dummy2 = (
-    b_trimmed.drop(columns='query.id')
-    .groupby(b_trimmed['query.id'], group_keys=False)
-    .apply(lambda x: x.loc[x.evalue.idxmin()])
-    )
+    dummy2 = b_trimmed.groupby('query.id', group_keys=False).apply(
+        lambda x: x.loc[x.evalue.idxmin()])
     f_btbl = taxo_consensus(dummy2, b_trimmed, minSim)
     print('\nLCA completed')
     return f_btbl
