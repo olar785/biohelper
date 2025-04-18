@@ -52,8 +52,8 @@ taxo_merge = function(
       dplyr::mutate_all(list(~na_if(., "Unknown")))
   }
 
-  dfall = data.table::rbindlist(df_list)
-  dfall$nRb = rowSums(is.na(dfall[,..ranks] ) | dfall[,..ranks] == "")
+  dfall = data.table::rbindlist(df_list) %>% as.dataframe()
+  dfall$nRb = rowSums(is.na(dfall[,ranks] ) | dfall[,ranks] == "")
   #dfall <- dfall %>% mutate_all(na_if,"")
   dfall <- dfall %>% dplyr::mutate(across(where(is.character), ~ na_if(.x, "")))
   dfall = dfall[!nRb==length(ranks),]

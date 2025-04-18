@@ -9,8 +9,8 @@ taxo_normalisation(
   sqlFile,
   addExtra = T,
   spnc = F,
-  ranks = c("Superkingdom", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
-    "Species")
+  ranks = c("Domain", "Superkingdom", "Kingdom", "Phylum", "Class", "Order", "Family",
+    "Genus", "Species")
 )
 }
 \arguments{

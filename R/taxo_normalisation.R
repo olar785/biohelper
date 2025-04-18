@@ -29,7 +29,7 @@
 #' taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
 #'
 
-taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){
+taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("Domain","Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){
   `%ni%` <- Negate(`%in%`)
 
   if("phyloseq" %in% class(obj)){

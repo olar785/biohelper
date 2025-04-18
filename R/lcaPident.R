@@ -88,9 +88,19 @@ lcaPident = function(blast_file,
     paste("-o", output, collapse = " "),
     args_general
   )
-  system2(pyscript, args_blastn)
-  temp = fread(output) %>% dplyr::mutate(colsplit(taxonomy,";", names = c("superkingdom","kingdom","phylum","class","order","family","genus","species")))
-  temp$nRb = rowSums(!is.na(temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] ) & temp[,c("superkingdom","kingdom","phylum","class","order","family","genus","species")] != "")
+  #system2(pyscript, args_blastn)
+  # Run Python script and capture exit status
+  exit_status <- system2(pyscript, args_blastn, stdout = TRUE, stderr = TRUE)
+
+  # Check for failure
+  if (!is.null(attr(exit_status, "status")) && attr(exit_status, "status") != 0) {
+    stop("Python script failed to execute. Aborting.")
+  }
+
+  ranks = c("domain","superkingdom","kingdom","phylum","class","order","family","genus","species")
+  temp = fread(output) %>% as.data.frame() %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks))
+  temp$nRb = rowSums(!is.na(temp[,ranks] ) & temp[,ranks] != "")
+
   temp_summary = temp %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
   cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
   return(temp %>% dplyr::select(-c(taxonomy,nRb,Percent_Identity,Sequence_coverage)))
