@@ -207,6 +207,6 @@ blastn_taxo_assignment = function(blastapp_path,
         as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%
         as.numeric(), "\n\n")
   write.table(x = newdf %>% dplyr::select(-nR), file = paste0(output_path, "/blastn_taxo_assingment.csv"), row.names = F)
-  return(newdf %>% dplyr::select(-nR))
+  #return(newdf %>% dplyr::select(-nR))
 }
 
