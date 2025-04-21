@@ -43,7 +43,7 @@ LazyData: true
 Config/reticulate:
   list(
     packages = list(
-      list(package = "pandas", version = ">=1.3.0"),
+      list(package = "pandas"),
       list(package = "ete3"),
       list(package = "argparse"),
       list(package = "tqdm"),
