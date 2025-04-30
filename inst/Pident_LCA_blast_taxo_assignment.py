@@ -282,6 +282,11 @@ def main():
 
     # 4- Insert taxonomy into blast table
     blast_trimmed['taxonomy'] = taxo_assignment(blast_trimmed, dict_blast)
+
+    # Troubleshooting 
+    print(blast_trimmed['taxonomy'].unique())
+    blast_trimmed['taxonomy'] = blast_trimmed['taxonomy'].fillna('').astype(str)
+    
     dummy1 = blast_trimmed['taxonomy'].str.split(';', expand=True)
     # Assign desired column names to the split result
     dummy1.columns = desired_ranks[:dummy1.shape[1]]
