@@ -24,7 +24,7 @@
 #' priority_df    Taxonomic dataframe to prioritize in case of discrepancy between assignments (default is NA).
 #' @param
 #' addExtra       Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans
-#'#' @param
+#' @param
 #' spnc           Only needs to be applied if the Genus is not present under the Species column (default is FALSE).
 #'
 #' @export
@@ -35,7 +35,7 @@
 taxo_merge = function(
     df_list,
     sqlFile,
-    ranks,
+    ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"),
     priority_df = NA,
     addExtra = T,
     spnc = F)
@@ -52,7 +52,7 @@ taxo_merge = function(
       dplyr::mutate_all(list(~na_if(., "Unknown")))
   }
 
-  dfall = data.table::rbindlist(df_list) %>% as.dataframe()
+  dfall = data.table::rbindlist(df_list) %>% as.data.frame()
   dfall$nRb = rowSums(is.na(dfall[,ranks] ) | dfall[,ranks] == "")
   #dfall <- dfall %>% mutate_all(na_if,"")
   dfall <- dfall %>% dplyr::mutate(across(where(is.character), ~ na_if(.x, "")))
