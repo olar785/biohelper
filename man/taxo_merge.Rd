@@ -4,7 +4,15 @@
 \alias{taxo_merge}
 \title{taxo_merge}
 \usage{
-taxo_merge(df_list, sqlFile, ranks, priority_df = NA, addExtra = T, spnc = F)
+taxo_merge(
+  df_list,
+  sqlFile,
+  ranks = c("Superkingdom", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
+    "Species"),
+  priority_df = NA,
+  addExtra = T,
+  spnc = F
+)
 }
 \arguments{
 \item{df_list}{List of dataframes with taxonomic assignment}
@@ -15,9 +23,9 @@ taxo_merge(df_list, sqlFile, ranks, priority_df = NA, addExtra = T, spnc = F)
 
 \item{priority_df}{Taxonomic dataframe to prioritize in case of discrepancy between assignments (default is NA).}
 
-\item{addExtra}{Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans
-#' @param
-spnc           Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
+\item{addExtra}{Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans}
+
+\item{spnc}{Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
 }
 \description{
 This function takes in a list of taxonomic assignment dataframes, normalizes the

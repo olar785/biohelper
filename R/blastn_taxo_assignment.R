@@ -200,7 +200,24 @@ blastn_taxo_assignment = function(blastapp_path,
       setTxtProgressBar(pb,i)
       close(pb)
     }
+
+
+  }else if(method == "megablast"){
+    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>%
+      as.data.frame() %>%
+      dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>%
+      dplyr::select(c("ASVs", all_of(ranks))) %>%
+      dplyr::mutate(dplyr::across(where(~ is.logical(.x) & all(is.na(.x))), as.character)) %>%
+      dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, "")))
+  }else{
+    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>%
+      as.data.frame() %>%
+      dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>%
+      dplyr::select(c("ASVs", all_of(ranks))) %>%
+      dplyr::mutate(dplyr::across(where(~ is.logical(.x) & all(is.na(.x))), as.character)) %>%
+      dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, "")))
   }
+
   newdf$nR = rowSums(!is.na(newdf[,ranks]))
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(sd(nR), 2))
   cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
