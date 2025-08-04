@@ -6,10 +6,10 @@
 \usage{
 lcaPident(
   blast_file,
-  output,
+  output_file,
+  ftbl_file = NULL,
   minSim = 97,
   minCov = 80,
-  update = FALSE,
   pident = "no",
   pgenus = 95,
   pfamily = 87,
@@ -17,7 +17,9 @@ lcaPident(
   pclass = 81,
   pphylum = 79,
   pkingdom = 71,
-  taxonly = "TRUE"
+  taxonly = TRUE,
+  update = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -27,9 +29,7 @@ lcaPident(
 
 \item{minCov}{Minimum coverage to keep hits (default: 80)}
 
-\item{update}{Should the taxonomy database be updated? (default: FALSE)}
-
-\item{pident}{To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment}
+\item{pident}{To reduce taxonomy assignment according to default percent identity thresholds. Options are: before or after LCA assignment}
 
 \item{pgenus}{Minimum similarity to assign genus (default: 95)}
 
@@ -42,6 +42,8 @@ lcaPident(
 \item{pphylum}{Minimum similarity to assign phylum (default: 79)}
 
 \item{pkingdom}{Minimum similarity to assign kingdom (default: 71)}
+
+\item{update}{Should the taxonomy database be updated? (default: FALSE)}
 }
 \description{
 This function takes in the output of a blastn search with multiple hits and
@@ -49,5 +51,5 @@ uses a Last Common Ancestor (LCA) approach and optionally, a minimum percent
 identity (pident; per taxonomic rank) to assign taxonomy.
 }
 \examples{
-lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="no")
+assign_taxonomy_from_blast(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
 }

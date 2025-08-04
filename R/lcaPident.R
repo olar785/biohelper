@@ -14,7 +14,7 @@
 #' @param
 #' update             Should the taxonomy database be updated? (default: FALSE)
 #' @param
-#' pident             To reduce taxonomy assingment according to default percent identity thresholds. Options are: before or after LCA assingment
+#' pident             To reduce taxonomy assignment according to default percent identity thresholds. Options are: before or after LCA assignment
 #' @param
 #' pgenus             Minimum similarity to assign genus (default: 95)
 #' @param
@@ -30,78 +30,146 @@
 #'
 #' @export
 #' @examples
-#' lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="no")
+#' assign_taxonomy_from_blast(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
 
+# Function to assign taxonomy from BLAST file
 
-lcaPident = function(blast_file,
-                     output,
-                     minSim=97,
-                     minCov=80,
-                     update=FALSE,
-                     pident="no",
-                     pgenus=95,
-                     pfamily=87,
-                     porder=83,
-                     pclass=81,
-                     pphylum=79,
-                     pkingdom=71,
-                     taxonly="TRUE")
-{
+lcaPident <- function(
+    blast_file, output_file, ftbl_file = NULL,
+    minSim = 97, minCov = 80, pident = "no",
+    pgenus = 95, pfamily = 87, porder = 83,
+    pclass = 81, pphylum = 79, pkingdom = 71,
+    taxonly = TRUE, update = FALSE, verbose = FALSE
+) {
 
-  # R packages used
-  packages <- c("tidyverse", "data.table","reshape2","reticulate")
-  # Install packages not yet installed
-  installed_packages <- packages %in% rownames(installed.packages())
-  if (any(installed_packages == FALSE)) {
-    install.packages(packages[!installed_packages])
+  desired_ranks <- c("domain", "superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species")
+
+  # Optionally update the NCBI taxonomy database
+  if (update) {
+    message("Updating local NCBI taxonomy database...")
+    taxizedb::db_download_ncbi(overwrite = TRUE)
   }
-  # Packages loading
-  invisible(lapply(packages, library, character.only = TRUE))
-
-  # Taxonomic assignment using LCA and pident
-  for (i in c("pandas","ete3","csv","re","argparse","numpy", "time", "tqdm")) {
-    if(!reticulate::py_module_available(i)){
-      reticulate::py_install(i)
-    }
-  }
-
-  reticulate::py_run_file(file = system.file("env.py",package = "biohelper"))
-
-
-  # Taxonomic assignment using LCA and pident
-  pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
-  args_general = paste(
-    paste("--minSim", minSim, collapse = " "),
-    paste("--minCov", minCov, collapse = " "),
-    paste("--update", update, collapse = " "),
-    paste("--pident", pident, collapse = " "),
-    paste("--pgenus", pgenus, collapse = " "),
-    paste("--pfamily", pfamily, collapse = " "),
-    paste("--porder", porder, collapse = " "),
-    paste("--pclass", pclass, collapse = " "),
-    paste("--pphylum", pphylum, collapse = " "),
-    paste("--pkingdom", pkingdom, collapse = " "),
-    paste("--taxonly", taxonly, collapse = " "))
-
-  args_blastn = paste(
-    paste("-b", blast_file, collapse = " "),
-    paste("-o", output, collapse = " "),
-    args_general
+  # Load BLAST table
+  # Read with fread for reliable parsing, disable quote handling to avoid warnings
+  blast <- data.table::fread(
+    blast_file,
+    col.names = c(
+      "query.id", "query.length", "pident", "subject.id", "subject.GBid",
+      "evalue", "bit.score", "staxids", "sscinames", "sblastnames",
+      "qcovs", "qcovhsp"
+    ),
+    quote = ""
   )
-  #system2(pyscript, args_blastn)
-  # Run Python script and capture exit status
-  exit_status <- system2(pyscript, args_blastn, stdout = TRUE, stderr = TRUE)
 
-  # Check for failure
-  if (!is.null(attr(exit_status, "status")) && attr(exit_status, "status") != 0) {
-    stop("Python script failed to execute. Aborting.")
+  # Trim leading/trailing quotes if present
+  blast <- blast %>% dplyr::mutate(
+    dplyr::across(everything(), ~stringr::str_remove_all(.x, '^"|"$'))
+  )
+
+  # Remove unwanted entries
+  blast_trimmed <- dplyr::filter(blast, !stringr::str_detect(sscinames, regex("uncultured|unidentified|environmental sample", ignore_case = TRUE))) %>%
+    dplyr::filter(qcovs >= minCov)
+
+  # Get taxonomy for staxids using lapply
+  ## Keeping the first staxid if multiple
+  staxids = sub(";.*", "", blast_trimmed$staxid)
+  staxid_list <- unique(staxids)
+  cat("Number of unique staxid =", length(staxid_list), "\n")
+
+  pb <- progress::progress_bar$new(total = length(staxid_list), format = "[:bar] :current/:total (:percent) eta: :eta", clear = FALSE)
+  taxo_result <- lapply(staxid_list, function(tx) {
+    pb$tick()
+    res <- tryCatch({
+      taxizedb::classification(tx, db = "ncbi")
+    }, error = function(e) NULL)
+
+    if (is.null(res) || is.null(res[[1]]) || length(res[[1]]) == 0 || all(is.na(res[[1]]))) {
+      message("[!] No taxonomy found for staxid: ", tx)
+      tax_vec <- stats::setNames(rep("NA", length(desired_ranks)), desired_ranks)
+    } else {
+      ranks_df <- dplyr::filter(res[[1]], rank %in% desired_ranks)
+      tax_vec <- stats::setNames(rep("NA", length(desired_ranks)), desired_ranks)
+      tax_vec[ranks_df$rank] <- ranks_df$name
+    }
+    dplyr::tibble(staxids = tx, !!!as.list(tax_vec))
+  })
+  taxo_df <- dplyr::bind_rows(taxo_result)
+  blast_annotated <- dplyr::left_join(blast_trimmed, taxo_df, by = "staxids")
+
+  # Apply pident thresholds - each threshold affects only its corresponding rank
+  apply_pident_thresholds <- function(df, minSim, pk, pp, pc, po, pf, pg) {
+    df <- df %>% dplyr::mutate(across(all_of(desired_ranks), as.character))
+    # Each threshold affects only its corresponding rank
+    df <- df %>% dplyr::mutate(
+      kingdom = ifelse(pident < pk, "NA", kingdom),
+      phylum = ifelse(pident < pp, "NA", phylum),
+      class = ifelse(pident < pc, "NA", class),
+      order = ifelse(pident < po, "NA", order),
+      family = ifelse(pident < pf, "NA", family),
+      genus = ifelse(pident < pg, "NA", genus),
+      species = ifelse(pident < minSim, "NA", species)
+    )
+    return(df)
   }
 
-  ranks = c("domain","superkingdom","kingdom","phylum","class","order","family","genus","species")
-  temp = fread(output) %>% as.data.frame() %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks))
-  temp$nRb = rowSums(!is.na(temp[,ranks] ) & temp[,ranks] != "")
+  # LCA logic
+  calculate_lca <- function(tbl) {
+    ranks <- rev(desired_ranks)
+    tbl_lca <- dplyr::group_by(tbl, query.id) %>%
+      dplyr::group_map(~ {
+        group_df <- .x
+        group_key <- .y  # This contains the grouping variable (query.id)
 
-  temp_summary = temp %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(sd(nRb),2))
-  cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric())
-  return(temp %>% dplyr::select(-c(taxonomy,nRb,Percent_Identity,Sequence_coverage)))
+        best_hit <- dplyr::slice_min(group_df, order_by = evalue, with_ties = FALSE)
+        lca <- best_hit[1,]
+
+        # Add back the query.id from the grouping key
+        lca$query.id <- group_key$query.id
+
+        for (rank in ranks) {
+          taxa <- unique(group_df[[rank]])
+          # Filter out NA values, empty strings, and "NA" strings
+          valid_taxa <- taxa[!is.na(taxa) & taxa != "" & taxa != "NA"]
+
+          if (length(valid_taxa) > 1) {
+            # Set current rank and all downstream ranks to "NA"
+            rank_index <- which(desired_ranks == rank)
+            lca[desired_ranks[rank_index:length(desired_ranks)]] <- "NA"
+            break
+          }
+        }
+        lca
+      }) %>%
+      dplyr::bind_rows()
+
+    tbl_lca <- tidyr::unite(tbl_lca, "taxonomy", dplyr::all_of(desired_ranks),
+                            sep = ";", remove = FALSE, na.rm = TRUE) %>%
+      dplyr::mutate(taxonomy = dplyr::if_else(taxonomy == "", "Unknown", taxonomy))
+
+    return(tbl_lca)
+  }
+
+  blast_annotated$pident = as.numeric(blast_annotated$pident)
+
+  if (pident == "before") {
+    blast_annotated <- apply_pident_thresholds(blast_annotated, minSim, pk = pkingdom , pp = pphylum, pc = pclass, po = porder, pf = pfamily, pg = pgenus)
+    final_tbl <- calculate_lca(blast_annotated)
+  } else if (pident == "after") {
+    final_tbl <- calculate_lca(blast_annotated)
+    final_tbl <- apply_pident_thresholds(final_tbl, minSim, pk = pkingdom , pp = pphylum, pc = pclass, po = porder, pf = pfamily, pg = pgenus)
+    final_tbl <- tidyr::unite(final_tbl, "taxonomy", dplyr::all_of(desired_ranks), sep = ";", remove = FALSE, na.rm = TRUE)
+  } else {
+    final_tbl <- calculate_lca(blast_annotated)
+  }
+
+  feature_table <- dplyr::select(final_tbl, query.id, taxonomy, pident, qcovs, staxids)
+  colnames(feature_table) = c("ASVs", "taxonomy", "Percent_Identity", "Sequence_coverage", "staxid")
+  # ASVs/OTUs with NA across all ranks either had no consensus at domain level or the staxid was not found by taxizedb
+
+  readr::write_csv(feature_table, output_file)
+  if (verbose) {
+    message("\nTransformed table written to: ", output_file)
+  }
+
+  return(feature_table)
 }
