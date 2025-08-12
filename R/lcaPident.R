@@ -30,7 +30,7 @@
 #'
 #' @export
 #' @examples
-#' assign_taxonomy_from_blast(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
+#' lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
 
 # Function to assign taxonomy from BLAST file
 

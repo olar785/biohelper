@@ -130,7 +130,7 @@ blastn_taxo_assignment <- function(
       pclass = pclass, pphylum = pphylum, pkingdom = pkingdom,
       taxonly = taxonly, update = update, verbose = TRUE
     )
-    message("Taxonomic assignment for both methods completed. You may now merge results.")
+    message("Taxonomic assignment for both methods completed.")
   } else if (method == "megablast") {
     lcaPident(
       blast_file = megablast_out,
@@ -140,6 +140,7 @@ blastn_taxo_assignment <- function(
       pclass = pclass, pphylum = pphylum, pkingdom = pkingdom,
       taxonly = taxonly, update = update, verbose = TRUE
     )
+    message("Taxonomic assignment with megablast completed.")
   } else if (method == "blastn") {
     lcaPident(
       blast_file = blastn_out,
@@ -149,9 +150,64 @@ blastn_taxo_assignment <- function(
       pclass = pclass, pphylum = pphylum, pkingdom = pkingdom,
       taxonly = taxonly, update = update, verbose = TRUE
     )
+    message("Taxonomic assignment with blastn completed.")
   } else {
     stop("Invalid method. Choose from 'megablast', 'blastn', or 'both'.")
   }
 
-  message("Done!")
+  # Merging results from blastn and megablast
+  if(method =="both"){
+    cat("\nMerging results from blast output\n")
+    megablast = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(method = "megablast", colsplit(taxonomy,";", names = ranks))
+    blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = ranks))
+
+    blast = rbind(megablast, blastn) %>% dplyr::select(- c(taxonomy))
+    blast$nRb = rowSums(is.na(blast[,ranks]) | blast[,ranks] == "")
+
+    blast[blast==""]=NA
+
+    newdf = data.frame(matrix(nrow=blast$ASVs %>% unique() %>% length(), ncol = length(c("ASV", ranks))))
+    colnames(newdf) = c("ASV", ranks)
+    newdf$ASV = blast$ASVs %>% unique()
+
+    pb = txtProgressBar(min = 0, max = nrow(newdf), initial = 0,  style = 3)
+    for (i in 1:nrow(newdf)) {
+      temp_blast = blast %>% dplyr::filter(ASVs == newdf$ASV[i])
+      if(temp_blast$method %>% unique() %>% length() >1){
+        x = temp_blast %>% summarise(across(where(is.character), \(x) n_distinct(x, na.rm = T))) %>% dplyr::select(-c(ASVs,method))
+        if(all(x %in% c(0,1))){
+          index_tax = 4+length(ranks) # temp_blast initially contains 4 columns (ASVs, taxonomy, Percent_Identity, Sequence_coverage) + taxonomy split by ';'
+          newdf[i,2:length(colnames(newdf))] = temp_blast[which.min(temp_blast$nRb),5:index_tax]
+        }else{
+          max_shared_rank = length(ranks) - max(temp_blast$nRb)
+          newdf[i,2:c(max_shared_rank+1)] = temp_blast[which.min(temp_blast$nRb),5:(max_shared_rank+4)]
+        }
+      }
+      setTxtProgressBar(pb,i)
+      close(pb)
+    }
+
+  }else if(method == "megablast"){
+    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>%
+      as.data.frame() %>%
+      dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>%
+      dplyr::select(c("ASVs", all_of(ranks))) %>%
+      dplyr::mutate(dplyr::across(where(~ is.logical(.x) & all(is.na(.x))), as.character)) %>%
+      dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, "")))
+  }else{
+    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>%
+      as.data.frame() %>%
+      dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>%
+      dplyr::select(c("ASVs", all_of(ranks))) %>%
+      dplyr::mutate(dplyr::across(where(~ is.logical(.x) & all(is.na(.x))), as.character)) %>%
+      dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, "")))
+  }
+
+  newdf$nR = rowSums(!is.na(newdf[,ranks]))
+  temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(sd(nR), 2))
+  cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
+        as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%
+        as.numeric(), "\n\n")
+  write.table(x = newdf %>% dplyr::select(-nR), file = paste0(output_path, "/blastn_taxo_assingment.csv"), row.names = F)
+  #return(newdf %>% dplyr::select(-nR))
 }

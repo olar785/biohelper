@@ -56,7 +56,7 @@ taxo_merge = function(
   dfall$nRb = rowSums(is.na(dfall[,ranks] ) | dfall[,ranks] == "")
   #dfall <- dfall %>% mutate_all(na_if,"")
   dfall <- dfall %>% dplyr::mutate(across(where(is.character), ~ na_if(.x, "")))
-  dfall = dfall[!nRb==length(ranks),]
+  dfall = dfall[!dfall$nRb==length(ranks),]
 
   newdf = data.frame(matrix(nrow=dfall$feature_id %>% unique() %>% length(), ncol = length(ranks)+1))
   colnames(newdf) = c("feature_id",ranks)
@@ -66,7 +66,7 @@ taxo_merge = function(
   pb = txtProgressBar(min = 0, max = nrow(newdf), initial = 0,  style = 3)
   for (i in 1:nrow(newdf)) {
     # df per ASV
-    temp = dfall %>% dplyr::filter(feature_id == newdf$feature_id[i])
+    temp = dfall %>% dplyr::filter(feature_id == newdf$feature_id[i]) %>% as.data.table()
     # If more than 1 taxo assignment result for this ASV...
     if(temp$df %>% unique() %>% length() >1){
       # If a specific df should be used in case of discrepancy...
