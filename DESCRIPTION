@@ -31,6 +31,7 @@ Depends:
     taxizedb,
     progress,
     stringr,
+    UpSetR,
     R (>= 3.5)
 biocViews:
 Remotes:

@@ -22,7 +22,7 @@
 #'
 #' @export
 #' @examples
-#' upset_wrapper(pst = ps_test_data, grp = "biome")
+#' psto_upset(pst = ps_test_data, grp = "biome")
 
 psto_upset = function(pst, grp, order.by = "freq", sets.x.label = "Taxa richness", nrow = NULL, align = NULL, rel_heights = NULL, rel_widths = NULL,...){
   mylist <- sapply(c("upset_df","upset_plot","upset_plotv2"),function(x) NULL)
@@ -31,12 +31,26 @@ psto_upset = function(pst, grp, order.by = "freq", sets.x.label = "Taxa richness
     dplyr::count(get(grp),name = "n")
   colnames(mtemp)[1]=grp
   labls = paste0(mtemp %>% dplyr::pull(get(grp)),"_n",mtemp$n)
-  upset = pst %>%
+  upset_ps = pst %>%
     phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) %>%
     merge_samples(grp) %>%
     microbiome::transform("pa")
-  mylist[[1]] = upset %>% pstoveg_otu() %>% t() %>% as.data.frame() %>% magrittr::set_colnames(value = labls)
-  mylist[[2]] = upset(mylist[[1]], order.by = order.by, sets.x.label = sets.x.label, nsets = nrow(mylist[[1]]), ...)
-  mylist[[3]] = cowplot::plot_grid(NULL, mylist[[2]]$Main_bar, mylist[[2]]$Sizes, mylist[[2]]$Matrix,nrow= 2, align='hv', rel_heights = rel_heights, rel_widths = rel_widths)
-  return(mylist)
+
+  reord <- base::match(sample_names(upset_ps), gsub("_n.*","",labls))
+  labls <- labls[reord]
+
+  mylist[[1]] = upset_ps %>% pstoveg_otu() %>% t() %>% as.data.frame() %>% magrittr::set_colnames(value = labls)
+  mylist[[2]] = UpSetR::upset(mylist[[1]], order.by = order.by, sets.x.label = sets.x.label, nsets = nrow(mylist[[1]]), ...)
+
+  # safe defaults + validate lengths for a 2x2 grid
+  if (is.null(rel_heights)) rel_heights <- c(0.7, 0.3)
+  if (is.null(rel_widths))  rel_widths  <- c(0.4, 0.6)
+  stopifnot(length(rel_heights) == 2, length(rel_widths) == 2)
+  mylist[[3]] <- cowplot::plot_grid(
+    NULL, mylist[[2]]$Main_bar,
+    mylist[[2]]$Sizes, mylist[[2]]$Matrix,
+    nrow = 2, align = if (is.null(align)) "hv" else align,
+    rel_heights = rel_heights, rel_widths = rel_widths
+  )
+    return(mylist)
 }
