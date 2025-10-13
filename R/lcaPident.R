@@ -62,12 +62,18 @@ lcaPident <- function(
   )
 
   # Trim leading/trailing quotes if present
-  blast <- blast %>% dplyr::mutate(
-    dplyr::across(everything(), ~stringr::str_remove_all(.x, '^"|"$'))
-  )
+  blast <- blast %>%
+    dplyr::mutate(dplyr::across(everything(), ~stringr::str_remove_all(.x, '^"|"$')),
+                  query.length = as.numeric(query.length),
+                  pident = as.numeric(pident),
+                  evalue = as.numeric(evalue),
+                  bit.score = as.numeric(bit.score),
+                  qcovs = as.numeric(qcovs),
+                  qcovhsp = as.numeric(qcovhsp))
 
   # Remove unwanted entries
-  blast_trimmed <- dplyr::filter(blast, !stringr::str_detect(sscinames, regex("uncultured|unidentified|environmental sample", ignore_case = TRUE))) %>%
+  blast_trimmed <-blast %>%
+    dplyr::filter(!stringr::str_detect(sscinames, regex("uncultured|unidentified|environmental sample", ignore_case = TRUE))) %>%
     dplyr::filter(qcovs >= minCov)
 
   # Get taxonomy for staxids using lapply
