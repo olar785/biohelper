@@ -78,8 +78,8 @@ lcaPident <- function(
 
   # Get taxonomy for staxids using lapply
   ## Keeping the first staxid if multiple
-  staxids = sub(";.*", "", blast_trimmed$staxid)
-  staxid_list <- unique(staxids)
+  blast_trimmed$staxids = sub(";.*", "", blast_trimmed$staxids)
+  staxid_list <- unique(blast_trimmed$staxids)
   cat("Number of unique staxid =", length(staxid_list), "\n")
 
   pb <- progress::progress_bar$new(total = length(staxid_list), format = "[:bar] :current/:total (:percent) eta: :eta", clear = FALSE)
