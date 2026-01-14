@@ -47,8 +47,6 @@ If the notches of two boxplots do not overlap this indicates that the two median
 data(enterotype)
 ent <- subset_samples(enterotype, Enterotype \%in\% c("1", "2"))
 
-## Dissimilarity boxplots
-phyloseq_group_dissimilarity(ent, group = "Enterotype")
-phyloseq_group_dissimilarity(ent, group = "Enterotype", between_groups = F)
-phyloseq_group_dissimilarity(ent, group = "Enterotype", method = "jaccard")
+## Dissimilarity
+pw_group_dissimilarity(ent, group = "Enterotype", method = "jaccard")
 }
