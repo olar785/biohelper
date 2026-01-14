@@ -6,7 +6,7 @@
 \usage{
 blastn_taxo_assignment(
   blastapp_path,
-  method = "both",
+  method = "megablast",
   queries,
   megablast_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
   blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.7",
@@ -16,7 +16,7 @@ blastn_taxo_assignment(
   minSim = 97,
   minCov = 80,
   update = FALSE,
-  pident = "no",
+  pident = "before",
   pgenus = 95,
   pfamily = 87,
   porder = 83,

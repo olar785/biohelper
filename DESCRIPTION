@@ -1,6 +1,6 @@
 Package: biohelper
 Title: Helper bioinformatics and data analysis functions
-Version: 0.0.19.000
+Version: 0.0.20.000
 Authors@R: 
     person(given = "Olivier", family = "Laroche", email = "olar785@aucklanduni.ac.nz", 
            role = c("aut", "cre"),
@@ -10,13 +10,12 @@ License: MIT + file LICENSE
     license
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends:
     taxonomizr,
     splitstackshape,
     microDecon,
     stringr,
-    reticulate,
     data.table,
     dplyr,
     magrittr,
@@ -29,6 +28,10 @@ Depends:
     tidyverse,
     BiocManager,
     remotes,
+    taxizedb,
+    progress,
+    stringr,
+    UpSetR,
     R (>= 3.5)
 biocViews:
 Remotes:
@@ -40,14 +43,3 @@ Suggests:
     knitr
 VignetteBuilder: knitr
 LazyData: true
-Config/reticulate:
-  list(
-    packages = list(
-      list(package = "pandas"),
-      list(package = "ete3"),
-      list(package = "argparse"),
-      list(package = "tqdm"),
-      list(package = "pytz"),
-      list(package = "python-dateutil")
-    )
-  )

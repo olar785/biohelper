@@ -37,5 +37,5 @@ It returns a dataframe for UpsetR, the plot obtained directly from the 'upset' f
 If you use this function for a publication, please cite the creators of the UpSetR and cowplot R packages (citation('UpSetR') and citation('cowplot')).
 }
 \examples{
-upset_wrapper(pst = ps_test_data, grp = "biome")
+psto_upset(pst = ps_test_data, grp = "biome")
 }

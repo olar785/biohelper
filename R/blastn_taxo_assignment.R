@@ -69,104 +69,90 @@
 #' nthreads=10)
 
 
-blastn_taxo_assignment = function(blastapp_path,
-                            method="both",
-                            queries,
-                            megablast_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
-                            blastn_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.7",
-                            db,
-                            output_path,
-                            nthreads,
-                            minSim=97,
-                            minCov=80,
-                            update=FALSE,
-                            pident="no",
-                            pgenus=95,
-                            pfamily=87,
-                            porder=83,
-                            pclass=81,
-                            pphylum=79,
-                            pkingdom=71,
-                            taxonly="TRUE")
-{
-  # Blastn and Megablast
-  if(!dir.exists(output_path)) dir.create(output_path)
-  args <- paste(paste("-db", db, collapse = " "),
-                paste("-query", queries, collapse = " "),
-                paste("-num_threads", nthreads, collapse = " "))
+blastn_taxo_assignment <- function(
+    blastapp_path,
+    method = "megablast",
+    queries,
+    megablast_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
+    blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.7",
+    db,
+    output_path,
+    nthreads,
+    minSim = 97,
+    minCov = 80,
+    update = FALSE,
+    pident = "before",
+    pgenus = 95,
+    pfamily = 87,
+    porder = 83,
+    pclass = 81,
+    pphylum = 79,
+    pkingdom = 71,
+    taxonly = "TRUE"
+) {
+  if (!dir.exists(output_path)) dir.create(output_path)
 
-  if(method == "both"){
-    cat("\nPerforming megablast and blastn\n")
-    system2(blastapp_path, args = c(args,megablast_opts,"-task megablast", paste0("-out"," ",output_path,"/megablast_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
-    cat("\nDone with megablast, now starting blastn\n")
-    system2(blastapp_path, args = c(args,blastn_opts,"-task blastn", paste0("-out"," ",output_path,"/blastn_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
-    cat("\nDone with blastn\n")
-  }else if(method == "megablast"){
-    cat("\nPerforming megablast only\n")
-    system2(blastapp_path, args = c(args,megablast_opts,"-task megablast", paste0("-out"," ",output_path,"/megablast_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
+  args_base <- paste(
+    "-db", db,
+    "-query", queries,
+    "-num_threads", nthreads
+  )
 
-  }else if(method == "blastn"){
-    cat("\nPerforming blastn only\n")
-    system2(blastapp_path, args = c(args,blastn_opts,"-task blastn", paste0("-out"," ",output_path,"/blastn_output.csv"), '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'))
+  blast_outfmt <- '-outfmt "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"'
 
-  }else{
-    stop("The method specified is not available. Options are 'megablast', 'blastn' and 'both'", call. = FALSE)
+  # Run BLAST searches
+  if (method == "both" || method == "megablast") {
+    message("Running megablast...")
+    megablast_out <- file.path(output_path, "megablast_output.csv")
+    system2(blastapp_path, args = c(args_base, megablast_opts, "-task megablast", "-out", megablast_out, blast_outfmt))
+  }
+  if (method == "both" || method == "blastn") {
+    message("Running blastn...")
+    blastn_out <- file.path(output_path, "blastn_output.csv")
+    system2(blastapp_path, args = c(args_base, blastn_opts, "-task blastn", "-out", blastn_out, blast_outfmt))
   }
 
-  # R packages used
-  packages <- c("tidyverse", "data.table","reshape2","reticulate")
-  # Install packages not yet installed
-  installed_packages <- packages %in% rownames(installed.packages())
-  if (any(installed_packages == FALSE)) {
-    install.packages(packages[!installed_packages])
-  }
-  # Packages loading
-  invisible(lapply(packages, library, character.only = TRUE))
-
-  # Taxonomic assignment using LCA and pident
-  for (i in c("pandas","ete3","csv","re","argparse","numpy", "time", "tqdm")) {
-    if(!reticulate::py_module_available(i)){
-      reticulate::py_install(i)
-    }
-  }
-
-  reticulate::py_run_file(file = system.file("env.py",package = "biohelper"))
-  pyscript = system.file("Pident_LCA_blast_taxo_assignment.py",package = "biohelper")
-
-  args_general = paste(
-  paste("--minSim", minSim, collapse = " "),
-  paste("--minCov", minCov, collapse = " "),
-  paste("--update", update, collapse = " "),
-  paste("--pident", pident, collapse = " "),
-  paste("--pgenus", pgenus, collapse = " "),
-  paste("--pfamily", pfamily, collapse = " "),
-  paste("--porder", porder, collapse = " "),
-  paste("--pclass", pclass, collapse = " "),
-  paste("--pphylum", pphylum, collapse = " "),
-  paste("--pkingdom", pkingdom, collapse = " "),
-  paste("--taxonly", taxonly, collapse = " "))
-
-  cat("\nPerforming taxonomic assignment from blast output\n")
-  args_megablast = paste(
-    paste("-b", paste0(output_path,"/megablast_output.csv"), collapse = " "),
-    paste("-o", paste0(output_path,"/megablast_output_processed.csv"), collapse = " "),
-    args_general)
-  args_blastn = paste(
-    paste("-b", paste0(output_path,"/blastn_output.csv"), collapse = " "),
-    paste("-o", paste0(output_path,"/blastn_output_processed.csv"), collapse = " "),
-    args_general)
-
-  ranks = c("domain","superkingdom","kingdom","phylum","class","order","family","genus","species")
-
-  if(method == "both"){
-    system2(pyscript, args_megablast)
-    system2(pyscript, args_blastn)
-  }else if(method == "megablast"){
-    system2(pyscript, args_megablast)
-    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
-  }else{
-    system2(pyscript, args_blastn)
-    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>% dplyr::select(-c(taxonomy,Percent_Identity,Sequence_coverage)) %>% mutate_all(na_if,"")
+  # Process results using R-native LCA function
+  if (method == "both") {
+    lcaPident(
+      blast_file = megablast_out,
+      output_file = file.path(output_path, "megablast_output_processed.csv"),
+      minSim = minSim, minCov = minCov, pident = pident,
+      pgenus = pgenus, pfamily = pfamily, porder = porder,
+      pclass = pclass, pphylum = pphylum, pkingdom = pkingdom,
+      taxonly = taxonly, update = update, verbose = TRUE
+    )
+    lcaPident(
+      blast_file = blastn_out,
+      output_file = file.path(output_path, "blastn_output_processed.csv"),
+      minSim = minSim, minCov = minCov, pident = pident,
+      pgenus = pgenus, pfamily = pfamily, porder = porder,
+      pclass = pclass, pphylum = pphylum, pkingdom = pkingdom,
+      taxonly = taxonly, update = update, verbose = TRUE
+    )
+    message("Taxonomic assignment for both methods completed.")
+  } else if (method == "megablast") {
+    lcaPident(
+      blast_file = megablast_out,
+      output_file = file.path(output_path, "megablast_output_processed.csv"),
+      minSim = minSim, minCov = minCov, pident = pident,
+      pgenus = pgenus, pfamily = pfamily, porder = porder,
+      pclass = pclass, pphylum = pphylum, pkingdom = pkingdom,
+      taxonly = taxonly, update = update, verbose = TRUE
+    )
+    message("Taxonomic assignment with megablast completed.")
+  } else if (method == "blastn") {
+    lcaPident(
+      blast_file = blastn_out,
+      output_file = file.path(output_path, "blastn_output_processed.csv"),
+      minSim = minSim, minCov = minCov, pident = pident,
+      pgenus = pgenus, pfamily = pfamily, porder = porder,
+      pclass = pclass, pphylum = pphylum, pkingdom = pkingdom,
+      taxonly = taxonly, update = update, verbose = TRUE
+    )
+    message("Taxonomic assignment with blastn completed.")
+  } else {
+    stop("Invalid method. Choose from 'megablast', 'blastn', or 'both'.")
   }
 
   # Merging results from blastn and megablast
@@ -201,7 +187,6 @@ blastn_taxo_assignment = function(blastapp_path,
       close(pb)
     }
 
-
   }else if(method == "megablast"){
     newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>%
       as.data.frame() %>%
@@ -226,4 +211,3 @@ blastn_taxo_assignment = function(blastapp_path,
   write.table(x = newdf %>% dplyr::select(-nR), file = paste0(output_path, "/blastn_taxo_assingment.csv"), row.names = F)
   #return(newdf %>% dplyr::select(-nR))
 }
-
