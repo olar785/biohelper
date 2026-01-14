@@ -1,17 +1,17 @@
 #' extra_taxo_assignment
 #'
 #' @description
-#' This function takes in a pyloseq object with taxonomy data or a dataframe containing taxonomy information and currently adds the Protozoa and
+#' This function takes in a pyloseq object with taxonomy data or a dataframe containing taxonomy information and currently adds the TSAR and
 #' Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank. This script is particularly useful
 #' if taxonomy has been normalised using NCBI curated classification and nomenclature database
-#' (using the taxo_normalisation function of this package for example) where protozoans and Archaeplastida (excl. Viridiplantae)
-#' are generally not assigned any information under Kingdom, making it difficult to dissociate metazoans from protists, or the Plantae group.
+#' (using the taxo_normalisation function of this package for example) where TSAR and Archaeplastida (excl. Viridiplantae) taxa
+#' are generally not assigned any information under Kingdom, making it difficult to dissociate metazoans from TSAR, or the Plantae group.
 #' Importantly, this function requires the download of NCBI taxonomic database.
 #' This takes few minutes to install using the following command:\cr
 #' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The database is ~65 GB but the user can set getAccessions=FALSE to drastically reduce its size.
 #'
 #' @param
-#' obj                Object
+#' obj            Object
 #' @param
 #' sqlFile       Path to the local NCBI taxonomy db
 #'
@@ -22,25 +22,25 @@
 #' extra_taxo_assignment(obj = ps_test_data, sqlFile = 'accessionTaxa.sql')
 
 extra_taxo_assignment = function(obj, sqlFile){
-  # Taxonomic ID for protists
-  proto_names <- c("Telonemia", "Stramenopiles", "Alveolata", "Rhizaria","Chromeraceae", # TSAR
+  # Taxonomic ID for tsar
+  tsar_names <- c("Telonemia", "Stramenopiles", "Alveolata", "Rhizaria","Chromeraceae", # TSAR
                    "Tubulinea", "Discosea", "Evosea","Elardia","Flabellinia","Echinamoebida","Breviatea","Filasterea", # Amoebozoa
                    "Euglenozoa", "Kinetoplastea", # Discoba
                    "Hemimastigophora","Nibbleridia","Centroplasthelida","Ichthyosporea","Nibbleridea","Ancyromonadida","Jakobida", # ?
                    "Heterolobosea", # Diphoda
                    "Choanoflagellata") # Choanozoa
-  other_proto = c("Telonemida","Chromeraceae","Apusomonadidae","Apusomonadida","Nucleariidae","Rotosphaerida","Colpodellida","Colpodellaceae") # May not be in NCBI db
+  other_tsar = c("Telonemida","Chromeraceae","Apusomonadidae","Apusomonadida","Nucleariidae","Rotosphaerida","Colpodellida","Colpodellaceae") # May not be in NCBI db
   archaeplastida_names <- c("Bangiophyceae","Chrysophyceae","Florideophyceae","Cryptophyceae","Rhodophyta","Haptophyta","Picozoa","Picomonadea")
   aphelidea_names <- c("Aphelidea") #fungi
 
   # Step 1: Use getId() to get the taxonomic ID for each taxon name
-  proto_ids <- taxonomizr::getId(taxa = proto_names, sqlFile = sqlFile)
+  tsar_ids <- taxonomizr::getId(taxa = tsar_names, sqlFile = sqlFile)
   archaeplastida_ids <- taxonomizr::getId(taxa = archaeplastida_names, sqlFile = sqlFile)
   aphelidea_ids <- taxonomizr::getId(taxa = aphelidea_names, sqlFile = sqlFile)
 
   # Step 2: Get all descendant taxa for TSAR taxa
-  proto_taxa <- taxonomizr::getDescendants(ids = proto_ids, sqlFile = sqlFile, desiredTaxa = c("phylum", "class","order"))
-  proto_taxa = c(proto_taxa,proto_names)
+  tsar_taxa <- taxonomizr::getDescendants(ids = tsar_ids, sqlFile = sqlFile, desiredTaxa = c("phylum", "class","order"))
+  tsar_taxa = c(tsar_taxa,tsar_names)
   archaeplastida_taxa <- taxonomizr::getDescendants(ids = archaeplastida_ids, sqlFile = sqlFile, desiredTaxa = c("phylum", "class","order"))
   archaeplastida_taxa = c(archaeplastida_taxa,archaeplastida_names)
   aphelidea_taxa <- taxonomizr::getDescendants(ids = aphelidea_ids, sqlFile = sqlFile, desiredTaxa = c("phylum", "class","order"))
@@ -76,9 +76,9 @@ extra_taxo_assignment = function(obj, sqlFile){
   update_kingdom <- function(tax_row) {
     # Check if Kingdom is NA or an empty string, and if any of the higher ranks belong to TSAR
     if ((is.na(tax_row["kingdom"]) || tax_row["kingdom"] == "") &&
-        (tax_row["phylum"] %in% proto_taxa ||
-         tax_row["class"] %in% proto_taxa ||
-         tax_row["order"] %in% proto_taxa)) {
+        (tax_row["phylum"] %in% tsar_taxa ||
+         tax_row["class"] %in% tsar_taxa ||
+         tax_row["order"] %in% tsar_taxa)) {
       tax_row["kingdom"] <- "Protozoa"
     }
     if ((is.na(tax_row["kingdom"]) || tax_row["kingdom"] == "") &&

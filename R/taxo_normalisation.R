@@ -20,7 +20,7 @@
 #' @param
 #' ranks = Ranks to return
 #' @param
-#' addExtra = Currently adds the Protozoa and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and Protozoa group from Metazoans
+#' addExtra = Currently adds the TSAR and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and TSAR group from Metazoans
 #' @param
 #' spnc = Only needs to be applied if the Genus is not present under the Species column (default is FALSE).
 #' @export
