@@ -29,7 +29,7 @@ extra_taxo_assignment = function(obj, sqlFile){
                    "Hemimastigophora","Nibbleridia","Centroplasthelida","Ichthyosporea","Nibbleridea","Ancyromonadida","Jakobida", # ?
                    "Heterolobosea", # Diphoda
                    "Choanoflagellata") # Choanozoa
-  other_tsar = c("Telonemida","Chromeraceae","Apusomonadidae","Apusomonadida","Nucleariidae","Rotosphaerida","Colpodellida","Colpodellaceae") # May not be in NCBI db
+  other_proto = c("Telonemida","Chromeraceae","Apusomonadidae","Apusomonadida","Nucleariidae","Rotosphaerida","Colpodellida","Colpodellaceae") # May not be in NCBI db
   archaeplastida_names <- c("Bangiophyceae","Chrysophyceae","Florideophyceae","Cryptophyceae","Rhodophyta","Haptophyta","Picozoa","Picomonadea")
   aphelidea_names <- c("Aphelidea") #fungi
 
