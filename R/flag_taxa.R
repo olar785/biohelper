@@ -5,7 +5,8 @@
 #' expected environment, habitat, and region. This first scaffold does not call
 #' an LLM or query external databases. It only extracts taxonomy, chooses the
 #' most specific useful taxon for each row, and returns the prompt that can be
-#' inspected or copied into a later review workflow.
+#' inspected or copied into a later review workflow. It can also validate a
+#' mocked LLM-like result table while the backend is under development.
 #'
 #' @param x A taxonomy table as a data frame, matrix, phyloseq taxonomy table,
 #'   or a phyloseq/speedyseq object containing a taxonomy table.
@@ -19,14 +20,17 @@
 #'   most specific to broadest.
 #' @param evidence_sources Character vector naming evidence sources the prompt
 #'   should ask the reviewer to consider.
-#' @param prompt_only Logical scalar. Must be `TRUE` for now. When `TRUE`, the
-#'   generated prompt is returned as a character scalar. When `FALSE`, the
-#'   function errors because the LLM backend is not implemented yet.
+#' @param prompt_only Logical scalar. When `TRUE`, the generated prompt is
+#'   returned as a character scalar. When `FALSE`, `mock_llm_result` must be
+#'   provided because the LLM backend is not implemented yet.
 #' @param verbose Logical scalar. If `TRUE`, emit a short message about the
 #'   number of taxa prepared for the prompt.
+#' @param mock_llm_result Optional data frame used for testing the validation
+#'   of an LLM-like result while the backend is not implemented.
 #'
 #' @return A character scalar containing the generated prompt when
-#'   `prompt_only = TRUE`.
+#'   `prompt_only = TRUE`, or a validated result table when `prompt_only = FALSE`
+#'   and `mock_llm_result` is provided.
 #' @export
 #'
 #' @examples
@@ -52,7 +56,8 @@ flag_taxa <- function(
   tax_ranks = c("species", "genus", "family", "order", "class", "phylum", "kingdom"),
   evidence_sources = c("worms", "obis", "gbif", "bold", "literature"),
   prompt_only = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  mock_llm_result = NULL
 ) {
   expected_environment <- .validate_required_scalar_character(
     expected_environment,
@@ -74,17 +79,25 @@ flag_taxa <- function(
   prompt_only <- .validate_logical_scalar(prompt_only, "prompt_only")
   verbose <- .validate_logical_scalar(verbose, "verbose")
 
-  if (!isTRUE(prompt_only)) {
-    stop(
-      "The LLM backend for `flag_taxa()` is not implemented yet. ",
-      "Use `prompt_only = TRUE` to return the generated prompt.",
-      call. = FALSE
-    )
-  }
-
   tax_table <- extract_tax_table(x)
   if (isTRUE(verbose)) {
     message("Prepared ", nrow(tax_table), " taxonomic rows for prompt-only review.")
+  }
+
+  if (!isTRUE(prompt_only) && !is.null(mock_llm_result)) {
+    return(validate_flag_taxa_output(
+      result = mock_llm_result,
+      original_taxonomy = tax_table
+    ))
+  }
+
+  if (!isTRUE(prompt_only)) {
+    stop(
+      "The LLM backend for `flag_taxa()` is not implemented yet. ",
+      "Use `prompt_only = TRUE` to return the generated prompt, or provide ",
+      "`mock_llm_result` for validation testing.",
+      call. = FALSE
+    )
   }
 
   build_flag_taxa_prompt(
@@ -95,6 +108,70 @@ flag_taxa <- function(
     tax_ranks = tax_ranks,
     evidence_sources = evidence_sources
   )
+}
+
+#' Validate a flag_taxa result table
+#'
+#' @param result Data frame returned by an LLM-like review.
+#' @param original_taxonomy Original taxonomy table used to build the prompt.
+#'
+#' @return `result`, unchanged.
+#' @noRd
+validate_flag_taxa_output <- function(result, original_taxonomy) {
+  if (!inherits(result, "data.frame")) {
+    stop("`result` must be a data.frame.", call. = FALSE)
+  }
+  if (!inherits(original_taxonomy, "data.frame")) {
+    stop("`original_taxonomy` must be a data.frame.", call. = FALSE)
+  }
+
+  required_columns <- .flag_taxa_output_columns()
+  missing_columns <- setdiff(required_columns, colnames(result))
+  if (length(missing_columns) > 0) {
+    stop(
+      "`result` is missing required flag_taxa columns: ",
+      paste(missing_columns, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  if (nrow(result) != nrow(original_taxonomy)) {
+    stop(
+      "`result` must have the same number of rows as `original_taxonomy`. ",
+      "`result` has ",
+      nrow(result),
+      " row(s); `original_taxonomy` has ",
+      nrow(original_taxonomy),
+      " row(s).",
+      call. = FALSE
+    )
+  }
+
+  if (
+    "feature_id" %in% colnames(result) &&
+      "feature_id" %in% colnames(original_taxonomy)
+  ) {
+    result_feature_id <- as.character(result$feature_id)
+    original_feature_id <- as.character(original_taxonomy$feature_id)
+    if (!identical(result_feature_id, original_feature_id)) {
+      stop(
+        "`feature_id` values in `result` must match `original_taxonomy` ",
+        "in the same row order.",
+        call. = FALSE
+      )
+    }
+  }
+
+  allowed_values <- .flag_taxa_allowed_values()
+  for (column_name in names(allowed_values)) {
+    .validate_flag_taxa_enum_column(
+      result = result,
+      column_name = column_name,
+      allowed_values = allowed_values[[column_name]]
+    )
+  }
+
+  result
 }
 
 #' Extract a taxonomy table from supported inputs
@@ -261,7 +338,7 @@ build_flag_taxa_prompt <- function(
     "",
     "Important biological rules:",
     "- Do not classify taxa as incompatible based on majority ecology.",
-    "- A taxon is environmentally incompatible only when no known member of the queried taxonomic group is compatible with the expected environment, or when the literature clearly suggests incompatibility of the taxon with the specified environment.",
+    "- A taxon is environmentally incompatible only when no known member of the queried taxonomic group is compatible with the expected environment.",
     "- If a broad taxonomic rank contains both compatible and incompatible organisms, use mixed_within_rank.",
     "- If taxonomy is too coarse to judge, use insufficient_taxonomic_resolution.",
     "- If evidence is missing, use unknown or no_distribution_evidence. Do not invent evidence.",
@@ -338,6 +415,58 @@ build_flag_taxa_prompt <- function(
     "rationale",
     "references"
   )
+}
+
+.flag_taxa_allowed_values <- function() {
+  list(
+    expected_environment_status = c(
+      "compatible",
+      "incompatible",
+      "mixed_within_rank",
+      "unknown",
+      "insufficient_taxonomic_resolution"
+    ),
+    expected_habitat_status = c(
+      "compatible",
+      "incompatible",
+      "transient_or_allochthonous_possible",
+      "mixed_within_rank",
+      "unknown",
+      "insufficient_taxonomic_resolution"
+    ),
+    expected_region_status = c(
+      "known_in_region",
+      "known_near_region",
+      "known_elsewhere_only",
+      "restricted_elsewhere",
+      "no_distribution_evidence",
+      "unknown",
+      "not_assessed"
+    ),
+    recommended_action = c(
+      "retain",
+      "review",
+      "exclude"
+    )
+  )
+}
+
+.validate_flag_taxa_enum_column <- function(result, column_name, allowed_values) {
+  values <- as.character(result[[column_name]])
+  invalid_values <- unique(values[is.na(values) | !(values %in% allowed_values)])
+
+  if (length(invalid_values) > 0) {
+    invalid_values[is.na(invalid_values)] <- "<NA>"
+    stop(
+      "`",
+      column_name,
+      "` contains invalid values: ",
+      paste(invalid_values, collapse = ", "),
+      ". Allowed values are: ",
+      paste(allowed_values, collapse = ", "),
+      call. = FALSE
+    )
+  }
 }
 
 .add_taxon_id_column <- function(tax_table) {

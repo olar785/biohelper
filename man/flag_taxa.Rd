@@ -12,7 +12,8 @@ flag_taxa(
   tax_ranks = c("species", "genus", "family", "order", "class", "phylum", "kingdom"),
   evidence_sources = c("worms", "obis", "gbif", "bold", "literature"),
   prompt_only = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  mock_llm_result = NULL
 )
 }
 \arguments{
@@ -34,23 +35,28 @@ most specific to broadest.}
 \item{evidence_sources}{Character vector naming evidence sources the prompt
 should ask the reviewer to consider.}
 
-\item{prompt_only}{Logical scalar. Must be \code{TRUE} for now. When \code{TRUE}, the
-generated prompt is returned as a character scalar. When \code{FALSE}, the
-function errors because the LLM backend is not implemented yet.}
+\item{prompt_only}{Logical scalar. When \code{TRUE}, the generated prompt is
+returned as a character scalar. When \code{FALSE}, \code{mock_llm_result} must be
+provided because the LLM backend is not implemented yet.}
 
 \item{verbose}{Logical scalar. If \code{TRUE}, emit a short message about the
 number of taxa prepared for the prompt.}
+
+\item{mock_llm_result}{Optional data frame used for testing the validation
+of an LLM-like result while the backend is not implemented.}
 }
 \value{
 A character scalar containing the generated prompt when
-\code{prompt_only = TRUE}.
+\code{prompt_only = TRUE}, or a validated result table when \code{prompt_only = FALSE}
+and \code{mock_llm_result} is provided.
 }
 \description{
 Builds a review prompt for checking whether taxa are compatible with an
 expected environment, habitat, and region. This first scaffold does not call
 an LLM or query external databases. It only extracts taxonomy, chooses the
 most specific useful taxon for each row, and returns the prompt that can be
-inspected or copied into a later review workflow.
+inspected or copied into a later review workflow. It can also validate a
+mocked LLM-like result table while the backend is under development.
 }
 \examples{
 tax <- data.frame(
