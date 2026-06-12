@@ -24,7 +24,7 @@ valid_flag_taxa_result <- function() {
       expected_habitat = c("estuary", "estuary"),
       expected_habitat_status = c("transient_or_allochthonous_possible", "unknown"),
       expected_region = c("North Atlantic", "North Atlantic"),
-      expected_region_status = c("known_in_region", "not_assessed"),
+      expected_region_status = c("known_in_region", "known_near_region"),
       recommended_action = c("retain", "review"),
       rationale = c("Example rationale 1.", "Example rationale 2."),
       references = c("Example reference 1.", "Example reference 2."),
@@ -154,6 +154,7 @@ test_that("invalid recommended_action errors", {
     flag_taxa(
       tax,
       expected_environment = "marine",
+      expected_region = "North Atlantic",
       prompt_only = FALSE,
       mock_llm_result = result
     ),
@@ -170,10 +171,45 @@ test_that("invalid expected_environment_status errors", {
     flag_taxa(
       tax,
       expected_environment = "marine",
+      expected_region = "North Atlantic",
       prompt_only = FALSE,
       mock_llm_result = result
     ),
     "expected_environment_status.*invalid values.*probably"
+  )
+})
+
+test_that("invalid expected_habitat_status errors", {
+  tax <- flag_taxa_test_taxonomy()
+  result <- valid_flag_taxa_result()
+  result$expected_habitat_status[1] <- "probably"
+
+  expect_error(
+    flag_taxa(
+      tax,
+      expected_environment = "marine",
+      expected_region = "North Atlantic",
+      prompt_only = FALSE,
+      mock_llm_result = result
+    ),
+    "expected_habitat_status.*invalid values.*probably"
+  )
+})
+
+test_that("invalid expected_region_status errors", {
+  tax <- flag_taxa_test_taxonomy()
+  result <- valid_flag_taxa_result()
+  result$expected_region_status[1] <- "probably"
+
+  expect_error(
+    flag_taxa(
+      tax,
+      expected_environment = "marine",
+      expected_region = "North Atlantic",
+      prompt_only = FALSE,
+      mock_llm_result = result
+    ),
+    "expected_region_status.*invalid values.*probably"
   )
 })
 
@@ -186,6 +222,7 @@ test_that("missing required column errors", {
     flag_taxa(
       tax,
       expected_environment = "marine",
+      expected_region = "North Atlantic",
       prompt_only = FALSE,
       mock_llm_result = result
     ),
@@ -201,6 +238,7 @@ test_that("row mismatch errors", {
     flag_taxa(
       tax,
       expected_environment = "marine",
+      expected_region = "North Atlantic",
       prompt_only = FALSE,
       mock_llm_result = result
     ),
@@ -217,10 +255,43 @@ test_that("feature_id mismatch errors if feature_id is present", {
     flag_taxa(
       tax,
       expected_environment = "marine",
+      expected_region = "North Atlantic",
       prompt_only = FALSE,
       mock_llm_result = result
     ),
     "feature_id.*must match"
+  )
+})
+
+test_that("expected_region = NULL requires not_assessed", {
+  tax <- flag_taxa_test_taxonomy()
+  result <- valid_flag_taxa_result()
+
+  expect_error(
+    flag_taxa(
+      tax,
+      expected_environment = "marine",
+      prompt_only = FALSE,
+      mock_llm_result = result
+    ),
+    "expected_region_status.*must be `not_assessed`"
+  )
+})
+
+test_that("expected_region not NULL rejects not_assessed", {
+  tax <- flag_taxa_test_taxonomy()
+  result <- valid_flag_taxa_result()
+  result$expected_region_status[1] <- "not_assessed"
+
+  expect_error(
+    flag_taxa(
+      tax,
+      expected_environment = "marine",
+      expected_region = "North Atlantic",
+      prompt_only = FALSE,
+      mock_llm_result = result
+    ),
+    "expected_region_status.*must not be `not_assessed`"
   )
 })
 

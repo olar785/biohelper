@@ -87,7 +87,8 @@ flag_taxa <- function(
   if (!isTRUE(prompt_only) && !is.null(mock_llm_result)) {
     return(validate_flag_taxa_output(
       result = mock_llm_result,
-      original_taxonomy = tax_table
+      original_taxonomy = tax_table,
+      expected_region = expected_region
     ))
   }
 
@@ -114,10 +115,11 @@ flag_taxa <- function(
 #'
 #' @param result Data frame returned by an LLM-like review.
 #' @param original_taxonomy Original taxonomy table used to build the prompt.
+#' @param expected_region Optional expected region supplied to `flag_taxa()`.
 #'
 #' @return `result`, unchanged.
 #' @noRd
-validate_flag_taxa_output <- function(result, original_taxonomy) {
+validate_flag_taxa_output <- function(result, original_taxonomy, expected_region = NULL) {
   if (!inherits(result, "data.frame")) {
     stop("`result` must be a data.frame.", call. = FALSE)
   }
@@ -170,6 +172,7 @@ validate_flag_taxa_output <- function(result, original_taxonomy) {
       allowed_values = allowed_values[[column_name]]
     )
   }
+  .validate_flag_taxa_region_assessment(result, expected_region)
 
   result
 }
@@ -464,6 +467,29 @@ build_flag_taxa_prompt <- function(
       paste(invalid_values, collapse = ", "),
       ". Allowed values are: ",
       paste(allowed_values, collapse = ", "),
+      call. = FALSE
+    )
+  }
+}
+
+.validate_flag_taxa_region_assessment <- function(result, expected_region) {
+  region_status <- as.character(result$expected_region_status)
+  not_assessed <- region_status == "not_assessed"
+
+  if (is.null(expected_region) && any(!not_assessed)) {
+    invalid_values <- unique(region_status[!not_assessed])
+    stop(
+      "`expected_region_status` must be `not_assessed` when ",
+      "`expected_region` is NULL. Found: ",
+      paste(invalid_values, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  if (!is.null(expected_region) && any(not_assessed)) {
+    stop(
+      "`expected_region_status` must not be `not_assessed` when ",
+      "`expected_region` is provided.",
       call. = FALSE
     )
   }
