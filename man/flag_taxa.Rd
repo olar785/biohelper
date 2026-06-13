@@ -11,6 +11,7 @@ flag_taxa(
   expected_region = NULL,
   tax_ranks = c("species", "genus", "family", "order", "class", "phylum", "kingdom"),
   evidence_sources = c("worms", "obis", "gbif", "bold", "literature"),
+  taxon_evidence = NULL,
   prompt_only = TRUE,
   verbose = FALSE,
   mock_llm_result = NULL
@@ -35,6 +36,14 @@ most specific to broadest.}
 \item{evidence_sources}{Character vector naming evidence sources the prompt
 should ask the reviewer to consider.}
 
+\item{taxon_evidence}{Optional data frame containing user-supplied evidence
+about taxon environment, habitat, and/or region. Required columns are
+\code{taxon_name}, \code{taxon_rank}, \code{source}, \code{evidence_type}, \code{evidence_summary},
+and \code{reference}. Optional columns are \code{accepted_name}, \code{accepted_rank},
+\code{source_taxon_id}, \code{source_record_id}, \code{environment}, \code{habitat}, \code{region},
+\code{locality}, \code{decimal_latitude}, \code{decimal_longitude}, \code{basis_of_record},
+\code{occurrence_count}, \code{reference_url}, \code{doi}, and \code{checked_at}.}
+
 \item{prompt_only}{Logical scalar. When \code{TRUE}, the generated prompt is
 returned as a character scalar. When \code{FALSE}, \code{mock_llm_result} must be
 provided because the LLM backend is not implemented yet.}
@@ -58,6 +67,19 @@ most specific useful taxon for each row, and returns the prompt that can be
 inspected or copied into a later review workflow. It can also validate a
 mocked LLM-like result table while the backend is under development.
 }
+\section{Taxon evidence table}{
+
+\code{taxon_evidence} can be used to provide curated evidence that should be
+considered before any future online evidence lookup. The required columns are:
+\code{taxon_name}, \code{taxon_rank}, \code{source}, \code{evidence_type}, \code{evidence_summary},
+and \code{reference}.
+
+Optional columns are: \code{accepted_name}, \code{accepted_rank}, \code{source_taxon_id},
+\code{source_record_id}, \code{environment}, \code{habitat}, \code{region}, \code{locality},
+\code{decimal_latitude}, \code{decimal_longitude}, \code{basis_of_record},
+\code{occurrence_count}, \code{reference_url}, \code{doi}, and \code{checked_at}.
+}
+
 \examples{
 tax <- data.frame(
   kingdom = "Animalia",

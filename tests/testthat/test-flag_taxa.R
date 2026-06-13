@@ -33,6 +33,26 @@ valid_flag_taxa_result <- function() {
   )
 }
 
+valid_taxon_evidence <- function() {
+  data.frame(
+    taxon_name = c("Salmo salar", "Daphnia"),
+    taxon_rank = c("species", "genus"),
+    source = c("literature", "literature"),
+    evidence_type = c("environment", "habitat"),
+    evidence_summary = c(
+      "Occurs in marine and freshwater phases.",
+      "Mostly freshwater, with some brackish records."
+    ),
+    reference = c("Example reference 1", "Example reference 2"),
+    environment = c("marine; freshwater", "freshwater; brackish"),
+    habitat = c("coastal water; rivers", "ponds; lakes"),
+    region = c("North Atlantic", "global"),
+    reference_url = c("https://example.org/salmo", "https://example.org/daphnia"),
+    doi = c("10.0000/example.1", "10.0000/example.2"),
+    stringsAsFactors = FALSE
+  )
+}
+
 test_that("prompt_only = TRUE returns a character prompt", {
   tax <- data.frame(
     kingdom = "Animalia",
@@ -145,6 +165,104 @@ test_that("prompt_only = TRUE asks for valid JSON only", {
   for (json_field in json_fields) {
     expect_true(grepl(paste0("- ", json_field), prompt, fixed = TRUE))
   }
+})
+
+test_that("taxon_evidence = NULL keeps current prompt behaviour", {
+  prompt_default <- flag_taxa(
+    flag_taxa_test_taxonomy(),
+    expected_environment = "marine",
+    expected_habitat = "estuary",
+    expected_region = "North Atlantic"
+  )
+  prompt_null <- flag_taxa(
+    flag_taxa_test_taxonomy(),
+    expected_environment = "marine",
+    expected_habitat = "estuary",
+    expected_region = "North Atlantic",
+    taxon_evidence = NULL
+  )
+
+  expect_identical(prompt_null, prompt_default)
+})
+
+test_that("valid taxon_evidence is accepted", {
+  prompt <- flag_taxa(
+    flag_taxa_test_taxonomy(),
+    expected_environment = "marine",
+    expected_habitat = "estuary",
+    expected_region = "North Atlantic",
+    taxon_evidence = valid_taxon_evidence()
+  )
+
+  expect_type(prompt, "character")
+  expect_length(prompt, 1)
+})
+
+test_that("missing required evidence columns errors clearly", {
+  taxon_evidence <- valid_taxon_evidence()
+  taxon_evidence$reference <- NULL
+
+  expect_error(
+    flag_taxa(
+      flag_taxa_test_taxonomy(),
+      expected_environment = "marine",
+      taxon_evidence = taxon_evidence
+    ),
+    "taxon_evidence.*missing required columns: reference"
+  )
+})
+
+test_that("non-data.frame taxon_evidence errors clearly", {
+  expect_error(
+    flag_taxa(
+      flag_taxa_test_taxonomy(),
+      expected_environment = "marine",
+      taxon_evidence = list(taxon_name = "Salmo salar")
+    ),
+    "`taxon_evidence` must be a data.frame"
+  )
+})
+
+test_that("entirely empty required evidence columns error clearly", {
+  taxon_evidence <- valid_taxon_evidence()
+  taxon_evidence$evidence_summary <- ""
+
+  expect_error(
+    flag_taxa(
+      flag_taxa_test_taxonomy(),
+      expected_environment = "marine",
+      taxon_evidence = taxon_evidence
+    ),
+    "Required `taxon_evidence` columns.*evidence_summary"
+  )
+})
+
+test_that("prompt_only = TRUE includes evidence section when taxon_evidence is provided", {
+  prompt <- flag_taxa(
+    flag_taxa_test_taxonomy(),
+    expected_environment = "marine",
+    expected_habitat = "estuary",
+    expected_region = "North Atlantic",
+    taxon_evidence = valid_taxon_evidence()
+  )
+
+  expect_true(grepl("User-provided taxon evidence", prompt, fixed = TRUE))
+  expect_true(grepl("Use this evidence before performing online searches.", prompt, fixed = TRUE))
+  expect_true(grepl("Do not search online for taxa where the provided evidence is sufficient", prompt, fixed = TRUE))
+  expect_true(grepl("Use online sources only when the provided evidence is incomplete, missing, or conflicting.", prompt, fixed = TRUE))
+  expect_true(grepl("Salmo salar", prompt, fixed = TRUE))
+  expect_true(grepl("Example reference 1", prompt, fixed = TRUE))
+})
+
+test_that("prompt_only = TRUE does not include evidence section when taxon_evidence is NULL", {
+  prompt <- flag_taxa(
+    flag_taxa_test_taxonomy(),
+    expected_environment = "marine",
+    expected_habitat = "estuary",
+    expected_region = "North Atlantic"
+  )
+
+  expect_false(grepl("User-provided taxon evidence", prompt, fixed = TRUE))
 })
 
 test_that("prompt_only = FALSE errors clearly", {

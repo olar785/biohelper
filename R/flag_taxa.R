@@ -20,6 +20,13 @@
 #'   most specific to broadest.
 #' @param evidence_sources Character vector naming evidence sources the prompt
 #'   should ask the reviewer to consider.
+#' @param taxon_evidence Optional data frame containing user-supplied evidence
+#'   about taxon environment, habitat, and/or region. Required columns are
+#'   `taxon_name`, `taxon_rank`, `source`, `evidence_type`, `evidence_summary`,
+#'   and `reference`. Optional columns are `accepted_name`, `accepted_rank`,
+#'   `source_taxon_id`, `source_record_id`, `environment`, `habitat`, `region`,
+#'   `locality`, `decimal_latitude`, `decimal_longitude`, `basis_of_record`,
+#'   `occurrence_count`, `reference_url`, `doi`, and `checked_at`.
 #' @param prompt_only Logical scalar. When `TRUE`, the generated prompt is
 #'   returned as a character scalar. When `FALSE`, `mock_llm_result` must be
 #'   provided because the LLM backend is not implemented yet.
@@ -31,6 +38,17 @@
 #' @return A character scalar containing the generated prompt when
 #'   `prompt_only = TRUE`, or a validated result table when `prompt_only = FALSE`
 #'   and `mock_llm_result` is provided.
+#'
+#' @section Taxon evidence table:
+#' `taxon_evidence` can be used to provide curated evidence that should be
+#' considered before any future online evidence lookup. The required columns are:
+#' `taxon_name`, `taxon_rank`, `source`, `evidence_type`, `evidence_summary`,
+#' and `reference`.
+#'
+#' Optional columns are: `accepted_name`, `accepted_rank`, `source_taxon_id`,
+#' `source_record_id`, `environment`, `habitat`, `region`, `locality`,
+#' `decimal_latitude`, `decimal_longitude`, `basis_of_record`,
+#' `occurrence_count`, `reference_url`, `doi`, and `checked_at`.
 #' @export
 #'
 #' @examples
@@ -55,6 +73,7 @@ flag_taxa <- function(
   expected_region = NULL,
   tax_ranks = c("species", "genus", "family", "order", "class", "phylum", "kingdom"),
   evidence_sources = c("worms", "obis", "gbif", "bold", "literature"),
+  taxon_evidence = NULL,
   prompt_only = TRUE,
   verbose = FALSE,
   mock_llm_result = NULL
@@ -76,6 +95,7 @@ flag_taxa <- function(
     evidence_sources,
     "evidence_sources"
   )
+  taxon_evidence <- validate_taxon_evidence(taxon_evidence)
   prompt_only <- .validate_logical_scalar(prompt_only, "prompt_only")
   verbose <- .validate_logical_scalar(verbose, "verbose")
 
@@ -107,7 +127,8 @@ flag_taxa <- function(
     expected_habitat = expected_habitat,
     expected_region = expected_region,
     tax_ranks = tax_ranks,
-    evidence_sources = evidence_sources
+    evidence_sources = evidence_sources,
+    taxon_evidence = taxon_evidence
   )
 }
 
@@ -175,6 +196,51 @@ validate_flag_taxa_output <- function(result, original_taxonomy, expected_region
   .validate_flag_taxa_region_assessment(result, expected_region)
 
   result
+}
+
+#' Validate user-provided taxon evidence
+#'
+#' @param taxon_evidence Optional evidence table supplied to `flag_taxa()`.
+#'
+#' @return `NULL`, or a data frame with standardised column order.
+#' @noRd
+validate_taxon_evidence <- function(taxon_evidence) {
+  if (is.null(taxon_evidence)) {
+    return(NULL)
+  }
+
+  if (!inherits(taxon_evidence, "data.frame")) {
+    stop("`taxon_evidence` must be a data.frame.", call. = FALSE)
+  }
+
+  required_columns <- .taxon_evidence_required_columns()
+  missing_columns <- setdiff(required_columns, colnames(taxon_evidence))
+  if (length(missing_columns) > 0) {
+    stop(
+      "`taxon_evidence` is missing required columns: ",
+      paste(missing_columns, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  empty_columns <- required_columns[
+    vapply(taxon_evidence[required_columns], .is_entirely_empty_column, logical(1))
+  ]
+  if (length(empty_columns) > 0) {
+    stop(
+      "Required `taxon_evidence` columns must not be entirely empty: ",
+      paste(empty_columns, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  ordered_columns <- c(
+    required_columns,
+    intersect(.taxon_evidence_optional_columns(), colnames(taxon_evidence))
+  )
+  ordered_columns <- c(ordered_columns, setdiff(colnames(taxon_evidence), ordered_columns))
+
+  taxon_evidence[, ordered_columns, drop = FALSE]
 }
 
 #' Extract a taxonomy table from supported inputs
@@ -273,7 +339,8 @@ build_flag_taxa_prompt <- function(
   expected_habitat = NULL,
   expected_region = NULL,
   tax_ranks = c("species", "genus", "family", "order", "class", "phylum", "kingdom"),
-  evidence_sources = c("worms", "obis", "gbif", "bold", "literature")
+  evidence_sources = c("worms", "obis", "gbif", "bold", "literature"),
+  taxon_evidence = NULL
 ) {
   if (!inherits(tax_table, "data.frame")) {
     stop("`tax_table` must be a data.frame.", call. = FALSE)
@@ -284,12 +351,14 @@ build_flag_taxa_prompt <- function(
     evidence_sources,
     "evidence_sources"
   )
+  taxon_evidence <- validate_taxon_evidence(taxon_evidence)
   prepared_taxonomy <- .prepare_flag_taxa_taxonomy(tax_table, tax_ranks)
 
   expected_habitat_text <- .format_optional_prompt_value(expected_habitat)
   expected_region_text <- .format_optional_prompt_value(expected_region)
   evidence_text <- paste(evidence_sources, collapse = ", ")
   json_fields <- .flag_taxa_json_output_fields("feature_id" %in% colnames(tax_table))
+  user_evidence_section <- .format_taxon_evidence_prompt_section(taxon_evidence)
 
   paste(
     "You are reviewing molecular ecology/metabarcoding taxonomy for possible ecological or geographic incompatibilities.",
@@ -303,6 +372,7 @@ build_flag_taxa_prompt <- function(
     paste0("- expected_habitat: ", expected_habitat_text),
     paste0("- expected_region: ", expected_region_text),
     paste0("- preferred evidence sources: ", evidence_text),
+    user_evidence_section,
     "",
     "Return format:",
     "Return valid JSON only.",
@@ -429,6 +499,59 @@ build_flag_taxa_prompt <- function(
   }
 
   fields
+}
+
+.taxon_evidence_required_columns <- function() {
+  c(
+    "taxon_name",
+    "taxon_rank",
+    "source",
+    "evidence_type",
+    "evidence_summary",
+    "reference"
+  )
+}
+
+.taxon_evidence_optional_columns <- function() {
+  c(
+    "accepted_name",
+    "accepted_rank",
+    "source_taxon_id",
+    "source_record_id",
+    "environment",
+    "habitat",
+    "region",
+    "locality",
+    "decimal_latitude",
+    "decimal_longitude",
+    "basis_of_record",
+    "occurrence_count",
+    "reference_url",
+    "doi",
+    "checked_at"
+  )
+}
+
+.is_entirely_empty_column <- function(column) {
+  values <- as.character(column)
+  all(is.na(values) | !nzchar(trimws(values)))
+}
+
+.format_taxon_evidence_prompt_section <- function(taxon_evidence) {
+  if (is.null(taxon_evidence)) {
+    return("")
+  }
+
+  paste(
+    "",
+    "User-provided taxon evidence",
+    "Use this evidence before performing online searches.",
+    "Do not search online for taxa where the provided evidence is sufficient to assign the requested statuses.",
+    "Use online sources only when the provided evidence is incomplete, missing, or conflicting.",
+    "Evidence table, tab-separated:",
+    .format_prompt_table(taxon_evidence),
+    sep = "\n"
+  )
 }
 
 .flag_taxa_allowed_values <- function() {
