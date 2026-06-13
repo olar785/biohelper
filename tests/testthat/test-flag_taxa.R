@@ -112,6 +112,41 @@ test_that("prompt contains allowed status values", {
   }
 })
 
+test_that("prompt_only = TRUE asks for valid JSON only", {
+  prompt <- flag_taxa(
+    flag_taxa_test_taxonomy(),
+    expected_environment = "marine",
+    expected_habitat = "estuary",
+    expected_region = "North Atlantic"
+  )
+
+  json_fields <- c(
+    "feature_id",
+    "query_rank",
+    "query_name",
+    "lineage",
+    "expected_environment",
+    "expected_environment_status",
+    "expected_habitat",
+    "expected_habitat_status",
+    "expected_region",
+    "expected_region_status",
+    "recommended_action",
+    "rationale",
+    "references"
+  )
+
+  expect_true(grepl("Return valid JSON only.", prompt, fixed = TRUE))
+  expect_true(grepl("JSON must be an array of objects", prompt, fixed = TRUE))
+  expect_true(grepl("Do not return markdown", prompt, fixed = TRUE))
+  expect_true(grepl("plain text table", prompt, fixed = TRUE))
+  expect_false(grepl("Return one table only", prompt, fixed = TRUE))
+
+  for (json_field in json_fields) {
+    expect_true(grepl(paste0("- ", json_field), prompt, fixed = TRUE))
+  }
+})
+
 test_that("prompt_only = FALSE errors clearly", {
   tax <- data.frame(
     kingdom = "Animalia",

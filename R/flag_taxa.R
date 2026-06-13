@@ -284,13 +284,12 @@ build_flag_taxa_prompt <- function(
     evidence_sources,
     "evidence_sources"
   )
-  original_columns <- colnames(tax_table)
   prepared_taxonomy <- .prepare_flag_taxa_taxonomy(tax_table, tax_ranks)
 
   expected_habitat_text <- .format_optional_prompt_value(expected_habitat)
   expected_region_text <- .format_optional_prompt_value(expected_region)
   evidence_text <- paste(evidence_sources, collapse = ", ")
-  output_columns <- c(original_columns, .flag_taxa_output_columns())
+  json_fields <- .flag_taxa_json_output_fields("feature_id" %in% colnames(tax_table))
 
   paste(
     "You are reviewing molecular ecology/metabarcoding taxonomy for possible ecological or geographic incompatibilities.",
@@ -306,8 +305,11 @@ build_flag_taxa_prompt <- function(
     paste0("- preferred evidence sources: ", evidence_text),
     "",
     "Return format:",
-    "Return one table only. The table must contain the original taxonomy columns plus these columns, in this order:",
-    paste(output_columns, collapse = "\t"),
+    "Return valid JSON only.",
+    "Do not return markdown, a markdown table, a plain text table, code fences, or explanatory text outside the JSON.",
+    "The JSON must be an array of objects, with one object for each input row in the same order.",
+    "Each object must contain these keys:",
+    paste(paste0("- ", json_fields), collapse = "\n"),
     "",
     "Allowed values:",
     "expected_environment_status:",
@@ -351,7 +353,7 @@ build_flag_taxa_prompt <- function(
     "",
     "If expected_habitat is not specified, use unknown for expected_habitat_status unless evidence supports a more specific interpretation.",
     "If expected_region is not specified, use not_assessed for expected_region_status.",
-    "Write concise rationales and include references for each row. Do not add free-text commentary outside the table.",
+    "Write concise rationales and include references for each row. Do not add free-text commentary outside the JSON.",
     "",
     "Input taxonomy table with query fields, tab-separated:",
     .format_prompt_table(prepared_taxonomy),
@@ -418,6 +420,15 @@ build_flag_taxa_prompt <- function(
     "rationale",
     "references"
   )
+}
+
+.flag_taxa_json_output_fields <- function(include_feature_id) {
+  fields <- .flag_taxa_output_columns()
+  if (isTRUE(include_feature_id)) {
+    fields <- c("feature_id", fields)
+  }
+
+  fields
 }
 
 .flag_taxa_allowed_values <- function() {
