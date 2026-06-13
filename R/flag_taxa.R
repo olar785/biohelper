@@ -223,15 +223,23 @@ validate_taxon_evidence <- function(taxon_evidence) {
     )
   }
 
-  empty_columns <- required_columns[
-    vapply(taxon_evidence[required_columns], .is_entirely_empty_column, logical(1))
-  ]
-  if (length(empty_columns) > 0) {
-    stop(
-      "Required `taxon_evidence` columns must not be entirely empty: ",
-      paste(empty_columns, collapse = ", "),
-      call. = FALSE
-    )
+  if (nrow(taxon_evidence) > 0) {
+    empty_columns <- required_columns[
+      vapply(taxon_evidence[required_columns], .is_entirely_empty_column, logical(1))
+    ]
+    if (
+      "reference" %in% empty_columns &&
+        all(as.character(taxon_evidence$evidence_type) == "not_queried")
+    ) {
+      empty_columns <- setdiff(empty_columns, "reference")
+    }
+    if (length(empty_columns) > 0) {
+      stop(
+        "Required `taxon_evidence` columns must not be entirely empty: ",
+        paste(empty_columns, collapse = ", "),
+        call. = FALSE
+      )
+    }
   }
 
   ordered_columns <- c(
