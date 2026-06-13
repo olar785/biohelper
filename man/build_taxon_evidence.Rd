@@ -5,45 +5,40 @@
 \title{Build a standard taxon evidence table}
 \usage{
 build_taxon_evidence(
-  x,
-  tax_ranks = c("species", "genus", "family", "order", "class", "phylum", "kingdom",
-    "superkingdom"),
-  evidence_sources = c("worms", "obis", "gbif", "bold", "literature"),
+  sources = list(),
   user_evidence = NULL,
-  include_empty = TRUE,
+  source_type = NULL,
   verbose = FALSE
 )
 }
 \arguments{
-\item{x}{A taxonomy table as a data frame, matrix, phyloseq taxonomy table,
-or a phyloseq/speedyseq object containing a taxonomy table.}
+\item{sources}{A named list of data frames, such as
+\code{list(worms = worms_df, obis = obis_df, gbif = gbif_df, bold = bold_df)}.
+A single data frame may be supplied when \code{source_type} is provided.}
 
-\item{tax_ranks}{Character vector of taxonomic ranks used to choose the query
-taxon, ordered from most specific to broadest.}
-
-\item{evidence_sources}{Character vector naming evidence sources requested
-for future lookup. These sources are stored in placeholder rows but are not
-queried by this scaffold.}
-
-\item{user_evidence}{Optional user-supplied evidence table in the same
+\item{user_evidence}{Optional user-supplied evidence table already in the
 standard format accepted by \code{flag_taxa(taxon_evidence = ...)}.}
 
-\item{include_empty}{Logical scalar. If \code{TRUE}, return one placeholder row
-for each unique query taxon even when no evidence has been fetched yet.}
+\item{source_type}{Optional character vector describing how to interpret an
+unnamed source input. Supported values are \code{"worms"}, \code{"obis"}, \code{"gbif"},
+and \code{"bold"}.}
 
 \item{verbose}{Logical scalar. If \code{TRUE}, emit a short message about the
-number of placeholder rows created.}
+number of evidence rows returned.}
 }
 \value{
 A data frame in the standard taxon evidence format.
 }
 \description{
-Creates a standardised taxon evidence table that can be passed to
-\code{flag_taxa(taxon_evidence = ...)}. This scaffold does not query WoRMS, OBIS,
-GBIF, BOLD, OpenAI, or any external service. It only extracts taxonomy,
-chooses the most informative query taxon for each row, creates optional
-placeholder evidence rows, validates user-supplied evidence, and returns the
-combined evidence table.
+Creates a local, standardised taxon evidence table from user-provided source
+tables or database exports. The result can be passed to
+\code{flag_taxa(taxon_evidence = ...)} to provide reusable ecological,
+geographic, occurrence, barcode, or taxonomic database evidence.
+
+\code{build_taxon_evidence()} does not download full source databases and does not
+make live API calls. Users should obtain source tables externally, for
+example from WoRMS, OBIS, GBIF, BOLD, or curated literature summaries, and
+pass those tables via \code{sources} or \code{user_evidence}.
 }
 \section{Taxon evidence table}{
 
@@ -57,14 +52,35 @@ Standard optional columns included in the output are: \code{accepted_name},
 \code{checked_at}.
 }
 
+\section{Supported source tables}{
+
+Source-specific import helpers map common export columns when present and
+fill missing standard columns with \code{NA}. These helpers intentionally support
+only simple, common source-table shapes at this stage.
+
+WoRMS-like tables can include columns such as \code{scientificname},
+\code{scientificName}, \code{valid_name}, \code{accepted_name}, \code{rank}, \code{taxonRank},
+\code{AphiaID}, \code{valid_AphiaID}, \code{isMarine}, \code{isBrackish}, \code{isFreshwater},
+\code{isTerrestrial}, \code{url}, or \code{lsid}.
+
+OBIS-like and GBIF-like tables can include occurrence columns such as
+\code{scientificName}, \code{taxonRank}, source taxon identifiers, occurrence
+identifiers, coordinates, locality, country, \code{basisOfRecord}, and
+\code{individualCount}.
+
+BOLD-like tables can include taxonomic columns such as \code{species_name},
+\code{genus_name}, \code{family_name}, \code{order_name}, \code{class_name}, and \code{phylum_name},
+plus specimen fields such as \code{processid}, \code{sampleid}, \code{country},
+\code{province_state}, \code{region}, \code{exactsite}, \code{lat}, and \code{lon}.
+}
+
 \examples{
-tax <- data.frame(
-  kingdom = "Animalia",
-  phylum = "Chordata",
-  family = "Salmonidae",
-  genus = "Salmo",
-  species = "Salmo salar"
+worms_export <- data.frame(
+  scientificname = "Salmo salar",
+  rank = "Species",
+  AphiaID = "127186",
+  isMarine = TRUE
 )
 
-evidence <- build_taxon_evidence(tax)
+evidence <- build_taxon_evidence(sources = list(worms = worms_export))
 }
