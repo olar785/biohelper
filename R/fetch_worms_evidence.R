@@ -13,6 +13,7 @@
 #'
 #' @param taxa Character vector of taxon names when `by = "name"`, or an
 #'   integer, numeric, or character vector of AphiaIDs when `by = "aphia_id"`.
+#'   AphiaIDs are normalised to numeric values before querying WoRMS.
 #' @param by Query mode. Use `"name"` to query taxon names with
 #'   `worrms::wm_records_names()`, or `"aphia_id"` to query AphiaIDs with
 #'   `worrms::wm_record()`.
@@ -80,7 +81,8 @@ fetch_worms_evidence <- function(
       by = by,
       marine_only = marine_only,
       sleep = sleep,
-      checked_at = checked_at
+      checked_at = checked_at,
+      verbose = verbose
     )
     cache <- rbind(cache, new_evidence)
     .write_worms_evidence_cache(cache_path, cache)
@@ -107,7 +109,7 @@ fetch_worms_evidence <- function(
   worrms::wm_records_names(taxa, marine_only = marine_only)
 }
 
-.worms_record <- function(aphia_id) {
+.worms_record <- function(id, verbose = FALSE) {
   if (!exists("wm_record", envir = asNamespace("worrms"), inherits = FALSE)) {
     stop(
       "The installed `worrms` package does not provide `wm_record()` for ",
@@ -116,7 +118,31 @@ fetch_worms_evidence <- function(
     )
   }
 
-  worrms::wm_record(aphia_id)
+  api_ids <- .normalise_worms_aphia_ids(
+    id,
+    drop_invalid = FALSE,
+    warn = FALSE,
+    value_name = "`id`"
+  )
+  .call_worrms_wm_record(id = api_ids, verbose = verbose)
+}
+
+.call_worrms_wm_record <- function(id, verbose = FALSE) {
+  api_ids <- id
+  stopifnot(
+    is.atomic(api_ids),
+    !is.list(api_ids),
+    is.numeric(api_ids) || is.integer(api_ids)
+  )
+  if (isTRUE(verbose)) {
+    message(
+      "Calling worrms::wm_record() with ",
+      length(api_ids),
+      " numeric AphiaID(s)."
+    )
+  }
+
+  worrms::wm_record(id = api_ids)
 }
 
 .query_worms_evidence <- function(
@@ -124,7 +150,8 @@ fetch_worms_evidence <- function(
   by,
   marine_only,
   sleep,
-  checked_at
+  checked_at,
+  verbose
 ) {
   if (identical(by, "name")) {
     return(.query_worms_evidence_by_name(
@@ -137,7 +164,8 @@ fetch_worms_evidence <- function(
   .query_worms_evidence_by_aphia_id(
     taxa = taxa,
     sleep = sleep,
-    checked_at = checked_at
+    checked_at = checked_at,
+    verbose = verbose
   )
 }
 
@@ -178,33 +206,44 @@ fetch_worms_evidence <- function(
   validate_taxon_evidence(do.call(rbind, rows))
 }
 
-.query_worms_evidence_by_aphia_id <- function(taxa, sleep, checked_at) {
-  rows <- lapply(seq_along(taxa), function(query_index) {
-    if (query_index > 1 && sleep > 0) {
-      Sys.sleep(sleep)
-    }
+.query_worms_evidence_by_aphia_id <- function(taxa, sleep, checked_at, verbose) {
+  api_ids <- .normalise_worms_aphia_ids(
+    taxa,
+    drop_invalid = TRUE,
+    warn = TRUE,
+    value_name = "`taxa`"
+  )
+  query_keys <- .worms_aphia_id_key(api_ids)
 
-    query <- taxa[[query_index]]
-    record <- tryCatch(
-      .worms_record(query),
-      error = function(error) {
-        stop(
-          "WoRMS AphiaID query failed for `",
-          query,
-          "`: ",
-          conditionMessage(error),
-          call. = FALSE
-        )
-      }
+  records <- tryCatch(
+    .worms_record(id = api_ids, verbose = verbose),
+    error = function(error) {
+      stop(
+        "WoRMS AphiaID query failed for `",
+        paste(query_keys, collapse = ", "),
+        "`: ",
+        conditionMessage(error),
+        call. = FALSE
+      )
+    }
+  )
+  records <- .as_worms_records_data_frame(records)
+
+  rows <- lapply(seq_along(api_ids), function(query_index) {
+    query_key <- query_keys[[query_index]]
+    record <- .worms_records_for_aphia_id_query(
+      records = records,
+      query_key = query_key,
+      query_index = query_index,
+      query_count = length(api_ids)
     )
-    record <- .as_worms_records_data_frame(record)
     if (nrow(record) == 0) {
-      return(.worms_no_match_evidence(query, by = "aphia_id", checked_at = checked_at))
+      return(.worms_no_match_evidence(query_key, by = "aphia_id", checked_at = checked_at))
     }
 
     .worms_record_to_evidence(
       record = record[1, , drop = FALSE],
-      query = query,
+      query = query_key,
       by = "aphia_id",
       match_type = "aphia_id",
       checked_at = checked_at
@@ -212,6 +251,34 @@ fetch_worms_evidence <- function(
   })
 
   validate_taxon_evidence(do.call(rbind, rows))
+}
+
+.worms_records_for_aphia_id_query <- function(records, query_key, query_index, query_count) {
+  records <- .as_worms_records_data_frame(records)
+  if (nrow(records) == 0) {
+    return(records)
+  }
+
+  record_ids <- .worms_aphia_id_key(.row_first_non_empty(records, c("AphiaID", "aphia_id")))
+  valid_record_ids <- .worms_aphia_id_key(.row_first_non_empty(records, c(
+    "valid_AphiaID",
+    "valid_aphia_id"
+  )))
+  matched_id <- (!is.na(record_ids) & record_ids == query_key) |
+    (!is.na(valid_record_ids) & valid_record_ids == query_key)
+  if (any(matched_id)) {
+    return(records[which(matched_id)[[1]], , drop = FALSE])
+  }
+
+  if (nrow(records) == query_count) {
+    return(records[query_index, , drop = FALSE])
+  }
+
+  if (query_count == 1) {
+    return(records[1, , drop = FALSE])
+  }
+
+  records[FALSE, , drop = FALSE]
 }
 
 .worms_records_for_name_query <- function(records, query, query_index, query_count) {
@@ -488,16 +555,25 @@ fetch_worms_evidence <- function(
   cache_type <- as.character(cache$evidence_type) == "taxonomic_environment_database"
   cache_available <- cache_source & cache_type
 
-  vapply(taxa, function(query) {
+  if (identical(by, "aphia_id")) {
+    cache_aphia_ids <- .worms_aphia_id_key(cache$source_taxon_id)
+    query_aphia_ids <- .worms_aphia_id_key(taxa)
+  }
+
+  vapply(seq_along(taxa), function(query_index) {
+    query <- taxa[[query_index]]
     if (identical(by, "name")) {
       matches <- which(
         cache_available &
           tolower(trimws(as.character(cache$taxon_name))) == tolower(trimws(query))
       )
     } else {
+      query_key <- query_aphia_ids[[query_index]]
       matches <- which(
         cache_available &
-          trimws(as.character(cache$source_taxon_id)) == trimws(query)
+          !is.na(cache_aphia_ids) &
+          !is.na(query_key) &
+          cache_aphia_ids == query_key
       )
     }
 
@@ -529,12 +605,97 @@ fetch_worms_evidence <- function(
     )
   }
 
+  if (identical(by, "aphia_id")) {
+    return(.normalise_worms_aphia_ids(
+      taxa,
+      drop_invalid = TRUE,
+      warn = TRUE,
+      value_name = "`taxa`"
+    ))
+  }
+
   taxa <- trimws(as.character(taxa))
   if (any(is.na(taxa)) || any(!nzchar(taxa))) {
     stop("`taxa` must not contain missing or empty values.", call. = FALSE)
   }
 
   taxa
+}
+
+.normalise_worms_aphia_ids <- function(
+  ids,
+  drop_invalid = FALSE,
+  warn = FALSE,
+  value_name = "AphiaID values",
+  empty_error = NULL
+) {
+  coerced <- .coerce_worms_aphia_ids(ids)
+  invalid <- !coerced$valid
+  if (any(invalid) && !isTRUE(drop_invalid)) {
+    invalid_values <- unique(coerced$original[invalid])
+    invalid_values[is.na(invalid_values)] <- "<NA>"
+    stop(
+      value_name,
+      " must contain valid positive whole-number AphiaID values. Invalid ",
+      "value(s): ",
+      paste(invalid_values, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  if (any(invalid) && isTRUE(warn)) {
+    warning(
+      "Dropped ",
+      sum(invalid),
+      " missing or invalid AphiaID value(s) from ",
+      value_name,
+      ".",
+      call. = FALSE
+    )
+  }
+
+  out <- unique(unname(coerced$id[coerced$valid]))
+  if (length(out) == 0) {
+    if (is.null(empty_error)) {
+      empty_error <- paste0(
+        value_name,
+        " must contain at least one valid positive whole-number AphiaID value."
+      )
+    }
+    stop(empty_error, call. = FALSE)
+  }
+
+  out
+}
+
+.coerce_worms_aphia_ids <- function(ids) {
+  original <- trimws(as.character(ids))
+  original[is.na(ids)] <- NA_character_
+  numeric_ids <- suppressWarnings(as.numeric(original))
+  valid <- !is.na(original) &
+    nzchar(original) &
+    !is.na(numeric_ids) &
+    is.finite(numeric_ids) &
+    numeric_ids > 0 &
+    numeric_ids == floor(numeric_ids)
+
+  list(
+    original = original,
+    id = numeric_ids,
+    valid = valid
+  )
+}
+
+.worms_aphia_id_key <- function(ids) {
+  coerced <- .coerce_worms_aphia_ids(ids)
+  out <- rep(NA_character_, length(ids))
+  out[coerced$valid] <- format(
+    coerced$id[coerced$valid],
+    scientific = FALSE,
+    trim = TRUE
+  )
+
+  out
 }
 
 .validate_optional_cache_path <- function(cache_path) {

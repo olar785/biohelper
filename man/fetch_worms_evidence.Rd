@@ -16,7 +16,8 @@ fetch_worms_evidence(
 }
 \arguments{
 \item{taxa}{Character vector of taxon names when \code{by = "name"}, or an
-integer, numeric, or character vector of AphiaIDs when \code{by = "aphia_id"}.}
+integer, numeric, or character vector of AphiaIDs when \code{by = "aphia_id"}.
+AphiaIDs are normalised to numeric values before querying WoRMS.}
 
 \item{by}{Query mode. Use \code{"name"} to query taxon names with
 \code{worrms::wm_records_names()}, or \code{"aphia_id"} to query AphiaIDs with

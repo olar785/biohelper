@@ -29,6 +29,34 @@ mock_worms_record <- function(
   )
 }
 
+mock_worms_records_for_ids <- function(ids) {
+  do.call(rbind, lapply(ids, function(id) {
+    mock_worms_record(
+      scientificname = paste0("taxon_", id),
+      AphiaID = as.character(id),
+      valid_AphiaID = as.character(id),
+      valid_name = paste0("taxon_", id)
+    )
+  }))
+}
+
+strict_worms_record_mock <- function(expected_id) {
+  force(expected_id)
+  calls <- 0
+  list(
+    get_calls = function() calls,
+    record = function(...) {
+      calls <<- calls + 1
+      args <- list(...)
+      expect_true("id" %in% names(args))
+      expect_false(any(c("aphia_id", "AphiaID", "taxa", "x") %in% names(args)))
+      expect_true(is.numeric(args$id) || is.integer(args$id))
+      expect_equal(args$id, expected_id)
+      mock_worms_records_for_ids(args$id)
+    }
+  )
+}
+
 test_that("successful name query returns standard evidence columns", {
   testthat::local_mocked_bindings(
     .require_worrms = function() TRUE,
@@ -53,12 +81,11 @@ test_that("successful name query returns standard evidence columns", {
 })
 
 test_that("successful AphiaID query returns standard evidence columns", {
+  strict_mock <- strict_worms_record_mock(127186)
+
   testthat::local_mocked_bindings(
     .require_worrms = function() TRUE,
-    .worms_record = function(aphia_id) {
-      expect_equal(aphia_id, "127186")
-      mock_worms_record()
-    }
+    .call_worrms_wm_record = strict_mock$record
   )
 
   evidence <- fetch_worms_evidence(
@@ -68,12 +95,139 @@ test_that("successful AphiaID query returns standard evidence columns", {
   )
 
   expect_identical(colnames(evidence), biohelper:::.taxon_evidence_standard_columns())
-  expect_equal(evidence$taxon_name, "Salmo salar")
+  expect_equal(evidence$taxon_name, "taxon_127186")
   expect_equal(evidence$source_taxon_id, "127186")
   expect_equal(evidence$source_record_id, "127186")
-  expect_equal(evidence$accepted_name, "Salmo salar")
+  expect_equal(evidence$accepted_name, "taxon_127186")
   expect_equal(evidence$source, "worms")
   expect_s3_class(biohelper:::validate_taxon_evidence(evidence), "data.frame")
+  expect_equal(strict_mock$get_calls(), 1)
+})
+
+test_that("AphiaID query accepts a single character ID and queries WoRMS with numeric id", {
+  strict_mock <- strict_worms_record_mock(1054700)
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .call_worrms_wm_record = strict_mock$record
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa = "1054700",
+    by = "aphia_id",
+    verbose = FALSE
+  )
+
+  expect_equal(evidence$source_taxon_id, "1054700")
+  expect_match(evidence$evidence_summary, "Queried taxon '1054700'")
+  expect_equal(strict_mock$get_calls(), 1)
+})
+
+test_that("AphiaID query accepts a single numeric ID", {
+  strict_mock <- strict_worms_record_mock(370514)
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .call_worrms_wm_record = strict_mock$record
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa = 370514,
+    by = "aphia_id",
+    verbose = FALSE
+  )
+
+  expect_equal(nrow(evidence), 1)
+  expect_equal(evidence$source_taxon_id, "370514")
+  expect_equal(strict_mock$get_calls(), 1)
+})
+
+test_that("AphiaID query accepts a numeric vector and queries WoRMS once", {
+  strict_mock <- strict_worms_record_mock(c(370514, 1054700))
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .call_worrms_wm_record = strict_mock$record
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa = c(370514, 1054700),
+    by = "aphia_id",
+    verbose = FALSE
+  )
+
+  expect_equal(evidence$source_taxon_id, c("370514", "1054700"))
+  expect_equal(evidence$taxon_name, c("taxon_370514", "taxon_1054700"))
+  expect_equal(strict_mock$get_calls(), 1)
+})
+
+test_that("AphiaID query accepts a character vector and queries WoRMS once with numeric id", {
+  strict_mock <- strict_worms_record_mock(c(370514, 1054700))
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .call_worrms_wm_record = strict_mock$record
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa = c("370514", "1054700"),
+    by = "aphia_id",
+    verbose = FALSE
+  )
+
+  expect_equal(evidence$source_taxon_id, c("370514", "1054700"))
+  expect_equal(evidence$taxon_name, c("taxon_370514", "taxon_1054700"))
+  expect_equal(strict_mock$get_calls(), 1)
+})
+
+test_that("AphiaID vector query returns no-match rows for missing returned records", {
+  calls <- 0
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .call_worrms_wm_record = function(...) {
+      calls <<- calls + 1
+      args <- list(...)
+      expect_true("id" %in% names(args))
+      expect_equal(args$id, c(370514, 1054700))
+      mock_worms_records_for_ids(370514)
+    }
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa = c(370514, 1054700),
+    by = "aphia_id",
+    verbose = FALSE
+  )
+
+  expect_equal(calls, 1)
+  expect_equal(evidence$source_taxon_id, c("370514", "1054700"))
+  expect_equal(evidence$taxon_name, c("taxon_370514", "1054700"))
+  expect_equal(
+    evidence$evidence_summary[[2]],
+    "No WoRMS record found for queried taxon."
+  )
+})
+
+test_that("AphiaID query drops invalid IDs with a clear warning", {
+  strict_mock <- strict_worms_record_mock(370514)
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .call_worrms_wm_record = strict_mock$record
+  )
+
+  expect_warning(
+    evidence <- fetch_worms_evidence(
+      taxa = c("370514", "not_an_id"),
+      by = "aphia_id",
+      verbose = FALSE
+    ),
+    "Dropped 1 missing or invalid AphiaID value"
+  )
+
+  expect_equal(evidence$source_taxon_id, "370514")
+  expect_equal(strict_mock$get_calls(), 1)
 })
 
 test_that("environment is derived from WoRMS environment flags", {
