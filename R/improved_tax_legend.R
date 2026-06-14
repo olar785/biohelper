@@ -18,9 +18,11 @@
 #'
 #' @export
 #' @examples
-#' ps_test_data_t = ps_test_data %>% tax_glom('Family') %>% subset_samples(extraction_method!="na") %>% microbiome::transform(transform = "compositional")\cr
-#' p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family") + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")\cr
+#' \dontrun{
+#' ps_test_data_t = ps_test_data %>% tax_glom('Family') %>% subset_samples(extraction_method!="na") %>% microbiome::transform(transform = "compositional")
+#' p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family") + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
 #' improved_tax_legend(p1,rank1 = "phylum", rank2 = "family")
+#' }
 #'
 
 improved_tax_legend <- function(p, rank1 = "Phylum", rank2 = "Family", others_last = FALSE, legend_position = "bottom") {

@@ -43,6 +43,7 @@
 #' @seealso \code{\link{tax_fix_interactive}} for interactive tax_fix help
 #'
 #' @examples
+#' \dontrun{
 #' library(dplyr)
 #' library(phyloseq)
 #'
@@ -100,6 +101,7 @@
 #' # library(microbiomeutilities)
 #' # data("hmp2")
 #' # system.time(tax_fix(hmp2, min_length = 1))
+#' }
 
 tax_fix = function (obj, min_length = 4, unknowns = NA, suffix_rank = "classified", sep = " ", anon_unique = TRUE, verbose = TRUE){
   if (is(obj, "psExtra")){
@@ -275,4 +277,3 @@ tax_common_unknowns <- function(min_length) {
 
   return(unknowns)
 }
-

@@ -18,8 +18,10 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' data("ps_test_data")
 #' extra_taxo_assignment(obj = ps_test_data, sqlFile = 'accessionTaxa.sql')
+#' }
 
 extra_taxo_assignment = function(obj, sqlFile){
   # Taxonomic ID for tsar
@@ -114,4 +116,3 @@ extra_taxo_assignment = function(obj, sqlFile){
   }
   return(obj)
 }
-

@@ -13,8 +13,8 @@
 #' taxo_assignment_summary(obj = ps_test_data, ranks = c("Kingdom","Phylum","Class","Order","Family","Genus"))
 #'
 #' # Testing if taxonomic assignation at a specific rank is different between two groups:
-#' ps_manual_ta = ps_test_data %>% subset_samples(extraction_method == "manual") %>% phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) %>% taxo_assignment_summary(print_only = F)
-#' ps_robot_ta = ps_test_data %>% subset_samples(extraction_method == "robot") %>% phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) %>% taxo_assignment_summary(print_only = F)
+#' ps_manual_ta = ps_test_data %>% subset_samples(extraction_method == "manual") %>% phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) %>% taxo_assignment_summary(print_only = FALSE)
+#' ps_robot_ta = ps_test_data %>% subset_samples(extraction_method == "robot") %>% phyloseq::filter_taxa(function(x) sum(x) >0, TRUE) %>% taxo_assignment_summary(print_only = FALSE)
 #' t.test(x = ps_manual_ta$df_assignment_per_taxaNrank %>% dplyr::filter(taxonomic_rank == "Family") %>% dplyr::pull(assignment),
 #'        y = ps_robot_ta$df_assignment_per_taxaNrank %>% dplyr::filter(taxonomic_rank == "Family") %>% dplyr::pull(assignment))
 

@@ -25,8 +25,10 @@
 #' spnc = Only needs to be applied if the Genus is not present under the Species column (default is FALSE).
 #' @export
 #' @examples
+#' \dontrun{
 #' data("ps_test_data")
 #' taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
+#' }
 #'
 
 taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("Domain","Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){

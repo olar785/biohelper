@@ -30,7 +30,9 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
+#' }
 
 # Function to assign taxonomy from BLAST file
 

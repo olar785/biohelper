@@ -28,5 +28,7 @@ The latter is defined by setting a divider to the maximum cumulative abundance, 
 If you use this function for a publication, please cite the creators of the microbiome R package (citation('microbiome')).
 }
 \examples{
+\dontrun{
 core_micro(pst = ps_test_data,  grp = "biome", method = "crab", n = 10)
+}
 }

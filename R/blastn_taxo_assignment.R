@@ -61,12 +61,17 @@
 #'
 #' @export
 #' @examples
-#' blastn_taxo_assignment(blastapp_path = "/home/miniconda3/bin/blastn",\cr
-#' queries="uniqueSeqsTest.fasta",\cr
-#' megablast_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",\cr
-#' blastn_opts="-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",db="nt",\cr
-#' output_path="blast_results",\cr
-#' nthreads=10)
+#' \dontrun{
+#' blastn_taxo_assignment(
+#'   blastapp_path = "/home/miniconda3/bin/blastn",
+#'   queries = "uniqueSeqsTest.fasta",
+#'   megablast_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
+#'   blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",
+#'   db = "nt",
+#'   output_path = "blast_results",
+#'   nthreads = 10
+#' )
+#' }
 
 
 blastn_taxo_assignment <- function(

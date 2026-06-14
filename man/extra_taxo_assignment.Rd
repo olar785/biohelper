@@ -22,6 +22,8 @@ This takes few minutes to install using the following command:\cr
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The database is ~65 GB but the user can set getAccessions=FALSE to drastically reduce its size.
 }
 \examples{
+\dontrun{
 data("ps_test_data")
 extra_taxo_assignment(obj = ps_test_data, sqlFile = 'accessionTaxa.sql')
+}
 }

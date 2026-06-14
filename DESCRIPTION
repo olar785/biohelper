@@ -38,8 +38,11 @@ Remotes:
     microbiome/microbiome,
     mikemc/speedyseq,
     bioc::phyloseq
+Imports:
+    BiocGenerics
 Suggests: 
     knitr,
+    readxl,
     testthat (>= 3.0.0),
     worrms
 VignetteBuilder: knitr

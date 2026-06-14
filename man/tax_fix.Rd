@@ -63,6 +63,7 @@ By default (unknowns = NA), unknowns is set to a vector containing:
 'C__unknown' 'C__Unknown' 'C__NA' 'P__unknown' 'P__Unknown' 'P__NA' 'K__unknown' 'K__Unknown' 'K__NA'
 }
 \examples{
+\dontrun{
 library(dplyr)
 library(phyloseq)
 
@@ -120,6 +121,7 @@ tax_fix(ps, anon_unique = TRUE)
 # library(microbiomeutilities)
 # data("hmp2")
 # system.time(tax_fix(hmp2, min_length = 1))
+}
 }
 \seealso{
 \code{\link{tax_fix_interactive}} for interactive tax_fix help

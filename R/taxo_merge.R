@@ -29,7 +29,9 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), priority_df = NA, addExtra=T, spnc = F)
+#' }
 
 
 taxo_merge = function(

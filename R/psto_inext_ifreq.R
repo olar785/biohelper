@@ -16,7 +16,9 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' inext_ifreq_wrapper(pst = ps_test_data,  grp = "biome", q = 0, knots = 100, nboot = 200)
+#' }
 
 psto_inext_ifreq = function (pst, q = 0, grp, ...)
 {
@@ -38,7 +40,6 @@ psto_inext_ifreq = function (pst, q = 0, grp, ...)
   inext_q0 <- iNEXT::iNEXT(B, q = q, datatype = "incidence_freq", ...)
   return(inext_q0)
 }
-
 
 
 

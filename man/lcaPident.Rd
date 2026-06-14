@@ -51,5 +51,7 @@ uses a Last Common Ancestor (LCA) approach and optionally, a minimum percent
 identity (pident; per taxonomic rank) to assign taxonomy.
 }
 \examples{
+\dontrun{
 lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
+}
 }

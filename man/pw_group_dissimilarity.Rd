@@ -43,10 +43,12 @@ This script is an adaptation of the 'phyloseq_group_dissimilarity' function of t
 If the notches of two boxplots do not overlap this indicates that the two medians differ.
 }
 \examples{
+\dontrun{
 ## Load and subset data
 data(enterotype)
 ent <- subset_samples(enterotype, Enterotype \%in\% c("1", "2"))
 
 ## Dissimilarity
 pw_group_dissimilarity(ent, group = "Enterotype", method = "jaccard")
+}
 }

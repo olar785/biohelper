@@ -14,8 +14,10 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' # Normalizing taxonomy followed by merging ASVs to OTUs
 #' normalized_otu_taxo(physeq_obj = ps_obj) %>% speedyseq::tax_glom(taxrank = "otu")
+#' }
 #'
 #'
 normalized_otu_taxo <- function(physeq_obj, otu_column = "otu", asv_column = "asv") {
@@ -67,4 +69,3 @@ normalized_otu_taxo <- function(physeq_obj, otu_column = "otu", asv_column = "as
 
   return(physeq_obj)
 }
-

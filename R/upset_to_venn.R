@@ -30,8 +30,10 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' upset_list = psto_upset(pst = ps_test_data, grp = "extraction_method")
 #' upset_to_venn(upset_df = upset_list$upset_df)
+#' }
 #'
 upset_to_venn<- function(upset_df,
                        set_labels = NULL,
