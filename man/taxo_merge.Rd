@@ -7,7 +7,7 @@
 taxo_merge(
   df_list,
   sqlFile,
-  ranks = c("Superkingdom", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
+  ranks = c("Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
     "Species"),
   priority_df = NA,
   addExtra = T,
@@ -34,6 +34,9 @@ taxonomic resolution between the assignments if there is consensus across
 all assigned ranks and dataframes. Otherwise, it assigns taxonomy the Last common
 ancestor (LCA) if there is a consensus (>50\%) across dataframes.
 By using the 'priority_df' option, it is also possible to use the taxonomy of a specific dataframe (assignment) instead of using LCA.
+NCBI taxonomy may provide the highest rank as either \code{domain} or
+\code{superkingdom}; \code{taxo_merge()} standardises these to one \code{Domain} column in
+the returned table.
 
 Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 Additionally, the first column of the dataframe needs to be the feature id (e.g. ASV, OTU, MOTU, ZOTU identifier, etc.).
@@ -42,5 +45,5 @@ This takes few minutes to install using the following command:
 prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package.
 }
 \examples{
-taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Superkingdom","Kingdom","Phylum","Class","Order","Family","Genus","Species"), priority_df = NA, addExtra=T, spnc = F)
+taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Domain","Kingdom","Phylum","Class","Order","Family","Genus","Species"), priority_df = NA, addExtra=T, spnc = F)
 }
