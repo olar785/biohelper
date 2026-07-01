@@ -222,12 +222,15 @@
     output_id_col = "ASV"
   )
   .biohelper_validate_blastn_taxo_assignment_output(out)
+  out <- janitor::clean_names(out)
+  .biohelper_validate_blastn_taxo_assignment_output(out)
   out
 }
 
 .biohelper_validate_blastn_taxo_assignment_output <- function(out) {
-  bad_domain <- "Domain" %in% names(out) &&
-    any(out$Domain %in% c("blastn", "megablast"), na.rm = TRUE)
+  domain_col <- .biohelper_detect_column(out, c("Domain", "domain"))
+  bad_domain <- !is.na(domain_col) &&
+    any(tolower(trimws(as.character(out[[domain_col]]))) %in% c("blastn", "megablast"), na.rm = TRUE)
 
   if (bad_domain) {
     stop(

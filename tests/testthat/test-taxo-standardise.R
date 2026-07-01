@@ -114,20 +114,20 @@ test_that("blastn_taxo_assignment final formatter keeps method out of Domain", {
 
   expect_equal(
     colnames(output),
-    c("ASV", "Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+    c("asv", "domain", "kingdom", "phylum", "class", "order", "family", "genus", "species")
   )
   expect_false("assignment_method" %in% colnames(output))
-  expect_false("Superkingdom" %in% colnames(output))
-  expect_equal(output$ASV, "0009")
-  expect_equal(output$Domain, "Eukaryota")
-  expect_equal(output$Kingdom, "Metazoa")
-  expect_equal(output$Phylum, "Chordata")
-  expect_equal(output$Class, "Mammalia")
-  expect_equal(output$Order, "Primates")
-  expect_equal(output$Family, "Hominidae")
-  expect_equal(output$Genus, "Homo")
-  expect_equal(output$Species, "Homo sapiens")
-  expect_false(any(output$Domain %in% c("blastn", "megablast"), na.rm = TRUE))
+  expect_false("superkingdom" %in% colnames(output))
+  expect_equal(output$asv, "0009")
+  expect_equal(output$domain, "Eukaryota")
+  expect_equal(output$kingdom, "Metazoa")
+  expect_equal(output$phylum, "Chordata")
+  expect_equal(output$class, "Mammalia")
+  expect_equal(output$order, "Primates")
+  expect_equal(output$family, "Hominidae")
+  expect_equal(output$genus, "Homo")
+  expect_equal(output$species, "Homo sapiens")
+  expect_false(any(output$domain %in% c("blastn", "megablast"), na.rm = TRUE))
 })
 
 test_that("blastn_taxo_assignment final formatter uses superkingdom as Domain", {
@@ -141,11 +141,26 @@ test_that("blastn_taxo_assignment final formatter uses superkingdom as Domain", 
 
   output <- biohelper:::.biohelper_format_blastn_taxo_assignment_output(input)
 
-  expect_equal(output$ASV, "0009")
-  expect_equal(output$Domain, "Eukaryota")
-  expect_equal(output$Kingdom, "Metazoa")
-  expect_false("Superkingdom" %in% colnames(output))
-  expect_false(any(output$Domain %in% c("blastn", "megablast"), na.rm = TRUE))
+  expect_equal(output$asv, "0009")
+  expect_equal(output$domain, "Eukaryota")
+  expect_equal(output$kingdom, "Metazoa")
+  expect_false("superkingdom" %in% colnames(output))
+  expect_false(any(output$domain %in% c("blastn", "megablast"), na.rm = TRUE))
+})
+
+test_that("blastn_taxo_assignment final formatter renames feature_id to asv", {
+  input <- data.frame(
+    feature_id = "0009",
+    domain = "Eukaryota",
+    kingdom = "Metazoa",
+    stringsAsFactors = FALSE
+  )
+
+  output <- biohelper:::.biohelper_format_blastn_taxo_assignment_output(input)
+
+  expect_equal(colnames(output)[[1]], "asv")
+  expect_equal(output$asv, "0009")
+  expect_equal(output$domain, "Eukaryota")
 })
 
 test_that("blastn_taxo_assignment refuses to write shifted method values in Domain", {

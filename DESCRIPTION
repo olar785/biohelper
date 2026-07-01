@@ -1,6 +1,6 @@
 Package: biohelper
 Title: Helper bioinformatics and data analysis functions
-Version: 0.0.20.000
+Version: 0.0.21.000
 Authors@R: 
     person(given = "Olivier", family = "Laroche", email = "olar785@aucklanduni.ac.nz", 
            role = c("aut", "cre"),

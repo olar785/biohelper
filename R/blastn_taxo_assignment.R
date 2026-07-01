@@ -185,14 +185,14 @@ blastn_taxo_assignment <- function(
       )
   }
 
-  newdf <- .biohelper_format_blastn_taxo_assignment_output(newdf)
   newdf$nR = .biohelper_taxonomy_resolution_count(newdf, ranks)
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(stats::sd(nR), 2))
   cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
         as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%
         as.numeric(), "\n\n")
-  out <- newdf %>% dplyr::select(-nR)
-  .biohelper_validate_blastn_taxo_assignment_output(out)
+  out <- newdf %>%
+    dplyr::select(-nR) %>%
+    .biohelper_format_blastn_taxo_assignment_output()
   utils::write.table(x = out, file = paste0(output_path, "/blastn_taxo_assingment.csv"), row.names = F)
   #return(newdf %>% dplyr::select(-nR))
 }
