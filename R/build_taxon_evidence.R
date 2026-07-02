@@ -31,8 +31,9 @@
 #' Standard optional columns included in the output are: `accepted_name`,
 #' `accepted_rank`, `source_taxon_id`, `source_record_id`, `environment`,
 #' `habitat`, `region`, `locality`, `decimal_latitude`, `decimal_longitude`,
-#' `basis_of_record`, `occurrence_count`, `reference_url`, `doi`, and
-#' `checked_at`.
+#' `basis_of_record`, `occurrence_count`, `reference_url`, `doi`,
+#' `checked_at`, and lineage columns such as `kingdom`, `phylum`, `class`,
+#' `order`, `family`, and `genus`.
 #'
 #' @section Supported source tables:
 #' Source-specific import helpers map common export columns when present and

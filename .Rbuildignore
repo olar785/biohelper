@@ -1,2 +1,5 @@
 ^bioKaiawhina\.Rproj$
 ^\.Rproj\.user$
+^.*_cache\.rds$
+^worms_.*_cache\.rds$
+^data/ps_test_data_euk\.rds$

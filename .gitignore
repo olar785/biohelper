@@ -7,3 +7,5 @@ inst/doc
 .quarto
 *_cache.rds
 worms_*_cache.rds
+flag_taxa_prompt*.txt
+data/ps_test_data_euk.rds

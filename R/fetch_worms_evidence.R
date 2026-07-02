@@ -11,9 +11,14 @@
 #' requests are needed, and provide `cache_path` so successful results can be
 #' reused across sessions.
 #'
-#' @param taxa Character vector of taxon names when `by = "name"`, or an
-#'   integer, numeric, or character vector of AphiaIDs when `by = "aphia_id"`.
-#'   AphiaIDs are normalised to numeric values before querying WoRMS.
+#' Input taxa are deduplicated before cache lookup or live WoRMS querying, so
+#' duplicate feature-level rows do not trigger redundant API calls. The returned
+#' table contains one evidence row per unique queried taxon name or AphiaID.
+#'
+#' @param taxa Character vector of taxon names when `by = "name"`, a data frame
+#'   containing a `taxon_name` column when `by = "name"`, or an integer,
+#'   numeric, or character vector of AphiaIDs when `by = "aphia_id"`. AphiaIDs
+#'   are normalised to numeric values before querying WoRMS.
 #' @param by Query mode. Use `"name"` to query taxon names with
 #'   `worrms::wm_records_names()`, or `"aphia_id"` to query AphiaIDs with
 #'   `worrms::wm_record()`.
@@ -22,7 +27,17 @@
 #' @param cache_path Optional path to an RDS cache. Existing cached rows are
 #'   reused and new query results are appended.
 #' @param sleep Numeric scalar. Seconds to pause between repeated AphiaID
-#'   requests.
+#'   requests or live query batches.
+#' @param batch_size Positive integer scalar. Maximum number of unique taxa sent
+#'   to WoRMS per live query batch. Defaults to `25`.
+#' @param max_tries Positive integer scalar. Maximum number of attempts for
+#'   transient WoRMS/API failures per batch. Defaults to `3`.
+#' @param retry_sleep Non-negative numeric scalar. Seconds to wait between retry
+#'   attempts. Defaults to `5`.
+#' @param continue_on_error Logical scalar. If `TRUE`, repeated batch failures
+#'   return conservative failed-lookup evidence rows with
+#'   `evidence_type = "taxonomy_lookup_failed"` and a warning. If `FALSE`,
+#'   repeated failures abort with the original WoRMS error.
 #' @param checked_at Date or character scalar recorded in the `checked_at`
 #'   column.
 #' @param verbose Logical scalar. If `TRUE`, emit short progress messages.
@@ -34,6 +49,9 @@
 #' live query is needed, `fetch_worms_evidence()` errors with an installation
 #' message. Tests and examples should mock WoRMS responses or use cached data
 #' rather than making live API calls.
+#'
+#' WoRMS no matches and transient lookup failures are missing evidence, not
+#' evidence of ecological incompatibility.
 #'
 #' @export
 #'
@@ -51,14 +69,24 @@ fetch_worms_evidence <- function(
   marine_only = FALSE,
   cache_path = NULL,
   sleep = 0.2,
+  batch_size = 25,
+  max_tries = 3,
+  retry_sleep = 5,
+  continue_on_error = TRUE,
   checked_at = Sys.Date(),
   verbose = TRUE
 ) {
   by <- match.arg(by)
+  query_rank_lookup <- .worms_query_rank_lookup(taxa, by)
   taxa <- .validate_worms_taxa(taxa, by)
+  taxa <- .deduplicate_worms_taxa(taxa, by)
   marine_only <- .validate_logical_scalar(marine_only, "marine_only")
   cache_path <- .validate_optional_cache_path(cache_path)
   sleep <- .validate_non_negative_numeric_scalar(sleep, "sleep")
+  batch_size <- .validate_positive_integer_scalar(batch_size, "batch_size")
+  max_tries <- .validate_positive_integer_scalar(max_tries, "max_tries")
+  retry_sleep <- .validate_non_negative_numeric_scalar(retry_sleep, "retry_sleep")
+  continue_on_error <- .validate_logical_scalar(continue_on_error, "continue_on_error")
   checked_at <- .validate_checked_at(checked_at)
   verbose <- .validate_logical_scalar(verbose, "verbose")
 
@@ -74,24 +102,66 @@ fetch_worms_evidence <- function(
   if (length(taxa_to_query) > 0) {
     .require_worrms()
     if (isTRUE(verbose)) {
-      message("Querying WoRMS for ", length(taxa_to_query), " taxon/taxa.")
+      batch_count <- ceiling(length(taxa_to_query) / batch_size)
+      message(
+        "fetch_worms_evidence(): querying WoRMS for ",
+        length(taxa_to_query),
+        " unique taxa in ",
+        batch_count,
+        " batches of up to ",
+        batch_size,
+        "."
+      )
     }
     new_evidence <- .query_worms_evidence(
       taxa = taxa_to_query,
       by = by,
       marine_only = marine_only,
       sleep = sleep,
+      batch_size = batch_size,
+      max_tries = max_tries,
+      retry_sleep = retry_sleep,
+      continue_on_error = continue_on_error,
+      query_rank_lookup = query_rank_lookup,
       checked_at = checked_at,
       verbose = verbose
     )
-    cache <- rbind(cache, new_evidence)
+    cacheable_evidence <- .worms_cacheable_evidence(new_evidence)
+    cache <- .bind_rows_fill(list(cache, cacheable_evidence))
     .write_worms_evidence_cache(cache_path, cache)
-    cached_indices <- .match_worms_cache(taxa, by, cache)
   }
 
-  out <- cache[cached_indices, , drop = FALSE]
+  available <- .bind_rows_fill(list(cache, new_evidence))
+  evidence_indices <- .match_worms_cache(
+    taxa,
+    by,
+    available,
+    include_failed = TRUE
+  )
+  if (any(is.na(evidence_indices))) {
+    missing <- taxa[is.na(evidence_indices)]
+    stop(
+      "Internal error: missing WoRMS evidence rows for queried taxa: ",
+      paste(missing, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  out <- available[evidence_indices, , drop = FALSE]
   rownames(out) <- NULL
-  validate_taxon_evidence(out)
+  out <- validate_taxon_evidence(out)
+  if (isTRUE(verbose)) {
+    unresolved <- .worms_unresolved_evidence(out)
+    message(
+      "fetch_worms_evidence(): returned WoRMS evidence for ",
+      nrow(out) - sum(unresolved),
+      " / ",
+      length(taxa),
+      " unique taxa; ",
+      sum(unresolved),
+      " unresolved."
+    )
+  }
+  out
 }
 
 .require_worrms <- function() {
@@ -150,6 +220,177 @@ fetch_worms_evidence <- function(
   by,
   marine_only,
   sleep,
+  batch_size,
+  max_tries,
+  retry_sleep,
+  continue_on_error,
+  query_rank_lookup,
+  checked_at,
+  verbose
+) {
+  batches <- split(taxa, ceiling(seq_along(taxa) / batch_size))
+  rows <- vector("list", length(batches))
+  for (batch_index in seq_along(batches)) {
+    rows[[batch_index]] <- .query_worms_evidence_batch_with_retries(
+      taxa = batches[[batch_index]],
+      by = by,
+      marine_only = marine_only,
+      max_tries = max_tries,
+      retry_sleep = retry_sleep,
+      continue_on_error = continue_on_error,
+      query_rank_lookup = query_rank_lookup,
+      checked_at = checked_at,
+      verbose = verbose,
+      batch_index = batch_index,
+      batch_count = length(batches)
+    )
+    if (batch_index < length(batches) && sleep > 0) {
+      Sys.sleep(sleep)
+    }
+  }
+
+  validate_taxon_evidence(.bind_rows_fill(rows))
+}
+
+.query_worms_evidence_batch_with_retries <- function(
+  taxa,
+  by,
+  marine_only,
+  max_tries,
+  retry_sleep,
+  continue_on_error,
+  query_rank_lookup,
+  checked_at,
+  verbose,
+  batch_index,
+  batch_count
+) {
+  last_error <- NULL
+  attempts_used <- 0L
+  for (attempt in seq_len(max_tries)) {
+    attempts_used <- attempt
+    result <- tryCatch(
+      .query_worms_evidence_batch(
+        taxa = taxa,
+        by = by,
+        marine_only = marine_only,
+        checked_at = checked_at,
+        verbose = verbose
+      ),
+      error = function(error) error
+    )
+    if (!inherits(result, "error")) {
+      return(result)
+    }
+
+    last_error <- result
+    retryable <- .is_retryable_worms_error(result)
+    if (isTRUE(verbose)) {
+      message(
+        "fetch_worms_evidence(): WoRMS batch ",
+        batch_index,
+        " / ",
+        batch_count,
+        " failed on attempt ",
+        attempt,
+        " / ",
+        max_tries,
+        ": ",
+        conditionMessage(result),
+        if (retryable && attempt < max_tries) " Retrying." else ""
+      )
+    }
+    if (!retryable || attempt >= max_tries) {
+      break
+    }
+    if (retry_sleep > 0) {
+      Sys.sleep(retry_sleep)
+    }
+  }
+
+  if (isTRUE(continue_on_error)) {
+    warning(
+      "WoRMS query batch ",
+      batch_index,
+      " / ",
+      batch_count,
+      " failed after ",
+      attempts_used,
+      " attempt(s): ",
+      if (is.null(last_error)) "unknown error" else conditionMessage(last_error),
+      ". Returning conservative failed-lookup evidence rows for this batch.",
+      call. = FALSE
+    )
+    return(.worms_lookup_failed_evidence(
+      taxa = taxa,
+      by = by,
+      checked_at = checked_at,
+      query_rank_lookup = query_rank_lookup
+    ))
+  }
+
+  stop(
+    "WoRMS query batch ",
+    batch_index,
+    " / ",
+    batch_count,
+    " failed: ",
+    conditionMessage(last_error),
+    call. = FALSE
+  )
+}
+
+.is_retryable_worms_error <- function(error) {
+  text <- tolower(paste(
+    conditionMessage(error),
+    paste(class(error), collapse = " ")
+  ))
+  grepl(
+    "empty reply from server|server returned nothing|timeout|timed out|connection reset|curl|network|failed to connect|could not resolve|temporar|http (500|502|503|504)|\\b(500|502|503|504)\\b",
+    text
+  )
+}
+
+.worms_lookup_failed_evidence <- function(
+  taxa,
+  by,
+  checked_at,
+  query_rank_lookup = character()
+) {
+  rows <- lapply(taxa, function(query) {
+    query_key <- .worms_query_key(query, by)
+    evidence <- .empty_taxon_evidence_table(1)
+    evidence$taxon_name <- as.character(query)
+    evidence$taxon_rank <- .worms_query_rank(query_key, query_rank_lookup)
+    evidence$source <- "worms"
+    evidence$evidence_type <- "taxonomy_lookup_failed"
+    evidence$evidence_summary <- "WoRMS lookup failed due to transient API/network error; no compatibility inference made."
+    evidence$reference <- NA_character_
+    evidence$accepted_name <- NA_character_
+    evidence$accepted_rank <- NA_character_
+    evidence$source_taxon_id <- if (identical(by, "aphia_id")) query_key else NA_character_
+    evidence$source_record_id <- NA_character_
+    evidence$environment <- NA_character_
+    evidence$habitat <- NA_character_
+    evidence$region <- NA_character_
+    evidence$locality <- NA_character_
+    evidence$decimal_latitude <- NA_character_
+    evidence$decimal_longitude <- NA_character_
+    evidence$basis_of_record <- NA_character_
+    evidence$occurrence_count <- NA_character_
+    evidence$reference_url <- NA_character_
+    evidence$doi <- NA_character_
+    evidence$checked_at <- checked_at
+    evidence
+  })
+
+  validate_taxon_evidence(.bind_rows_fill(rows))
+}
+
+.query_worms_evidence_batch <- function(
+  taxa,
+  by,
+  marine_only,
   checked_at,
   verbose
 ) {
@@ -163,7 +404,6 @@ fetch_worms_evidence <- function(
 
   .query_worms_evidence_by_aphia_id(
     taxa = taxa,
-    sleep = sleep,
     checked_at = checked_at,
     verbose = verbose
   )
@@ -203,10 +443,10 @@ fetch_worms_evidence <- function(
     )
   })
 
-  validate_taxon_evidence(do.call(rbind, rows))
+  validate_taxon_evidence(.bind_rows_fill(rows))
 }
 
-.query_worms_evidence_by_aphia_id <- function(taxa, sleep, checked_at, verbose) {
+.query_worms_evidence_by_aphia_id <- function(taxa, checked_at, verbose) {
   api_ids <- .normalise_worms_aphia_ids(
     taxa,
     drop_invalid = TRUE,
@@ -250,7 +490,7 @@ fetch_worms_evidence <- function(
     )
   })
 
-  validate_taxon_evidence(do.call(rbind, rows))
+  validate_taxon_evidence(.bind_rows_fill(rows))
 }
 
 .worms_records_for_aphia_id_query <- function(records, query_key, query_index, query_count) {
@@ -546,13 +786,28 @@ fetch_worms_evidence <- function(
   invisible(cache)
 }
 
-.match_worms_cache <- function(taxa, by, cache) {
+.worms_cacheable_evidence <- function(evidence) {
+  if (nrow(evidence) == 0) {
+    return(evidence)
+  }
+  evidence[
+    as.character(evidence$evidence_type) != "taxonomy_lookup_failed",
+    ,
+    drop = FALSE
+  ]
+}
+
+.match_worms_cache <- function(taxa, by, cache, include_failed = FALSE) {
   if (nrow(cache) == 0) {
     return(rep(NA_integer_, length(taxa)))
   }
 
   cache_source <- as.character(cache$source) == "worms"
-  cache_type <- as.character(cache$evidence_type) == "taxonomic_environment_database"
+  cache_types <- "taxonomic_environment_database"
+  if (isTRUE(include_failed)) {
+    cache_types <- c(cache_types, "taxonomy_lookup_failed")
+  }
+  cache_type <- as.character(cache$evidence_type) %in% cache_types
   cache_available <- cache_source & cache_type
 
   if (identical(by, "aphia_id")) {
@@ -584,9 +839,70 @@ fetch_worms_evidence <- function(
   }, integer(1))
 }
 
+.worms_unresolved_evidence <- function(evidence) {
+  if (nrow(evidence) == 0) {
+    return(logical())
+  }
+  evidence_type <- as.character(evidence$evidence_type)
+  summary <- tolower(as.character(evidence$evidence_summary))
+  evidence_type == "taxonomy_lookup_failed" |
+    grepl("no worms record found|lookup failed", summary)
+}
+
+.worms_query_rank_lookup <- function(taxa, by) {
+  if (!inherits(taxa, "data.frame") || !identical(by, "name")) {
+    return(character())
+  }
+  if (!all(c("taxon_name", "taxon_rank") %in% colnames(taxa))) {
+    return(character())
+  }
+  query_names <- trimws(as.character(taxa$taxon_name))
+  query_ranks <- as.character(taxa$taxon_rank)
+  valid <- .is_non_empty_value(query_names) & .is_non_empty_value(query_ranks)
+  if (!any(valid)) {
+    return(character())
+  }
+  out <- query_ranks[valid]
+  names(out) <- tolower(query_names[valid])
+  out[!duplicated(names(out))]
+}
+
+.worms_query_rank <- function(query_key, query_rank_lookup) {
+  if (length(query_rank_lookup) == 0) {
+    return("unknown")
+  }
+  rank <- unname(query_rank_lookup[[tolower(as.character(query_key))]])
+  if (length(rank) == 0 || is.null(rank) || !.is_non_empty_value(rank)) {
+    return("unknown")
+  }
+  rank
+}
+
+.worms_query_key <- function(query, by) {
+  if (identical(by, "aphia_id")) {
+    return(.worms_aphia_id_key(query))
+  }
+  tolower(trimws(as.character(query)))
+}
+
 .validate_worms_taxa <- function(taxa, by) {
   if (missing(taxa) || is.null(taxa)) {
     stop("`taxa` must be supplied.", call. = FALSE)
+  }
+  if (inherits(taxa, "data.frame")) {
+    if (!identical(by, "name")) {
+      stop(
+        "Data frame `taxa` input is only supported when `by = \"name\"`.",
+        call. = FALSE
+      )
+    }
+    if (!("taxon_name" %in% colnames(taxa))) {
+      stop(
+        "Data frame `taxa` input must contain a `taxon_name` column.",
+        call. = FALSE
+      )
+    }
+    taxa <- as.character(taxa$taxon_name)
   }
   if (length(taxa) == 0) {
     return(character())
@@ -615,11 +931,29 @@ fetch_worms_evidence <- function(
   }
 
   taxa <- trimws(as.character(taxa))
-  if (any(is.na(taxa)) || any(!nzchar(taxa))) {
-    stop("`taxa` must not contain missing or empty values.", call. = FALSE)
+  invalid <- is.na(taxa) | !nzchar(taxa)
+  if (any(invalid)) {
+    warning(
+      "Dropped ",
+      sum(invalid),
+      " missing or empty taxon name value(s) from `taxa`.",
+      call. = FALSE
+    )
+    taxa <- taxa[!invalid]
   }
 
   taxa
+}
+
+.deduplicate_worms_taxa <- function(taxa, by) {
+  if (length(taxa) == 0) {
+    return(taxa)
+  }
+  if (identical(by, "aphia_id")) {
+    return(unique(taxa))
+  }
+
+  unique(taxa)
 }
 
 .normalise_worms_aphia_ids <- function(

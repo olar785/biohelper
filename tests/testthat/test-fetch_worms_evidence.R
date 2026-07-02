@@ -80,6 +80,101 @@ test_that("successful name query returns standard evidence columns", {
   expect_s3_class(biohelper:::validate_taxon_evidence(evidence), "data.frame")
 })
 
+test_that("fetch_worms_evidence accepts taxa extracted by extract_taxa_for_evidence", {
+  tax <- data.frame(
+    Genus = c("Salmo", "Salmo", "Gadus"),
+    Species = c(NA_character_, NA_character_, NA_character_),
+    stringsAsFactors = FALSE
+  )
+  taxa_to_query <- extract_taxa_for_evidence(
+    tax,
+    ranks = "Genus",
+    include_feature_id = TRUE,
+    unique = FALSE
+  )
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      expect_equal(taxa, c("Salmo", "Gadus"))
+      expect_false(marine_only)
+      list(
+        mock_worms_record(scientificname = "Salmo", valid_name = "Salmo"),
+        mock_worms_record(scientificname = "Gadus", valid_name = "Gadus")
+      )
+    }
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa_to_query,
+    by = "name",
+    verbose = FALSE
+  )
+
+  expect_equal(evidence$taxon_name, c("Salmo", "Gadus"))
+  expect_equal(evidence$source, c("worms", "worms"))
+})
+
+test_that("fetch_worms_evidence deduplicates duplicated taxon names before querying", {
+  calls <- 0
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      calls <<- calls + 1
+      expect_equal(taxa, c("Salmo", "Gadus"))
+      expect_false(marine_only)
+      list(
+        mock_worms_record(scientificname = "Salmo", valid_name = "Salmo"),
+        mock_worms_record(scientificname = "Gadus", valid_name = "Gadus")
+      )
+    }
+  )
+
+  evidence <- fetch_worms_evidence(
+    c("Salmo", "Salmo", "Gadus", "Gadus"),
+    by = "name",
+    verbose = FALSE
+  )
+
+  expect_equal(calls, 1)
+  expect_equal(nrow(evidence), 2)
+  expect_equal(evidence$taxon_name, c("Salmo", "Gadus"))
+})
+
+test_that("fetch_worms_evidence accepts taxa extracted from ps_test_data_euk", {
+  testthat::skip_if_not_installed("phyloseq")
+  data("ps_test_data_euk", package = "biohelper", envir = environment())
+  taxa_to_query <- extract_taxa_for_evidence(ps_test_data_euk)
+  taxa_to_query <- taxa_to_query[!duplicated(taxa_to_query$taxon_name), ]
+  taxa_to_query <- utils::head(taxa_to_query, 3)
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      expect_equal(taxa, taxa_to_query$taxon_name)
+      expect_false(marine_only)
+      lapply(taxa, function(taxon_name) {
+        mock_worms_record(
+          scientificname = taxon_name,
+          valid_name = taxon_name
+        )
+      })
+    }
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa_to_query,
+    by = "name",
+    verbose = FALSE
+  )
+
+  expect_identical(colnames(evidence), biohelper:::.taxon_evidence_standard_columns())
+  expect_equal(evidence$taxon_name, taxa_to_query$taxon_name)
+  expect_equal(evidence$source, rep("worms", nrow(taxa_to_query)))
+  expect_s3_class(biohelper:::validate_taxon_evidence(evidence), "data.frame")
+})
+
 test_that("successful AphiaID query returns standard evidence columns", {
   strict_mock <- strict_worms_record_mock(127186)
 
@@ -177,6 +272,25 @@ test_that("AphiaID query accepts a character vector and queries WoRMS once with 
 
   expect_equal(evidence$source_taxon_id, c("370514", "1054700"))
   expect_equal(evidence$taxon_name, c("taxon_370514", "taxon_1054700"))
+  expect_equal(strict_mock$get_calls(), 1)
+})
+
+test_that("AphiaID query deduplicates IDs before querying and returning evidence", {
+  strict_mock <- strict_worms_record_mock(c(370514, 1054700))
+
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .call_worrms_wm_record = strict_mock$record
+  )
+
+  evidence <- fetch_worms_evidence(
+    taxa = c("370514", "370514", "1054700", "1054700"),
+    by = "aphia_id",
+    verbose = FALSE
+  )
+
+  expect_equal(nrow(evidence), 2)
+  expect_equal(evidence$source_taxon_id, c("370514", "1054700"))
   expect_equal(strict_mock$get_calls(), 1)
 })
 
@@ -334,4 +448,155 @@ test_that("output passes validate_taxon_evidence", {
   evidence <- fetch_worms_evidence("Salmo salar", verbose = FALSE)
 
   expect_no_error(biohelper:::validate_taxon_evidence(evidence))
+})
+
+test_that("transient WoRMS empty-server response retries then succeeds", {
+  calls <- 0
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      calls <<- calls + 1
+      if (calls == 1) {
+        stop("Server returned nothing (no headers, no data): Empty reply from server", call. = FALSE)
+      }
+      list(mock_worms_record(scientificname = taxa[[1]], valid_name = taxa[[1]]))
+    }
+  )
+
+  evidence <- fetch_worms_evidence(
+    "Salmo salar",
+    max_tries = 2,
+    retry_sleep = 0,
+    verbose = FALSE
+  )
+
+  expect_equal(calls, 2)
+  expect_equal(evidence$evidence_type, "taxonomic_environment_database")
+  expect_equal(evidence$taxon_name, "Salmo salar")
+})
+
+test_that("repeated transient WoRMS failure returns failed lookup rows when continuing", {
+  calls <- 0
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      calls <<- calls + 1
+      stop("Empty reply from server", call. = FALSE)
+    }
+  )
+
+  taxa <- data.frame(
+    taxon_name = "Salmo salar",
+    taxon_rank = "Species",
+    stringsAsFactors = FALSE
+  )
+  expect_warning(
+    evidence <- fetch_worms_evidence(
+      taxa,
+      max_tries = 2,
+      retry_sleep = 0,
+      continue_on_error = TRUE,
+      verbose = FALSE
+    ),
+    "failed after 2 attempt"
+  )
+
+  expect_equal(calls, 2)
+  expect_equal(evidence$taxon_name, "Salmo salar")
+  expect_equal(evidence$taxon_rank, "Species")
+  expect_equal(evidence$source, "worms")
+  expect_equal(evidence$evidence_type, "taxonomy_lookup_failed")
+  expect_true(grepl("no compatibility inference made", evidence$evidence_summary, fixed = TRUE))
+  expect_true(is.na(evidence$environment))
+  expect_true(is.na(evidence$reference))
+  expect_no_error(biohelper:::validate_taxon_evidence(evidence))
+})
+
+test_that("repeated transient WoRMS failure errors when continue_on_error is FALSE", {
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      stop("Server returned nothing", call. = FALSE)
+    }
+  )
+
+  expect_error(
+    fetch_worms_evidence(
+      "Salmo salar",
+      max_tries = 2,
+      retry_sleep = 0,
+      continue_on_error = FALSE,
+      verbose = FALSE
+    ),
+    "WoRMS query batch 1 / 1 failed.*Server returned nothing"
+  )
+})
+
+test_that("one failed WoRMS batch does not discard successful batches", {
+  calls <- character()
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      calls <<- c(calls, taxa)
+      if (identical(taxa, "B")) {
+        stop("Empty reply from server", call. = FALSE)
+      }
+      list(mock_worms_record(scientificname = taxa, valid_name = taxa))
+    }
+  )
+
+  expect_warning(
+    evidence <- fetch_worms_evidence(
+      c("A", "B", "C"),
+      batch_size = 1,
+      sleep = 0,
+      max_tries = 1,
+      retry_sleep = 0,
+      continue_on_error = TRUE,
+      verbose = FALSE
+    ),
+    "Returning conservative failed-lookup evidence rows"
+  )
+
+  expect_equal(calls, c("A", "B", "C"))
+  expect_equal(evidence$taxon_name, c("A", "B", "C"))
+  expect_equal(
+    evidence$evidence_type,
+    c("taxonomic_environment_database", "taxonomy_lookup_failed", "taxonomic_environment_database")
+  )
+})
+
+test_that("WoRMS verbose messages report unique taxa, batches, retries, and unresolved taxa", {
+  calls <- 0
+  testthat::local_mocked_bindings(
+    .require_worrms = function() TRUE,
+    .worms_records_names = function(taxa, marine_only = FALSE) {
+      calls <<- calls + 1
+      if (identical(taxa, "B")) {
+        stop("Empty reply from server", call. = FALSE)
+      }
+      list(mock_worms_record(scientificname = taxa, valid_name = taxa))
+    }
+  )
+
+  messages <- capture.output(
+    expect_warning(
+      evidence <- fetch_worms_evidence(
+        c("A", "B", "C"),
+        batch_size = 1,
+        sleep = 0,
+        max_tries = 1,
+        retry_sleep = 0,
+        continue_on_error = TRUE,
+        verbose = TRUE
+      ),
+      "failed after 1 attempt"
+    ),
+    type = "message"
+  )
+
+  expect_equal(nrow(evidence), 3)
+  expect_true(any(grepl("querying WoRMS for 3 unique taxa in 3 batches of up to 1", messages)))
+  expect_true(any(grepl("WoRMS batch 2 / 3 failed on attempt 1 / 1", messages)))
+  expect_true(any(grepl("returned WoRMS evidence for 2 / 3 unique taxa; 1 unresolved", messages)))
 })

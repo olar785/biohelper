@@ -39,8 +39,11 @@ Remotes:
     mikemc/speedyseq,
     bioc::phyloseq
 Imports:
-    BiocGenerics
+    BiocGenerics,
+    tibble
 Suggests: 
+    ellmer,
+    jsonlite,
     knitr,
     readxl,
     testthat (>= 3.0.0),

@@ -48,8 +48,9 @@ Required columns are: \code{taxon_name}, \code{taxon_rank}, \code{source},
 Standard optional columns included in the output are: \code{accepted_name},
 \code{accepted_rank}, \code{source_taxon_id}, \code{source_record_id}, \code{environment},
 \code{habitat}, \code{region}, \code{locality}, \code{decimal_latitude}, \code{decimal_longitude},
-\code{basis_of_record}, \code{occurrence_count}, \code{reference_url}, \code{doi}, and
-\code{checked_at}.
+\code{basis_of_record}, \code{occurrence_count}, \code{reference_url}, \code{doi},
+\code{checked_at}, and lineage columns such as \code{kingdom}, \code{phylum}, \code{class},
+\code{order}, \code{family}, and \code{genus}.
 }
 
 \section{Supported source tables}{
