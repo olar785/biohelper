@@ -15,6 +15,8 @@ tax_fix(
 )
 }
 \arguments{
+\item{obj}{phyloseq, tax_table (taxonomyTable), data frame, tibble, or matrix}
+
 \item{min_length}{replace strings shorter than this}
 
 \item{unknowns}{also replace strings matching any in this vector, NA default vector shown in details!}
@@ -30,8 +32,6 @@ which is therefore the same for every anonymous taxon, meaning they will be merg
 (anonymous taxa are taxa with all unknown values in their tax_table row, i.e. cannot be classified even at highest rank available)}
 
 \item{verbose}{emit warnings when cannot replace with informative name?}
-
-\item{ps}{phyloseq or tax_table (taxonomyTable)}
 }
 \value{
 object same class as ps
@@ -122,7 +122,4 @@ tax_fix(ps, anon_unique = TRUE)
 # data("hmp2")
 # system.time(tax_fix(hmp2, min_length = 1))
 }
-}
-\seealso{
-\code{\link{tax_fix_interactive}} for interactive tax_fix help
 }

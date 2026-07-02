@@ -10,8 +10,12 @@
 #'
 #' @export
 #' @examples
-#' undesiredTaxa = c("3b8f1e9447e2b3f55113dcd5d04eb152", "3efe4018e327153524ce8feb1db016ea", "3efe4018e327153524ce8feb1db016ea")
-#' ps_test_data = ps_test_data %>% pop_taxa(undesiredTaxa)
+#' undesiredTaxa <- c(
+#'   "3b8f1e9447e2b3f55113dcd5d04eb152",
+#'   "3efe4018e327153524ce8feb1db016ea",
+#'   "3efe4018e327153524ce8feb1db016ea"
+#' )
+#' ps_test_data <- ps_test_data %>% pop_taxa(undesiredTaxa)
 
 pop_taxa = function(ps_obj, undesiredTaxa){
   allTaxa = taxa_names(ps_obj)

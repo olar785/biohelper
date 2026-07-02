@@ -62,6 +62,8 @@ blastn_taxo_assignment(
 \item{pphylum}{Minimum similarity to assign phylum (default: 79)}
 
 \item{pkingdom}{Minimum similarity to assign kingdom (default: 71)}
+
+\item{taxonly}{Passed to \code{\link[=lcaPident]{lcaPident()}} to control whether only taxonomy output is returned.}
 }
 \description{
 This wrapper function takes in a fasta file and returns a dataframe of
@@ -73,6 +75,9 @@ to assign taxonomy.
 If blastn and megablast were both chosen, it merges the results
 using the highest taxonomic resolution between the two, that is, if there is consensus across
 all assigned ranks. Otherwise, it assigns taxonomy using the LCA approach.
+NCBI taxonomy may provide the highest rank as either \code{domain} or
+\code{superkingdom}; the final table standardises these to a single \code{Domain}
+column.
 
 The function will write files from each step and return a dataframe of
 taxonomic assignments.
@@ -89,7 +94,7 @@ particularly useful to test overall taxonomic resolution using different paramet
 \dontrun{
 blastn_taxo_assignment(
   blastapp_path = "/home/miniconda3/bin/blastn",
-  queries = "uniqueSeqsTest.fasta",
+  queries = system.file("extdata", "uniqueSeqsTest.fasta", package = "biohelper"),
   megablast_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
   blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",
   db = "nt",

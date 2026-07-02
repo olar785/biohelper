@@ -17,13 +17,19 @@ taxo_bar_plot(
 )
 }
 \arguments{
+\item{ps_obj}{Phyloseq object with taxonomy.}
+
 \item{rank1}{Taxonomic rank to be associated with colours (e.g. Phylum)}
 
 \item{rank2}{Taxonomic rank to be associated with shades of colours (e.g. Family)}
 
+\item{n_rank1}{Number of rank1 groups to keep before assigning rare groups to "Others".}
+
 \item{n_rank2}{Number of shades to use per colour. Taxa which rank below that number will be assigned to "Other".}
 
 \item{colors}{Colors to be used}
+
+\item{label}{Sample metadata column to use as plot labels.}
 
 \item{alpha_num_ordering}{Whether to order samples alpha-numerically (default == F)}
 }
@@ -33,8 +39,17 @@ taxa. The output is not directly customizable but can be re-used to add facets a
 Sample can also be ordered using the s_order argument.
 }
 \examples{
-colors = c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")
-ps_test_data_t = ps_test_data \%>\% tax_glom('Family') \%>\% microbiome::transform(transform = "compositional")
-p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family", colors = colors)
-p1 + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
+colors <- c("cyan", "palegreen", "yellow", "deeppink ", "white", "dodgerblue", "lightsalmon")
+ps_test_data_t <- ps_test_data \%>\%
+  tax_glom("Family") \%>\%
+  microbiome::transform(transform = "compositional")
+p1 <- taxo_bar_plot(
+  ps_test_data_t,
+  rank1 = "Phylum",
+  rank2 = "Family",
+  colors = colors
+)
+p1 +
+  facet_wrap(extraction_method ~ ., drop = TRUE, scale = "free", nrow = 1) +
+  ggtitle("Taxonomic composition per extraction method")
 }

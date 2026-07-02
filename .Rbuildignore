@@ -1,5 +1,12 @@
 ^bioKaiawhina\.Rproj$
+^biohelper\.Rproj$
 ^\.Rproj\.user$
+^AGENTS\.md$
 ^.*_cache\.rds$
 ^worms_.*_cache\.rds$
+^flag_taxa_prompt.*\.txt$
 ^data/ps_test_data_euk\.rds$
+^\.git$
+^data/\.DS_Store$
+^vignettes/test_data\.Rmd$
+^vignettes/\.gitignore$

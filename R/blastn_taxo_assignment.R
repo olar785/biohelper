@@ -10,6 +10,9 @@
 #' If blastn and megablast were both chosen, it merges the results
 #' using the highest taxonomic resolution between the two, that is, if there is consensus across
 #' all assigned ranks. Otherwise, it assigns taxonomy using the LCA approach.
+#' NCBI taxonomy may provide the highest rank as either `domain` or
+#' `superkingdom`; the final table standardises these to a single `Domain`
+#' column.
 #'
 #' The function will write files from each step and return a dataframe of
 #' taxonomic assignments.
@@ -58,13 +61,15 @@
 #' pphylum            Minimum similarity to assign phylum (default: 79)
 #' @param
 #' pkingdom           Minimum similarity to assign kingdom (default: 71)
+#' @param
+#' taxonly            Passed to [lcaPident()] to control whether only taxonomy output is returned.
 #'
 #' @export
 #' @examples
 #' \dontrun{
 #' blastn_taxo_assignment(
 #'   blastapp_path = "/home/miniconda3/bin/blastn",
-#'   queries = "uniqueSeqsTest.fasta",
+#'   queries = system.file("extdata", "uniqueSeqsTest.fasta", package = "biohelper"),
 #'   megablast_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
 #'   blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",
 #'   db = "nt",
@@ -161,58 +166,40 @@ blastn_taxo_assignment <- function(
   }
 
   # Merging results from blastn and megablast
+  ranks <- .biohelper_taxonomy_output_ranks()
   if(method =="both"){
     cat("\nMerging results from blast output\n")
-    megablast = fread(paste0(output_path,"/megablast_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(method = "megablast", colsplit(taxonomy,";", names = ranks))
-    blastn = fread(paste0(output_path,"/blastn_output_processed.csv")) %>% as.data.frame() %>% dplyr::mutate(method = "blastn",colsplit(taxonomy,";", names = ranks))
-
-    blast = rbind(megablast, blastn) %>% dplyr::select(- c(taxonomy))
-    blast$nRb = rowSums(is.na(blast[,ranks]) | blast[,ranks] == "")
-
-    blast[blast==""]=NA
-
-    newdf = data.frame(matrix(nrow=blast$ASVs %>% unique() %>% length(), ncol = length(c("ASV", ranks))))
-    colnames(newdf) = c("ASV", ranks)
-    newdf$ASV = blast$ASVs %>% unique()
-
-    pb = txtProgressBar(min = 0, max = nrow(newdf), initial = 0,  style = 3)
-    for (i in 1:nrow(newdf)) {
-      temp_blast = blast %>% dplyr::filter(ASVs == newdf$ASV[i])
-      if(temp_blast$method %>% unique() %>% length() >1){
-        x = temp_blast %>% summarise(across(where(is.character), \(x) n_distinct(x, na.rm = T))) %>% dplyr::select(-c(ASVs,method))
-        if(all(x %in% c(0,1))){
-          index_tax = 4+length(ranks) # temp_blast initially contains 4 columns (ASVs, taxonomy, Percent_Identity, Sequence_coverage) + taxonomy split by ';'
-          newdf[i,2:length(colnames(newdf))] = temp_blast[which.min(temp_blast$nRb),5:index_tax]
-        }else{
-          max_shared_rank = length(ranks) - max(temp_blast$nRb)
-          newdf[i,2:c(max_shared_rank+1)] = temp_blast[which.min(temp_blast$nRb),5:(max_shared_rank+4)]
-        }
-      }
-      setTxtProgressBar(pb,i)
-      close(pb)
-    }
+    newdf <- .biohelper_merge_blast_taxonomy_tables(
+      list(
+        megablast = data.table::fread(paste0(output_path, "/megablast_output_processed.csv")) %>% as.data.frame(),
+        blastn = data.table::fread(paste0(output_path, "/blastn_output_processed.csv")) %>% as.data.frame()
+      )
+    )
 
   }else if(method == "megablast"){
-    newdf = fread(paste0(output_path,"/megablast_output_processed.csv")) %>%
+    newdf <- data.table::fread(paste0(output_path, "/megablast_output_processed.csv")) %>%
       as.data.frame() %>%
-      dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>%
-      dplyr::select(c("ASVs", all_of(ranks))) %>%
-      dplyr::mutate(dplyr::across(where(~ is.logical(.x) & all(is.na(.x))), as.character)) %>%
-      dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, "")))
+      .biohelper_standardise_taxonomy_columns(
+        id_col = "ASVs",
+        output_id_col = "ASV"
+      )
   }else{
-    newdf = fread(paste0(output_path,"/blastn_output_processed.csv")) %>%
+    newdf <- data.table::fread(paste0(output_path, "/blastn_output_processed.csv")) %>%
       as.data.frame() %>%
-      dplyr::mutate(colsplit(taxonomy,";", names = ranks)) %>%
-      dplyr::select(c("ASVs", all_of(ranks))) %>%
-      dplyr::mutate(dplyr::across(where(~ is.logical(.x) & all(is.na(.x))), as.character)) %>%
-      dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, "")))
+      .biohelper_standardise_taxonomy_columns(
+        id_col = "ASVs",
+        output_id_col = "ASV"
+      )
   }
 
-  newdf$nR = rowSums(!is.na(newdf[,ranks]))
-  temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(sd(nR), 2))
+  newdf$nR = .biohelper_taxonomy_resolution_count(newdf, ranks)
+  temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nR), 2), sd = round(stats::sd(nR), 2))
   cat("\nMean assigned taxonomic ranks: ", temp_summary$mean %>%
         as.numeric(), "\nStandard deviation: ", temp_summary$sd %>%
         as.numeric(), "\n\n")
-  write.table(x = newdf %>% dplyr::select(-nR), file = paste0(output_path, "/blastn_taxo_assingment.csv"), row.names = F)
+  out <- newdf %>%
+    dplyr::select(-nR) %>%
+    .biohelper_format_blastn_taxo_assignment_output()
+  utils::write.table(x = out, file = paste0(output_path, "/blastn_taxo_assingment.csv"), row.names = F)
   #return(newdf %>% dplyr::select(-nR))
 }

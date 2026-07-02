@@ -10,8 +10,9 @@
 #'
 #' Importantly, this function requires the download of NCBI taxonomic database.
 #'
-#' This takes few minutes to install using the following command:\cr
-#' prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The database is ~65 GB but the user can set getAccessions=FALSE to drastically reduce its size.
+#' This takes few minutes to install using the following command:
+#' `taxonomizr::prepareDatabase('accessionTaxa.sql')`. The database is ~65 GB
+#' but the user can set `getAccessions = FALSE` to drastically reduce its size.
 #'
 #' @param
 #' obj = Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object
@@ -87,8 +88,11 @@ taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("D
     }
   }
 
-  df = df %>% dplyr::mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>% dplyr::mutate(across(everything(), gsub, pattern = "_", replacement = " ")) %>% dplyr::mutate_all(list(~na_if(.,""))) %>%
-    dplyr::mutate(across(everything(), gsub, pattern = "^\\s+|\\s+$", replacement = "")) # The latter is to removing leading and trailing spaces
+  df = df %>%
+    dplyr::mutate_all(list(~str_replace(.,"NA NA| NA", ""))) %>%
+    dplyr::mutate(dplyr::across(dplyr::everything(), function(x) gsub(pattern = "_", replacement = " ", x = x))) %>%
+    dplyr::mutate_all(list(~na_if(.,""))) %>%
+    dplyr::mutate(dplyr::across(dplyr::everything(), function(x) gsub(pattern = "^\\s+|\\s+$", replacement = "", x = x))) # The latter is to removing leading and trailing spaces
 
   ranks_indexes = which(colnames(df) %ni% c("otu","otus","asv","asvs","feature_id","feature.id","nR"))
   non_taxo_ranks = c("otu","otus","asv","asvs","feature_id","feature.id","nR")

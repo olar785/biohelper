@@ -6,17 +6,19 @@
 \usage{
 NAs_to_Xs(df)
 }
+\arguments{
+\item{df}{Taxonomic table whose missing values should be replaced.}
+}
 \description{
 This function replaces NA entries in a taxonomic table by the previous (higher)
 taxonomic information and adds Xs according to the number of NA entries for each organism.
 }
 \details{
-The first column must contain ASV/OTU identifiers as the example below:\cr
-\tabular{rrrrr}{
-\strong{ASV} \tab \strong{Kingdom} \tab \strong{Phylum} \tab \strong{Genus} \cr
-ASV_1 \tab Eukaryota \tab NA \tab NA \cr
-ASV_2 \tab Eukaryota \tab Chordata \tab Mus \cr
-ASV_3 \tab Eukaryota \tab Chordata \tab  NA
+The first column must contain ASV/OTU identifiers as in the example below:\tabular{llll}{
+   ASV \tab Kingdom \tab Phylum \tab Genus \cr
+   ASV_1 \tab Eukaryota \tab NA \tab NA \cr
+   ASV_2 \tab Eukaryota \tab Chordata \tab Mus \cr
+   ASV_3 \tab Eukaryota \tab Chordata \tab NA \cr
 }
 }
 \examples{

@@ -24,15 +24,18 @@ improved_tax_legend(
 \item{legend_position}{Position of the legend}
 }
 \description{
-This function takes in a plot from the taxo_bar_plot function of biohelper and returns the figure with a modified legend, where the higher rank (e.g. Phylum \link{rank1}) is displayed in bold only once
-above its associated lower groups (e.g. Families \link{rank2}).
+This function takes in a plot from the taxo_bar_plot function of biohelper and returns the figure with a modified legend, where the higher rank (e.g. Phylum, \code{rank1}) is displayed in bold only once
+above its associated lower groups (e.g. Families, \code{rank2}).
 The function is simply meant to provide a cleaner legend for this type of figure.
 }
 \examples{
-\dontrun{
-ps_test_data_t = ps_test_data \%>\% tax_glom('Family') \%>\% subset_samples(extraction_method!="na") \%>\% microbiome::transform(transform = "compositional")
-p1 = taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family") + facet_wrap(extraction_method~., drop = TRUE, scale="free", nrow = 1) + ggtitle("Taxonomic composition per extraction method")
-improved_tax_legend(p1,rank1 = "phylum", rank2 = "family")
-}
+ps_test_data_t <- ps_test_data \%>\%
+  tax_glom("Family") \%>\%
+  subset_samples(extraction_method != "na") \%>\%
+  microbiome::transform(transform = "compositional")
+p1 <- taxo_bar_plot(ps_test_data_t, rank1 = "Phylum", rank2 = "Family") +
+  facet_wrap(extraction_method ~ ., drop = TRUE, scale = "free", nrow = 1) +
+  ggtitle("Taxonomic composition per extraction method")
+improved_tax_legend(p1, rank1 = "phylum", rank2 = "family")
 
 }
