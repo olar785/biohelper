@@ -58,14 +58,13 @@ to use as controls.
 
 If you use the decon function for publication, please cite the authors of the microDecon R package (citation('microDecon')).
 
-For example:\cr
-\tabular{rrrrr}{
-\strong{sample_id} \tab \strong{amplicon_type} \tab \strong{extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr
-sample1 \tab sample \tab 1 \tab manual \tab NA\cr
-sample2 \tab sampling_blank \tab 1 \tab manual \tab NA\cr
-sample3 \tab dna_extraction_blank \tab 2 \tab  robot \tab NA\cr
-sample4 \tab sample \tab 2 \tab robot \tab NA\cr
-sample5 \tab pcr_blank \tab 2 \tab robot \tab NA
+For example:\tabular{lllll}{
+   sample_id \tab amplicon_type \tab extraction_batch \tab extraction_method \tab etc. \cr
+   sample1 \tab sample \tab 1 \tab manual \tab NA \cr
+   sample2 \tab sampling_blank \tab 1 \tab manual \tab NA \cr
+   sample3 \tab dna_extraction_blank \tab 2 \tab robot \tab NA \cr
+   sample4 \tab sample \tab 2 \tab robot \tab NA \cr
+   sample5 \tab pcr_blank \tab 2 \tab robot \tab NA \cr
 }
 }
 \examples{

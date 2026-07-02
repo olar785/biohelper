@@ -32,7 +32,19 @@
 #'
 #' @export
 #' @examples
-#' taxo_merge(df_list = list(df1, df2),  sqlFile = path_to_NCBI_taxo_db, ranks = c("Domain","Kingdom","Phylum","Class","Order","Family","Genus","Species"), priority_df = NA, addExtra=T, spnc = F)
+#' \dontrun{
+#' taxo_merge(
+#'   df_list = list(df1, df2),
+#'   sqlFile = path_to_NCBI_taxo_db,
+#'   ranks = c(
+#'     "Domain", "Kingdom", "Phylum", "Class",
+#'     "Order", "Family", "Genus", "Species"
+#'   ),
+#'   priority_df = NA,
+#'   addExtra = TRUE,
+#'   spnc = FALSE
+#' )
+#' }
 
 
 taxo_merge = function(
@@ -84,7 +96,7 @@ taxo_merge = function(
         newdf[i,c("feature_id", ranks)] = temp[which.min(temp$nRb), c("feature_id", ranks), drop = FALSE]
       }else{
         # Determine the number of different values at each rank
-        x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), dplyr::n_distinct, na.rm = T))
+        x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), function(x) dplyr::n_distinct(x, na.rm = TRUE)))
         # While some ranks have more than 1 different values...
         while (!all(x %in% c(0,1))) {
           # Determine the lowest resolution rank where there is discrepancy
@@ -96,12 +108,12 @@ taxo_merge = function(
             # Assign the complete taxonomy from the assignment that has majority
             temp = temp[which(temp[[r_name]] == names(which.max(rank_table))),]
             # Determine the number of different values at each rank
-            x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), dplyr::n_distinct, na.rm = T))
+            x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), function(x) dplyr::n_distinct(x, na.rm = TRUE)))
           }else{
             # If no assignment has majority, replace that assignment by NA
             temp[,ranks[r:length(ranks)]] = NA
             # Determine the number of different values at each rank
-            x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), dplyr::n_distinct, na.rm = T))
+            x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), function(x) dplyr::n_distinct(x, na.rm = TRUE)))
           }
         }
       }

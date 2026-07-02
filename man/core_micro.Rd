@@ -11,7 +11,7 @@ core_micro(pst, grp, method = NULL, n = NULL, d = NULL, p = NULL, ...)
 
 \item{grp}{Group to perform the core microbiome subsetting by.}
 
-\item{method}{Subsetting methodology. Two methods are currently available: 'core' and 'crab'}
+\item{method}{Subsetting methodology. Two methods are currently available: 'core' and 'crab'. The legacy value 'abun' is treated as an alias for 'crab'.}
 
 \item{n}{Divider value for the 'crab' method. To keep ASVs with cumulative relative abundance within two orders of magnitude of the maximum cumulative relative abundance for example, n would be set at 100.}
 

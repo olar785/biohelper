@@ -1,13 +1,12 @@
 Package: biohelper
 Title: Helper bioinformatics and data analysis functions
-Version: 0.0.22.000
+Version: 0.0.23.000
 Authors@R: 
     person(given = "Olivier", family = "Laroche", email = "olar785@aucklanduni.ac.nz", 
            role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0755-0083"))
 Description: Helper functions for various bioinformatics, data visualisation and data analysis operations, including taxonomic normalisation, ASV decontamination, barplot of taxonomic composition, etc.
 License: MIT + file LICENSE
-    license
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
@@ -33,7 +32,21 @@ Depends:
     UpSetR,
     R (>= 3.5)
 Imports:
-    readr
+    betapart,
+    Biostrings,
+    eulerr,
+    ggplot2,
+    ggtext,
+    gtools,
+    iNEXT,
+    methods,
+    plyr,
+    readr,
+    rlang,
+    scales,
+    tibble,
+    tidyr,
+    viridis
 biocViews:
 Remotes:
     donaldtmcknight/microDecon,
@@ -41,8 +54,6 @@ Remotes:
     mikemc/speedyseq,
     bioc::phyloseq
 Suggests: 
-    knitr,
     testthat (>= 3.0.0)
-VignetteBuilder: knitr
 LazyData: true
 Config/roxygen2/version: 8.0.0

@@ -24,7 +24,7 @@
 #' 'G__unknown' 'G__Unknown' 'G__NA' 'F__unknown' 'F__Unknown' 'F__NA' 'O__unknown' 'O__Unknown' 'O__NA'
 #' 'C__unknown' 'C__Unknown' 'C__NA' 'P__unknown' 'P__Unknown' 'P__NA' 'K__unknown' 'K__Unknown' 'K__NA'
 #'
-#' @param ps phyloseq or tax_table (taxonomyTable)
+#' @param obj phyloseq, tax_table (taxonomyTable), data frame, tibble, or matrix
 #' @param min_length replace strings shorter than this
 #' @param unknowns also replace strings matching any in this vector, NA default vector shown in details!
 #' @param suffix_rank
@@ -39,8 +39,6 @@
 #'
 #' @return object same class as ps
 #' @export
-#'
-#' @seealso \code{\link{tax_fix_interactive}} for interactive tax_fix help
 #'
 #' @examples
 #' library(dplyr)
@@ -131,8 +129,10 @@ tax_fix = function (obj, min_length = 4, unknowns = NA, suffix_rank = "classifie
     tt_out = data.frame(lapply(tt_out, function(x) {gsub("(X+$)", "_\\1", x)}))
     rownames(tt_out) = rownames(tt)
     ###################
-  }else if (identical(unknowns, NA)) {
+  } else {
+    if (identical(unknowns, NA)) {
       unknowns <- tax_common_unknowns(min_length = min_length)
+    }
     original_rownames <- rownames(tt)
     ranknames <- colnames(tt)
     levels <- ranknames
@@ -182,7 +182,7 @@ tax_fix = function (obj, min_length = 4, unknowns = NA, suffix_rank = "classifie
   }
     ########################################
   if (inherits(obj, "phyloseq")) {
-    phyloseq::tax_table(ps) <- tt_out
+    phyloseq::tax_table(obj) <- tt_out
     return(obj)
   }
     else if(inherits(obj, c("data.frame","tbl","tbl_df","matrix"))){
@@ -275,4 +275,3 @@ tax_common_unknowns <- function(min_length) {
 
   return(unknowns)
 }
-

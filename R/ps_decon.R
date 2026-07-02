@@ -27,15 +27,15 @@
 #' If you use the decon function for publication, please cite the authors of the microDecon R package (citation('microDecon')).
 
 #'
-#'For example:\cr
-#' \tabular{rrrrr}{
-#'   \strong{sample_id} \tab \strong{amplicon_type} \tab \strong{extraction_batch} \tab \strong{extraction_method} \tab \strong{etc.} \cr
-#'   sample1 \tab sample \tab 1 \tab manual \tab NA\cr
-#'   sample2 \tab sampling_blank \tab 1 \tab manual \tab NA\cr
-#'   sample3 \tab dna_extraction_blank \tab 2 \tab  robot \tab NA\cr
-#'   sample4 \tab sample \tab 2 \tab robot \tab NA\cr
-#'   sample5 \tab pcr_blank \tab 2 \tab robot \tab NA
-#' }
+#' For example:
+#'
+#' | sample_id | amplicon_type | extraction_batch | extraction_method | etc. |
+#' | --- | --- | --- | --- | --- |
+#' | sample1 | sample | 1 | manual | NA |
+#' | sample2 | sampling_blank | 1 | manual | NA |
+#' | sample3 | dna_extraction_blank | 2 | robot | NA |
+#' | sample4 | sample | 2 | robot | NA |
+#' | sample5 | pcr_blank | 2 | robot | NA |
 #'
 #'
 #' @param ps_temp Phyloseq object to decontaminate.

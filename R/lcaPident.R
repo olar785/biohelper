@@ -8,6 +8,10 @@
 #' @param
 #' blast_file        Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"
 #' @param
+#' output_file       Path to write the processed taxonomy table.
+#' @param
+#' ftbl_file         Optional feature table file.
+#' @param
 #' minSim             Minimum similarity to assign species hits (default: 97)
 #' @param
 #' minCov             Minimum coverage to keep hits (default: 80)
@@ -27,10 +31,20 @@
 #' pphylum            Minimum similarity to assign phylum (default: 79)
 #' @param
 #' pkingdom           Minimum similarity to assign kingdom (default: 71)
+#' @param
+#' taxonly            Should only taxonomy output be returned? (default: TRUE)
+#' @param
+#' verbose            Should progress messages be printed? (default: FALSE)
 #'
 #' @export
 #' @examples
-#' lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
+#' \dontrun{
+#' lcaPident(
+#'   blast_file = "blastn_output.csv",
+#'   output_file = "taxo_assignment.csv",
+#'   pident = "before"
+#' )
+#' }
 
 # Function to assign taxonomy from BLAST file
 
@@ -63,7 +77,7 @@ lcaPident <- function(
 
   # Trim leading/trailing quotes if present
   blast <- blast %>%
-    dplyr::mutate(dplyr::across(everything(), ~stringr::str_remove_all(.x, '^"|"$')),
+    dplyr::mutate(dplyr::across(dplyr::everything(), ~stringr::str_remove_all(.x, '^"|"$')),
                   query.length = as.numeric(query.length),
                   pident = as.numeric(pident),
                   evalue = as.numeric(evalue),
@@ -73,7 +87,7 @@ lcaPident <- function(
 
   # Remove unwanted entries
   blast_trimmed <-blast %>%
-    dplyr::filter(!stringr::str_detect(sscinames, regex("uncultured|unidentified|environmental sample", ignore_case = TRUE))) %>%
+    dplyr::filter(!stringr::str_detect(sscinames, stringr::regex("uncultured|unidentified|environmental sample", ignore_case = TRUE))) %>%
     dplyr::filter(qcovs >= minCov)
 
   # Get taxonomy for staxids using lapply
@@ -104,7 +118,7 @@ lcaPident <- function(
 
   # Apply pident thresholds - each threshold affects only its corresponding rank
   apply_pident_thresholds <- function(df, minSim, pk, pp, pc, po, pf, pg) {
-    df <- df %>% dplyr::mutate(across(all_of(desired_ranks), as.character))
+    df <- df %>% dplyr::mutate(dplyr::across(dplyr::all_of(desired_ranks), as.character))
     # Each threshold affects only its corresponding rank
     df <- df %>% dplyr::mutate(
       kingdom = ifelse(pident < pk, "NA", kingdom),

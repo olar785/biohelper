@@ -25,6 +25,10 @@ lcaPident(
 \arguments{
 \item{blast_file}{Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"}
 
+\item{output_file}{Path to write the processed taxonomy table.}
+
+\item{ftbl_file}{Optional feature table file.}
+
 \item{minSim}{Minimum similarity to assign species hits (default: 97)}
 
 \item{minCov}{Minimum coverage to keep hits (default: 80)}
@@ -43,7 +47,11 @@ lcaPident(
 
 \item{pkingdom}{Minimum similarity to assign kingdom (default: 71)}
 
+\item{taxonly}{Should only taxonomy output be returned? (default: TRUE)}
+
 \item{update}{Should the taxonomy database be updated? (default: FALSE)}
+
+\item{verbose}{Should progress messages be printed? (default: FALSE)}
 }
 \description{
 This function takes in the output of a blastn search with multiple hits and
@@ -51,5 +59,11 @@ uses a Last Common Ancestor (LCA) approach and optionally, a minimum percent
 identity (pident; per taxonomic rank) to assign taxonomy.
 }
 \examples{
-lcaPident(blast_file = blastn_file, output = "taxo_assignment.csv", pident="before")
+\dontrun{
+lcaPident(
+  blast_file = "blastn_output.csv",
+  output_file = "taxo_assignment.csv",
+  pident = "before"
+)
+}
 }

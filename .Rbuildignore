@@ -1,2 +1,7 @@
 ^bioKaiawhina\.Rproj$
+^biohelper\.Rproj$
 ^\.Rproj\.user$
+^\.git$
+^data/\.DS_Store$
+^vignettes/test_data\.Rmd$
+^vignettes/\.gitignore$

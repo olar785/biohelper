@@ -9,7 +9,13 @@
 #'
 #' @export
 #' @examples
-#' inext_test = inext_ifreq_wrapper(pst = ps_test_data,  grp = "biome", q = 0, knots = 100, nboot = 200)
+#' inext_test <- psto_inext_ifreq(
+#'   pst = ps_test_data,
+#'   grp = "biome",
+#'   q = 0,
+#'   knots = 100,
+#'   nboot = 2
+#' )
 #' gginext_t3_bc(inext = inext_test)
 
 gginext_t3_bc = function(inext){

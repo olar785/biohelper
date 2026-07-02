@@ -6,6 +6,9 @@
 \usage{
 DNAStringSet_to_df(dss)
 }
+\arguments{
+\item{dss}{DNAStringSet object to convert.}
+}
 \description{
 This function takes in a DNAStringSet object and return a dataframe.
 }

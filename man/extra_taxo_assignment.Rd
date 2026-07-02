@@ -18,10 +18,13 @@ if taxonomy has been normalised using NCBI curated classification and nomenclatu
 (using the taxo_normalisation function of this package for example) where TSAR and Archaeplastida (excl. Viridiplantae) taxa
 are generally not assigned any information under Kingdom, making it difficult to dissociate metazoans from TSAR, or the Plantae group.
 Importantly, this function requires the download of NCBI taxonomic database.
-This takes few minutes to install using the following command:\cr
-prepareDatabase('accessionTaxa.sql') # From the taxonomizr R package. The database is ~65 GB but the user can set getAccessions=FALSE to drastically reduce its size.
+This takes few minutes to install using the following command:
+\code{taxonomizr::prepareDatabase('accessionTaxa.sql')}. The database is ~65 GB
+but the user can set \code{getAccessions = FALSE} to drastically reduce its size.
 }
 \examples{
+\dontrun{
 data("ps_test_data")
 extra_taxo_assignment(obj = ps_test_data, sqlFile = 'accessionTaxa.sql')
+}
 }

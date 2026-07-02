@@ -25,6 +25,10 @@ psto_upset(
 
 \item{sets.x.label}{The x-axis label of the set size bar plot.}
 
+\item{nrow}{Passed to \code{\link[cowplot:plot_grid]{cowplot::plot_grid()}} to control grid rows.}
+
+\item{align}{Passed to \code{\link[cowplot:plot_grid]{cowplot::plot_grid()}} to control plot alignment.}
+
 \item{rel_heights}{Optional argument for the plot_grid function: Numerical vector of relative rows heights. Works just as rel_widths does, but for rows rather than columns.}
 
 \item{rel_widths}{Optional argument for the plot_grid function: Numerical vector of relative columns widths. For example, in a two-column grid, rel_widths = c(2, 1) would make the first column twice as wide as the second column.}

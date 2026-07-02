@@ -14,6 +14,10 @@
 #' @param
 #' sets.x.label   The x-axis label of the set size bar plot.
 #' @param
+#' nrow           Passed to [cowplot::plot_grid()] to control grid rows.
+#' @param
+#' align          Passed to [cowplot::plot_grid()] to control plot alignment.
+#' @param
 #' rel_widths     Optional argument for the plot_grid function: Numerical vector of relative columns widths. For example, in a two-column grid, rel_widths = c(2, 1) would make the first column twice as wide as the second column.
 #' @param
 #' rel_heights    Optional argument for the plot_grid function: Numerical vector of relative rows heights. Works just as rel_widths does, but for rows rather than columns.

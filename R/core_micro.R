@@ -11,7 +11,7 @@
 #' @param
 #' grp            Group to perform the core microbiome subsetting by.
 #' @param
-#' method         Subsetting methodology. Two methods are currently available: 'core' and 'crab'
+#' method         Subsetting methodology. Two methods are currently available: 'core' and 'crab'. The legacy value 'abun' is treated as an alias for 'crab'.
 #' @param
 #' n          	  Divider value for the 'crab' method. To keep ASVs with cumulative relative abundance within two orders of magnitude of the maximum cumulative relative abundance for example, n would be set at 100.
 #' @param
@@ -42,7 +42,7 @@ core_micro = function(pst, grp, method = NULL, n = NULL, d = NULL, p = NULL, ...
   taxn = pst@tax_table@.Data %>% colnames()
   seqs = pst@refseq
 
-  if(method == "abun")
+  if(method %in% c("abun", "crab"))
     for (i in names(mylist_taxa)) {
       mylist_taxa[[i]] = pstmergedmelt %>% dplyr::filter(Sample == i)
       s = mylist_taxa[[i]]$Abundance %>% sum() / n

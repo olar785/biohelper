@@ -16,6 +16,10 @@ This function takes in a phyloseq object and a list of taxa to be removed.
 Credit to joey711 (https://github.com/joey711/phyloseq/issues/652)
 }
 \examples{
-undesiredTaxa = c("3b8f1e9447e2b3f55113dcd5d04eb152", "3efe4018e327153524ce8feb1db016ea", "3efe4018e327153524ce8feb1db016ea")
-ps_test_data = ps_test_data \%>\% pop_taxa(undesiredTaxa)
+undesiredTaxa <- c(
+  "3b8f1e9447e2b3f55113dcd5d04eb152",
+  "3efe4018e327153524ce8feb1db016ea",
+  "3efe4018e327153524ce8feb1db016ea"
+)
+ps_test_data <- ps_test_data \%>\% pop_taxa(undesiredTaxa)
 }

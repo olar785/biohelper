@@ -18,8 +18,10 @@ This function normalises taxonomic assignments of ASVs belonging to the same OTU
 the taxonomic assignment of the ASV that has the highest taxonomic resolution.
 }
 \examples{
+\dontrun{
 # Normalizing taxonomy followed by merging ASVs to OTUs
 normalized_otu_taxo(physeq_obj = ps_obj) \%>\% speedyseq::tax_glom(taxrank = "otu")
+}
 
 
 }

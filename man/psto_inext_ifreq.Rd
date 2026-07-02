@@ -21,5 +21,11 @@ Briefly, the data is split into a list of dataframes based on the grouping varia
 If you use this function for a publication, please cite the creators of the iNEXT R package (citation('iNEXT')).
 }
 \examples{
-inext_ifreq_wrapper(pst = ps_test_data,  grp = "biome", q = 0, knots = 100, nboot = 200)
+psto_inext_ifreq(
+  pst = ps_test_data,
+  grp = "biome",
+  q = 0,
+  knots = 100,
+  nboot = 2
+)
 }

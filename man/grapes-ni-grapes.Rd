@@ -4,7 +4,12 @@
 \alias{\%ni\%}
 \title{Loads \%ni\%}
 \usage{
-... \%ni\% NA
+x \%ni\% table
+}
+\arguments{
+\item{x}{Values to match.}
+
+\item{table}{Values to be matched against.}
 }
 \description{
 This function performs a Negate operation similar to \%in\%.
