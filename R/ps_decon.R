@@ -21,7 +21,7 @@
 #' blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
 #'
 #' The sample_data must have a column labeled sample_id and a column labeled amplicon_type, and the
-#' non blank samples must be labeled as 'sample'. Alternatively, the user can provide a list of samples
+#' non blank samples must be labeled as 'sample' (case-insensitive). Alternatively, the user can provide a list of samples
 #' to use as controls.
 #'
 #' If you use the decon function for publication, please cite the authors of the microDecon R package (citation('microDecon')).
@@ -38,14 +38,16 @@
 #' }
 #'
 #'
-#' @param
-#' ps Phyloseq object to decontaminate\cr
-#' @param
-#' method Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr
-#' @param
-#' group Will be used in the numb.ind argument of the microDecon::decon function\cr
-#' @param
-#' (...) If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon.\cr
+#' @param ps_temp Phyloseq object to decontaminate.
+#' @param method Method to be used for decontamination. Options are
+#'   `"microDecon"` (using [microDecon::decon()]), `"max_v"` and
+#'   `"complete_asv_removal"`.
+#' @param group Metadata column used in the `numb.ind` argument of
+#'   [microDecon::decon()].
+#' @param runs,thresh,prop.thresh,regression,low.threshold,up.threshold
+#'   Arguments passed to [microDecon::decon()] when `method = "microDecon"`.
+#' @param min_reads Minimum sample read count retained before running
+#'   `method = "microDecon"`.
 #'
 #' @export
 #' @examples
@@ -102,6 +104,7 @@ ps_decon = function (ps_temp, method = "complete_asv_removal", group = NA, runs 
     ps_temp@sam_data$original_sample_id = ps_temp@sam_data$sample_id
     ps_temp@sam_data$sample_id = sample_names(ps_temp)
   }
+  ps_temp@sam_data$amplicon_type = tolower(as.character(ps_temp@sam_data$amplicon_type))
   ps_temp = prune_samples(sample_sums(ps_temp) > 0, ps_temp) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
   ASVs_in_Blanks = ps_temp %>% phyloseq::subset_samples(amplicon_type != "sample") %>%
     phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) %>%
@@ -109,8 +112,6 @@ ps_decon = function (ps_temp, method = "complete_asv_removal", group = NA, runs 
   if (method == "microDecon") {
     # It may be necessary to increase min_reads if decon throws the following error: Error in if (((sum(pop.a[b, 1:(ncol(pop.a))]))/group.sum[a]) < prop.thresh) { : missing value where TRUE/FALSE needed
     ps_temp = prune_samples(sample_sums(ps_temp) > min_reads, ps_temp) %>% phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE)
-
-    ps_temp@sam_data$amplicon_type = ps_temp@sam_data$amplicon_type %>%tolower()
 
     if(!is.na(group)){
       metadata = pstoveg_sample(ps_temp) %>% dplyr::arrange(amplicon_type,base::get(group))

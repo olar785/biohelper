@@ -18,13 +18,19 @@ ps_decon(
 )
 }
 \arguments{
-\item{method}{Method to be used for decontamination. Options are 'microDecon' (using the decon function of microDecon), 'max_v' and 'complete_asv_removal'\cr}
+\item{ps_temp}{Phyloseq object to decontaminate.}
 
-\item{group}{Will be used in the numb.ind argument of the microDecon::decon function\cr}
+\item{method}{Method to be used for decontamination. Options are
+\code{"microDecon"} (using \code{\link[microDecon:decon]{microDecon::decon()}}), \code{"max_v"} and
+\code{"complete_asv_removal"}.}
 
-\item{ps}{Phyloseq object to decontaminate\cr}
+\item{group}{Metadata column used in the \code{numb.ind} argument of
+\code{\link[microDecon:decon]{microDecon::decon()}}.}
 
-\item{(...)}{If using microDecon the user can specify any argument of the decon function with the exception of num.blanks and numb.ind, which are already handled by ps_decon.\cr}
+\item{runs, thresh, prop.thresh, regression, low.threshold, up.threshold}{Arguments passed to \code{\link[microDecon:decon]{microDecon::decon()}} when \code{method = "microDecon"}.}
+
+\item{min_reads}{Minimum sample read count retained before running
+\code{method = "microDecon"}.}
 }
 \description{
 This function offers 3 different options to remove putative sequence contamination
@@ -47,7 +53,7 @@ separately for each block. If, however, there is substantial variability among b
 blocks (suggesting contamination from poor laboratory techniques), microDecon will not be effective.
 
 The sample_data must have a column labeled sample_id and a column labeled amplicon_type, and the
-non blank samples must be labeled as 'sample'. Alternatively, the user can provide a list of samples
+non blank samples must be labeled as 'sample' (case-insensitive). Alternatively, the user can provide a list of samples
 to use as controls.
 
 If you use the decon function for publication, please cite the authors of the microDecon R package (citation('microDecon')).
