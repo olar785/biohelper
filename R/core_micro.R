@@ -23,7 +23,9 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' core_micro(pst = ps_test_data,  grp = "biome", method = "crab", n = 10)
+#' }
 
 
 core_micro = function(pst, grp, method = NULL, n = NULL, d = NULL, p = NULL, ...){

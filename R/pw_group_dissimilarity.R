@@ -16,12 +16,14 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' ## Load and subset data
 #' data(enterotype)
 #' ent <- subset_samples(enterotype, Enterotype %in% c("1", "2"))
 #'
 #' ## Dissimilarity
 #' pw_group_dissimilarity(ent, group = "Enterotype", method = "jaccard")
+#' }
 
 
 pw_group_dissimilarity = function (physeq, group = NULL, between_groups = TRUE, method = "bray",

@@ -47,7 +47,9 @@ eulerr R package.
 If you use this function for a publication, please cite the creators of the UpSetR and eulerr R packages (citation('UpSetR') and citation('eulerr')).
 }
 \examples{
+\dontrun{
 upset_list = psto_upset(pst = ps_test_data, grp = "extraction_method")
 upset_to_venn(upset_df = upset_list$upset_df)
+}
 
 }
