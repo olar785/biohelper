@@ -4869,7 +4869,10 @@ collect_relevant_taxon_evidence <- function(
 }
 
 .collapse_distinct_values <- function(value, max_values = 5) {
-  value <- unique(as.character(value)[.is_non_empty_value(value)])
+  value <- as.character(value)
+  value <- unlist(strsplit(value, "\\s*;\\s*"), use.names = FALSE)
+  value <- trimws(value)
+  value <- unique(value[.is_non_empty_value(value)])
   if (length(value) == 0) {
     return(NA_character_)
   }

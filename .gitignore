@@ -9,3 +9,6 @@ inst/doc
 worms_*_cache.rds
 flag_taxa_prompt*.txt
 data/ps_test_data_euk.rds
+data-raw/fishbase_parquet/
+data-raw/fishbase_sealifebase_ecology_db.rds
+*.parquet

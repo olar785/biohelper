@@ -54,10 +54,13 @@ Remotes:
     mikemc/speedyseq,
     bioc::phyloseq
 Suggests: 
+    arrow,
+    curl,
     ellmer,
     jsonlite,
     knitr,
     readxl,
+    robis,
     testthat (>= 3.0.0),
     worrms
 VignetteBuilder: knitr
