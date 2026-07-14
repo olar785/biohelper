@@ -7,11 +7,6 @@
 #' returns environment, habitat, region, ecological, occurrence, and recommended
 #' action fields.
 #'
-#' This function does not call an LLM, does not use registered literature
-#' tools, and does not require an ellmer `chat` object. It is intended as the
-#' deterministic screening step that can later be followed by a separate
-#' review function.
-#'
 #' Missing evidence, failed lookups, no WoRMS match, absent CCZ records, and
 #' absent habitat or region records are treated as uncertainty rather than as
 #' positive incompatibility evidence. OBIS checklist results are used as
@@ -75,16 +70,14 @@
 #'   or a phyloseq/speedyseq object containing a taxonomy table.
 #' @param expected_environment Character scalar describing the expected broad
 #'   environment, for example `"marine"`, `"freshwater"`, or `"terrestrial"`.
-#' @param expected_habitat Optional character scalar describing the expected
-#'   habitat, for example `"estuary"` or `"kelp forest"`.
+#' @param ... Reserved for backward compatibility with earlier calls.
 #' @param expected_habitat_type Optional character scalar describing the broad
 #'   habitat type used by deterministic ecology rules. Allowed values are
 #'   `"unspecified"`, `"coastal_benthic"`, `"deep_sea_benthic"`,
 #'   `"deep_sea_pelagic"`, `"pelagic"`, `"freshwater"`, `"terrestrial"`, and
 #'   `"host_associated"`. `"deep_sea_benthic"` enables conservative treatment
 #'   of birds and reptiles as likely transient/allochthonous in deep-sea
-#'   benthic samples. If omitted or `NULL`, a broad type is inferred from
-#'   `expected_habitat` where possible; otherwise `"unspecified"` is used.
+#'   benthic samples. If omitted or `NULL`, `"unspecified"` is used.
 #' @param expected_region Optional character scalar describing the expected
 #'   geographic region.
 #' @param tax_ranks Character vector of taxonomic ranks to inspect, ordered
@@ -169,7 +162,7 @@
 #' assess_taxa_evidence(
 #'   tax,
 #'   expected_environment = "marine",
-#'   expected_habitat = "coastal water"
+#'   expected_habitat_type = "coastal_benthic"
 #' )
 #'
 #' \dontrun{
@@ -177,7 +170,6 @@
 #' res <- biohelper::assess_taxa_evidence(
 #'   x = ps,
 #'   expected_environment = "marine",
-#'   expected_habitat = "deep-sea benthic sediment",
 #'   expected_habitat_type = "deep_sea_benthic",
 #'   expected_region = "Clarion-Clipperton Zone",
 #'   evidence_sources = c("worms", "obis", "ecology"),
@@ -192,7 +184,7 @@
 assess_taxa_evidence <- function(
   x,
   expected_environment,
-  expected_habitat = NULL,
+  ...,
   expected_habitat_type = c(
     "unspecified",
     "coastal_benthic",
@@ -232,10 +224,8 @@ assess_taxa_evidence <- function(
     expected_environment,
     "expected_environment"
   )
-  expected_habitat <- .validate_optional_scalar_character(
-    expected_habitat,
-    "expected_habitat"
-  )
+  dots <- .parse_assess_taxa_evidence_dots(...)
+  expected_habitat <- dots$expected_habitat
   expected_habitat_type_arg <- if (missing(expected_habitat_type)) {
     NULL
   } else {
@@ -245,6 +235,9 @@ assess_taxa_evidence <- function(
     expected_habitat_type_arg,
     expected_habitat
   )
+  if (is.null(expected_habitat)) {
+    expected_habitat <- .assess_expected_habitat_from_type(expected_habitat_type)
+  }
   expected_region <- .validate_optional_scalar_character(
     expected_region,
     "expected_region"
@@ -759,6 +752,45 @@ assess_taxa_evidence <- function(
   evidence_sources
 }
 
+.parse_assess_taxa_evidence_dots <- function(...) {
+  dots <- list(...)
+  if (length(dots) == 0) {
+    return(list(expected_habitat = NULL))
+  }
+
+  dot_names <- names(dots)
+  if (is.null(dot_names)) {
+    dot_names <- rep("", length(dots))
+  }
+  unnamed <- !nzchar(dot_names)
+  if (any(unnamed)) {
+    stop(
+      "Unused positional argument(s). Use `expected_habitat_type` for broad habitat context.",
+      call. = FALSE
+    )
+  }
+
+  unexpected <- setdiff(dot_names, "expected_habitat")
+  if (length(unexpected) > 0) {
+    stop(
+      "Unused argument(s): ",
+      paste(unexpected, collapse = ", "),
+      ".",
+      call. = FALSE
+    )
+  }
+  if (sum(dot_names == "expected_habitat") > 1L) {
+    stop("`expected_habitat` was supplied more than once.", call. = FALSE)
+  }
+
+  list(
+    expected_habitat = .validate_optional_scalar_character(
+      dots$expected_habitat,
+      "expected_habitat"
+    )
+  )
+}
+
 .validate_assess_expected_habitat_type <- function(expected_habitat_type, expected_habitat) {
   if (is.null(expected_habitat_type)) {
     return(.infer_assess_expected_habitat_type(expected_habitat))
@@ -778,6 +810,22 @@ assess_taxa_evidence <- function(
     )
   }
   expected_habitat_type
+}
+
+.assess_expected_habitat_from_type <- function(expected_habitat_type) {
+  expected_habitat_type <- tolower(trimws(as.character(expected_habitat_type[[1]])))
+  switch(
+    expected_habitat_type,
+    coastal_benthic = "coastal",
+    deep_sea_benthic = "deep sea benthic",
+    deep_sea_pelagic = "deep sea pelagic",
+    pelagic = "pelagic",
+    freshwater = "freshwater",
+    terrestrial = "terrestrial",
+    host_associated = "host associated",
+    unspecified = NULL,
+    NULL
+  )
 }
 
 .assess_expected_habitat_types <- function() {

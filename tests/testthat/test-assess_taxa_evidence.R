@@ -157,21 +157,23 @@ test_that("assess_taxa_evidence is exported with a deterministic-only interface"
     "max_tool_taxa",
     "tool_batch_size",
     "max_evidence_rows_per_query",
-    "ccz_evidence_path"
+    "ccz_evidence_path",
+    "expected_habitat"
   )
   expect_false(any(forbidden_args %in% names(formals(assess_taxa_evidence))))
   expect_true("taxon_evidence_path" %in% names(formals(assess_taxa_evidence)))
   expect_true("ecology_evidence" %in% names(formals(assess_taxa_evidence)))
   expect_true("ecology_evidence_path" %in% names(formals(assess_taxa_evidence)))
   expect_true("expected_habitat_type" %in% names(formals(assess_taxa_evidence)))
+  expect_true("..." %in% names(formals(assess_taxa_evidence)))
   expect_false("output" %in% names(formals(assess_taxa_evidence)))
 })
 
-test_that("assess_taxa_evidence runs without chat and returns deterministic columns", {
+test_that("assess_taxa_evidence runs with habitat type and returns deterministic columns", {
   output <- assess_taxa_evidence_details(
     assess_taxa_evidence_test_taxonomy(),
     expected_environment = "marine",
-    expected_habitat = "coastal water",
+    expected_habitat_type = "coastal_benthic",
     expected_region = "North Atlantic",
     taxon_evidence = assess_taxa_evidence_test_evidence()
   )
@@ -1437,18 +1439,18 @@ test_that("higher-rank ecology metadata is selected only from exact native rank 
   expect_equal(output$ecology$ecology_evidence_rank_etymology, "native genus etymology")
 })
 
-test_that("expected habitat type uses the controlled vocabulary and inference", {
+test_that("expected habitat type uses the controlled vocabulary", {
   expect_equal(
-    biohelper:::.validate_assess_expected_habitat_type(NULL, "deep-sea"),
-    "deep_sea_benthic"
+    biohelper:::.validate_assess_expected_habitat_type(NULL, NULL),
+    "unspecified"
   )
   expect_equal(
     biohelper:::.validate_assess_expected_habitat_type("deep_sea_pelagic", NULL),
     "deep_sea_pelagic"
   )
   expect_equal(
-    biohelper:::.validate_assess_expected_habitat_type(NULL, NULL),
-    "unspecified"
+    biohelper:::.assess_expected_habitat_from_type("deep_sea_benthic"),
+    "deep sea benthic"
   )
   expect_error(
     biohelper:::.validate_assess_expected_habitat_type("deep-sea", NULL),

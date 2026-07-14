@@ -7,7 +7,7 @@
 assess_taxa_evidence(
   x,
   expected_environment,
-  expected_habitat = NULL,
+  ...,
   expected_habitat_type = c("unspecified", "coastal_benthic", "deep_sea_benthic",
     "deep_sea_pelagic", "pelagic", "freshwater", "terrestrial", "host_associated"),
   expected_region = NULL,
@@ -35,8 +35,7 @@ or a phyloseq/speedyseq object containing a taxonomy table.}
 \item{expected_environment}{Character scalar describing the expected broad
 environment, for example \code{"marine"}, \code{"freshwater"}, or \code{"terrestrial"}.}
 
-\item{expected_habitat}{Optional character scalar describing the expected
-habitat, for example \code{"estuary"} or \code{"kelp forest"}.}
+\item{...}{Reserved for backward compatibility with earlier calls.}
 
 \item{expected_habitat_type}{Optional character scalar describing the broad
 habitat type used by deterministic ecology rules. Allowed values are
@@ -44,8 +43,7 @@ habitat type used by deterministic ecology rules. Allowed values are
 \code{"deep_sea_pelagic"}, \code{"pelagic"}, \code{"freshwater"}, \code{"terrestrial"}, and
 \code{"host_associated"}. \code{"deep_sea_benthic"} enables conservative treatment
 of birds and reptiles as likely transient/allochthonous in deep-sea
-benthic samples. If omitted or \code{NULL}, a broad type is inferred from
-\code{expected_habitat} where possible; otherwise \code{"unspecified"} is used.}
+benthic samples. If omitted or \code{NULL}, \code{"unspecified"} is used.}
 
 \item{expected_region}{Optional character scalar describing the expected
 geographic region.}
@@ -142,11 +140,6 @@ for each input feature, matches user-supplied or locally read evidence, and
 returns environment, habitat, region, ecological, occurrence, and recommended
 action fields.
 
-This function does not call an LLM, does not use registered literature
-tools, and does not require an ellmer \code{chat} object. It is intended as the
-deterministic screening step that can later be followed by a separate
-review function.
-
 Missing evidence, failed lookups, no WoRMS match, absent CCZ records, and
 absent habitat or region records are treated as uncertainty rather than as
 positive incompatibility evidence. OBIS checklist results are used as
@@ -217,7 +210,7 @@ tax <- data.frame(
 assess_taxa_evidence(
   tax,
   expected_environment = "marine",
-  expected_habitat = "coastal water"
+  expected_habitat_type = "coastal_benthic"
 )
 
 \dontrun{
@@ -225,7 +218,6 @@ assess_taxa_evidence(
 res <- biohelper::assess_taxa_evidence(
   x = ps,
   expected_environment = "marine",
-  expected_habitat = "deep-sea benthic sediment",
   expected_habitat_type = "deep_sea_benthic",
   expected_region = "Clarion-Clipperton Zone",
   evidence_sources = c("worms", "obis", "ecology"),
