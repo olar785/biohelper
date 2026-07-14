@@ -10,9 +10,7 @@
 #' If blastn and megablast were both chosen, it merges the results
 #' using the highest taxonomic resolution between the two, that is, if there is consensus across
 #' all assigned ranks. Otherwise, it assigns taxonomy using the LCA approach.
-#' NCBI taxonomy may provide the highest rank as either `domain` or
-#' `superkingdom`; the final table standardises these to a single `Domain`
-#' column.
+#' The final table uses lowercase taxonomy rank columns, including `domain`.
 #'
 #' The function will write files from each step and return a dataframe of
 #' taxonomic assignments.

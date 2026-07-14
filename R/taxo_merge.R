@@ -7,9 +7,8 @@
 #' all assigned ranks and dataframes. Otherwise, it assigns taxonomy the Last common
 #' ancestor (LCA) if there is a consensus (>50%) across dataframes.
 #' By using the 'priority_df' option, it is also possible to use the taxonomy of a specific dataframe (assignment) instead of using LCA.
-#' NCBI taxonomy may provide the highest rank as either `domain` or
-#' `superkingdom`; `taxo_merge()` standardises these to one `Domain` column in
-#' the returned table.
+#' `taxo_merge()` standardises the highest taxonomic rank to one `Domain`
+#' column in the returned table.
 #'
 #' Importantly, this function requires the download of NCBI taxonomic database (~65 GB).
 #' Additionally, the first column of the dataframe needs to be the feature id (e.g. ASV, OTU, MOTU, ZOTU identifier, etc.).

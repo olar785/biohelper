@@ -11,7 +11,7 @@ test_that("DNAStringSet_to_df works for DNAStringSet input", {
 test_that("taxo_normalisation does not warn about deprecated across arguments", {
   tax_table <- data.frame(
     feature_id = "asv_1",
-    superkingdom = "Eukaryota",
+    domain = "Eukaryota",
     kingdom = "Metazoa",
     phylum = "Chordata",
     genus = "Homo",
@@ -45,7 +45,7 @@ test_that("taxo_normalisation does not warn about deprecated across arguments", 
     output <- taxo_normalisation(
       tax_table,
       sqlFile = "mock.sql",
-      ranks = c("Superkingdom", "Kingdom", "Phylum", "Genus", "Species"),
+      ranks = c("Domain", "Kingdom", "Phylum", "Genus", "Species"),
       addExtra = FALSE
     ),
     regexp = NA

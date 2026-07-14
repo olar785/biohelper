@@ -20,9 +20,9 @@
 #' @param x A taxonomy table as a data frame or matrix, a phyloseq taxonomy
 #'   table, or a phyloseq/speedyseq object containing a taxonomy table.
 #' @param ranks Character vector of taxonomy ranks to extract. Rank columns are
-#'   matched case-insensitively. The default excludes `Domain`,
-#'   `Superkingdom`, and `Kingdom` because those ranks are usually too broad for
-#'   evidence querying. They can still be used if explicitly included.
+#'   matched case-insensitively. The default excludes `Domain` and `Kingdom`
+#'   because those ranks are usually too broad for evidence
+#'   querying. They can still be used if explicitly included.
 #' @param mode Extraction mode. `"highest"` returns the most specific valid
 #'   assignment per feature. `"all"` returns all valid assignments across
 #'   `ranks`.
@@ -270,7 +270,6 @@ extract_taxa_for_evidence <- function(
 .evidence_rank_specificity_order <- function() {
   c(
     "Domain",
-    "Superkingdom",
     "Kingdom",
     "Phylum",
     "Class",

@@ -5,9 +5,7 @@
 \alias{ps_test_data_euk}
 \title{Small eukaryotic phyloseq test object}
 \format{
-A \code{phyloseq} object with 567 taxa and 33 samples. The taxonomy table
-contains the ranks \code{superkingdom}, \code{kingdom}, \code{phylum}, \code{class}, \code{order},
-\code{family}, \code{genus}, \code{species}, and \code{asv}.
+A \code{phyloseq} object with 567 taxa and 33 samples.
 }
 \source{
 Internal package test data.

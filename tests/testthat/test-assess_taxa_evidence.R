@@ -259,7 +259,8 @@ test_that("assess_taxa_evidence treats missing evidence as uncertainty, not excl
   expect_equal(output$recommended_action, rep("flag_for_review", nrow(output)))
   expect_false(any(output$recommended_action == "exclude"))
   expect_true(all(output$expected_environment_status == "unknown"))
-  expect_true(all(output$expected_habitat_status == "unknown"))
+  # An expected habitat was supplied, but no deterministic habitat evidence was matched.
+  expect_true(all(output$expected_habitat_status == "no_known_habitat_evidence"))
   expect_true(all(grepl("Missing evidence", output$rationale, fixed = TRUE)))
   expect_equal(output$evidence_sources, rep("none", nrow(output)))
 })
@@ -595,7 +596,7 @@ test_that("OBIS and taxon evidence region relations validate direct or supportin
   )
 })
 
-test_that("compatible environment with unknown habitat and plausible region is retained", {
+test_that("compatible environment with no habitat evidence and plausible region remains review", {
   tax <- data.frame(
     feature_id = "asv_delphinus",
     phylum = "Chordata",
@@ -623,16 +624,17 @@ test_that("compatible environment with unknown habitat and plausible region is r
     taxon_evidence_region_relation = "supporting"
   )
 
-  expect_equal(output$expected_habitat_status, "unknown")
+  expect_equal(output$expected_habitat_status, "no_known_habitat_evidence")
   expect_equal(output$expected_region_status, "plausible_in_region")
   expect_equal(output$ecological_status, "plausible")
   expect_equal(output$occurrence_interpretation, "plausible_resident")
-  expect_equal(output$recommended_action, "retain")
-  expect_true(grepl("habitat is marked unknown", output$rationale, fixed = TRUE))
-  expect_true(grepl("Regional evidence is supporting", output$rationale, fixed = TRUE))
+  # Region evidence supports plausibility, but expected-habitat evidence is still missing.
+  expect_equal(output$recommended_action, "flag_for_review")
+  expect_true(grepl("No direct expected-habitat evidence was matched", output$rationale, fixed = TRUE))
+  expect_true(grepl("Region status: plausible_in_region", output$rationale, fixed = TRUE))
 })
 
-test_that("compatible environment with unknown habitat and known region is retained", {
+test_that("compatible environment with no habitat evidence and known region remains review", {
   tax <- data.frame(
     feature_id = "asv_delphinus",
     phylum = "Chordata",
@@ -657,13 +659,14 @@ test_that("compatible environment with unknown habitat and known region is retai
     taxon_evidence_region_relation = "direct"
   )
 
-  expect_equal(output$expected_habitat_status, "unknown")
+  expect_equal(output$expected_habitat_status, "no_known_habitat_evidence")
   expect_equal(output$expected_region_status, "known_in_region")
-  expect_equal(output$recommended_action, "retain")
+  # Missing expected-habitat evidence is uncertainty and should not be promoted to retain.
+  expect_equal(output$recommended_action, "flag_for_review")
   expect_equal(output$occurrence_interpretation, "plausible_resident")
 })
 
-test_that("broad compatible taxa are retained when region is plausible", {
+test_that("broad compatible taxa with no habitat evidence remain review when region is plausible", {
   tax <- data.frame(
     feature_id = "asv_calanoida",
     phylum = "Arthropoda",
@@ -691,13 +694,13 @@ test_that("broad compatible taxa are retained when region is plausible", {
   )
 
   expect_equal(output$expected_environment_status, "mixed_within_rank")
-  expect_equal(output$expected_habitat_status, "unknown")
+  expect_equal(output$expected_habitat_status, "no_known_habitat_evidence")
   expect_equal(output$expected_region_status, "plausible_in_region")
-  expect_equal(output$recommended_action, "retain")
-  expect_true(grepl("Broad rank alone is not treated as a reason for review", output$rationale, fixed = TRUE))
+  expect_equal(output$recommended_action, "flag_for_review")
+  expect_true(grepl("missing habitat or region evidence is treated cautiously", output$rationale, fixed = TRUE))
 })
 
-test_that("supporting OBIS region evidence can retain environmentally compatible taxa", {
+test_that("supporting OBIS region evidence does not retain without habitat evidence", {
   testthat::local_mocked_bindings(
     .require_robis = function() TRUE,
     .obis_checklist = function(scientificname, geometry) {
@@ -734,8 +737,8 @@ test_that("supporting OBIS region evidence can retain environmentally compatible
 
   expect_equal(output$expected_region_status, "plausible_in_region")
   expect_equal(output$obis_region_status, "obis_records_found")
-  expect_equal(output$expected_habitat_status, "unknown")
-  expect_equal(output$recommended_action, "retain")
+  expect_equal(output$expected_habitat_status, "no_known_habitat_evidence")
+  expect_equal(output$recommended_action, "flag_for_review")
 })
 
 test_that("photosynthetic deep-sea mismatch remains possible exclusion", {
@@ -793,15 +796,16 @@ test_that("missing taxonomy remains review with no deprecated habitat status", {
   expect_false(any(output$expected_habitat_status == "no_known_habitat_evidence"))
 })
 
-test_that("returned habitat statuses use unknown rather than no-known evidence wording", {
+test_that("returned habitat statuses use explicit no-known evidence wording", {
   output <- assess_taxa_evidence_details(
     assess_taxa_evidence_test_taxonomy()[1:2, , drop = FALSE],
     expected_environment = "marine",
     expected_habitat = "deep sea"
   )
 
-  expect_true(all(output$expected_habitat_status == "unknown"))
-  expect_false(any(output$expected_habitat_status == "no_known_habitat_evidence"))
+  # The expected habitat was assessed, and no matching habitat evidence was found.
+  expect_true(all(output$expected_habitat_status == "no_known_habitat_evidence"))
+  expect_false(any(output$expected_habitat_status == "unknown"))
 })
 
 test_that("terrestrial-only taxa in expected marine context are excluded", {
@@ -835,7 +839,7 @@ test_that("terrestrial-only taxa in expected marine context are excluded", {
   expect_equal(output$occurrence_interpretation, "likely_contaminant_or_misassignment")
   expect_equal(output$recommended_action, "exclude")
   expect_true(grepl("terrestrial", output$rationale, fixed = TRUE))
-  expect_true(grepl("expected environment is marine", output$rationale, fixed = TRUE))
+  expect_true(grepl("positively contradicts the expected environment", output$rationale, fixed = TRUE))
 })
 
 test_that("freshwater-only taxa in expected marine context are excluded", {
@@ -894,7 +898,7 @@ test_that("mixed environment including marine remains mixed and is not excluded 
   )
 
   expect_equal(output$expected_environment_status, "mixed_within_rank")
-  expect_equal(output$recommended_action, "retain")
+  expect_equal(output$recommended_action, "flag_for_review")
   expect_false(output$recommended_action == "exclude")
 })
 
@@ -1014,7 +1018,7 @@ test_that("marine environment with unknown habitat and no region remains review 
   )
 
   expect_equal(output$expected_environment_status, "compatible")
-  expect_equal(output$expected_habitat_status, "unknown")
+  expect_equal(output$expected_habitat_status, "no_known_habitat_evidence")
   expect_equal(output$expected_region_status, "no_distribution_evidence")
   expect_equal(output$recommended_action, "flag_for_review")
   expect_false(output$recommended_action == "exclude")
@@ -1046,13 +1050,13 @@ test_that("final rationales match merged statuses and actions", {
     taxon_evidence_region_relation = "supporting"
   )
 
-  expect_equal(output$recommended_action, "retain")
+  expect_equal(output$recommended_action, "flag_for_review")
   expect_equal(output$expected_region_status, "plausible_in_region")
-  expect_false(grepl("reviewed because", output$rationale, fixed = TRUE))
+  expect_true(grepl("missing habitat or region evidence is treated cautiously", output$rationale, fixed = TRUE))
   expect_false(grepl("Region status: known_elsewhere_only", output$rationale, fixed = TRUE))
   expect_true(grepl("Region status: plausible_in_region", output$rationale, fixed = TRUE))
-  expect_true(grepl("Habitat status: unknown", output$rationale, fixed = TRUE))
-  expect_false(grepl("no_known_habitat_evidence", output$rationale, fixed = TRUE))
+  expect_true(grepl("Habitat status: no_known_habitat_evidence", output$rationale, fixed = TRUE))
+  expect_true(grepl("no_known_habitat_evidence", output$rationale, fixed = TRUE))
 })
 
 test_that("FishBase/SeaLifeBase ecology evidence refines habitat but not environment or region", {

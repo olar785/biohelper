@@ -20,7 +20,7 @@ test_that("old NCBI-style superkingdom is standardised to Domain", {
 
   expect_equal(output$Domain, "Eukaryota")
   expect_equal(output$Kingdom, "Metazoa")
-  expect_false("Superkingdom" %in% colnames(output))
+  expect_false(any(tolower(colnames(output)) == "superkingdom"))
 })
 
 test_that("new NCBI-style domain is standardised to Domain", {
@@ -40,14 +40,14 @@ test_that("new NCBI-style domain is standardised to Domain", {
 
   expect_equal(output$Domain, "Eukaryota")
   expect_equal(output$Kingdom, "Metazoa")
-  expect_false("Superkingdom" %in% colnames(output))
+  expect_false(any(tolower(colnames(output)) == "superkingdom"))
 })
 
-test_that("Domain values are preferred over Superkingdom when both are present", {
+test_that("Domain values are preferred over legacy highest-rank values when both are present", {
   input <- data.frame(
     ASV = c("asv1", "asv2"),
     Domain = c("Eukaryota", NA_character_),
-    Superkingdom = c("Wrong fallback", "Bacteria"),
+    superkingdom = c("Wrong fallback", "Bacteria"),
     Kingdom = c("Metazoa", NA_character_),
     stringsAsFactors = FALSE
   )
@@ -59,14 +59,14 @@ test_that("Domain values are preferred over Superkingdom when both are present",
   )
 
   expect_equal(output$Domain, c("Eukaryota", "Bacteria"))
-  expect_false("Superkingdom" %in% colnames(output))
+  expect_false(any(tolower(colnames(output)) == "superkingdom"))
 })
 
 test_that("BLAST method/source stays separate from taxonomy ranks while merging", {
   megablast <- data.frame(
     ASVs = "asv1",
     assignment_method = "megablast",
-    superkingdom = "Eukaryota",
+    domain = "Eukaryota",
     kingdom = "Metazoa",
     phylum = "Chordata",
     class = "Actinopteri",
@@ -94,7 +94,6 @@ test_that("blastn_taxo_assignment final formatter keeps method out of Domain", {
     ASVs = "0009",
     assignment_method = "megablast",
     domain = "Eukaryota",
-    superkingdom = NA_character_,
     kingdom = "Metazoa",
     phylum = "Chordata",
     class = "Mammalia",
@@ -130,7 +129,7 @@ test_that("blastn_taxo_assignment final formatter keeps method out of Domain", {
   expect_false(any(output$domain %in% c("blastn", "megablast"), na.rm = TRUE))
 })
 
-test_that("blastn_taxo_assignment final formatter uses superkingdom as Domain", {
+test_that("blastn_taxo_assignment final formatter accepts legacy superkingdom input", {
   input <- data.frame(
     ASVs = "0009",
     assignment_method = "megablast",
@@ -144,6 +143,7 @@ test_that("blastn_taxo_assignment final formatter uses superkingdom as Domain", 
   expect_equal(output$asv, "0009")
   expect_equal(output$domain, "Eukaryota")
   expect_equal(output$kingdom, "Metazoa")
+  expect_false(any(c("Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species") %in% colnames(output)))
   expect_false("superkingdom" %in% colnames(output))
   expect_false(any(output$domain %in% c("blastn", "megablast"), na.rm = TRUE))
 })
@@ -167,7 +167,7 @@ test_that("blastn_taxo_assignment refuses to write shifted method values in Doma
   shifted <- data.frame(
     ASV = "0009",
     Domain = "megablast",
-    Superkingdom = "Eukaryota",
+    superkingdom = "Eukaryota",
     Kingdom = NA_character_,
     Phylum = "Metazoa",
     stringsAsFactors = FALSE
@@ -204,7 +204,7 @@ test_that("regression: megablast is never shifted into Domain", {
   input <- data.frame(
     ASVs = "001decdcb27a0cb0921ad6968214737e",
     assignment_method = "megablast",
-    superkingdom = "Eukaryota",
+    domain = "Eukaryota",
     kingdom = "Metazoa",
     phylum = "Chordata",
     class = "Actinopteri",
@@ -230,10 +230,10 @@ test_that("regression: megablast is never shifted into Domain", {
   expect_false(identical(output$Domain, "megablast"))
 })
 
-test_that("taxo_merge standardises Superkingdom to Domain without live NCBI lookup", {
+test_that("taxo_merge standardises Domain without live NCBI lookup", {
   input <- data.frame(
     ASV = "asv1",
-    superkingdom = "Eukaryota",
+    domain = "Eukaryota",
     kingdom = "Metazoa",
     phylum = "Chordata",
     stringsAsFactors = FALSE
@@ -241,7 +241,7 @@ test_that("taxo_merge standardises Superkingdom to Domain without live NCBI look
   testthat::local_mocked_bindings(
     taxo_normalisation = function(obj, sqlFile, ranks, addExtra, spnc) {
       expect_true("domain" %in% ranks)
-      expect_true("superkingdom" %in% ranks)
+      expect_false("superkingdom" %in% ranks)
       obj
     }
   )
@@ -249,12 +249,12 @@ test_that("taxo_merge standardises Superkingdom to Domain without live NCBI look
   output <- taxo_merge(
     df_list = list(input),
     sqlFile = "mock.sql",
-    ranks = c("Superkingdom", "Kingdom", "Phylum")
+    ranks = c("Domain", "Kingdom", "Phylum")
   )
 
   expect_equal(output$feature_id, "asv1")
   expect_equal(output$Domain, "Eukaryota")
   expect_equal(output$Kingdom, "Metazoa")
   expect_equal(output$Phylum, "Chordata")
-  expect_false("Superkingdom" %in% colnames(output))
+  expect_false(any(tolower(colnames(output)) == "superkingdom"))
 })

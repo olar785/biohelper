@@ -6,7 +6,7 @@
 #' classification and nomenclature database. It can also provide further taxonomic
 #' information of additional desired ranks. It can either take in a taxonomy table
 #' (e.g. from Qiime2) or a phyloseq object. For species assignation, make sure that
-#' the species column contains both the Genus and Species names. If it doesn't, use "spnc = T".
+#' the species column contains both the Genus and Species names. If it doesn't, use `spnc = TRUE`.
 #'
 #' Importantly, this function requires the download of NCBI taxonomic database.
 #'
@@ -32,7 +32,7 @@
 #' }
 #'
 
-taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("Domain","Superkingdom", "Kingdom", "Phylum",  "Class",   "Order",   "Family",  "Genus", "Species")){
+taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks = c("Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")){
   `%ni%` <- Negate(`%in%`)
 
   if("phyloseq" %in% class(obj)){
@@ -160,7 +160,9 @@ taxo_normalisation = function(obj, sqlFile, addExtra = T, spnc = F, ranks = c("D
   }
   res_df[ranks] = taxonomizr::getTaxonomy(res_df$id, sqlFile = sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]
-  res_df$superkingdom = res_df$superkingdom %>% replace_na("Unknown")
+  if ("domain" %in% colnames(res_df)) {
+    res_df$domain = res_df$domain %>% replace_na("Unknown")
+  }
   res_df = res_df %>% column_to_rownames("feature_id")
   res_df=cbind(res_df,df[,colnames(df) %in% non_taxo_ranks,drop = FALSE])
 

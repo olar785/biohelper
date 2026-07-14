@@ -1,7 +1,6 @@
 evidence_taxonomy_table <- function() {
   tax <- data.frame(
     Domain = rep("Eukaryota", 8),
-    Superkingdom = rep("Eukaryota", 8),
     Kingdom = c(
       "Animalia", "Animalia", "Bacteria", "Animalia",
       "Animalia", "Bacteria", "Animalia", "Animalia"
@@ -147,14 +146,14 @@ test_that("mode highest falls back to Family, Class, and Phylum", {
   expect_equal(asv5$taxon_rank, "Phylum")
 })
 
-test_that("Domain, Superkingdom, and Kingdom are ignored by default", {
+test_that("Domain and Kingdom are ignored by default", {
   taxa <- extract_taxa_for_evidence(
     evidence_taxonomy_table(),
     include_feature_id = TRUE,
     unique = FALSE
   )
 
-  expect_false(any(taxa$taxon_rank %in% c("Domain", "Superkingdom", "Kingdom")))
+  expect_false(any(taxa$taxon_rank %in% c("Domain", "Kingdom")))
   expect_false("asv6" %in% taxa$feature_id)
 })
 
@@ -323,7 +322,7 @@ test_that("ps_test_data_euk default ranks exclude broad ranks", {
 
   taxa <- extract_taxa_for_evidence(ps)
 
-  expect_false(any(taxa$taxon_rank %in% c("Domain", "Superkingdom", "Kingdom")))
+  expect_false(any(taxa$taxon_rank %in% c("Domain", "Kingdom")))
   expect_true(all(taxa$taxon_rank %in% c("Phylum", "Class", "Order", "Family", "Genus", "Species")))
 })
 

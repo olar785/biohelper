@@ -19,9 +19,9 @@ extract_taxa_for_evidence(
 table, or a phyloseq/speedyseq object containing a taxonomy table.}
 
 \item{ranks}{Character vector of taxonomy ranks to extract. Rank columns are
-matched case-insensitively. The default excludes \code{Domain},
-\code{Superkingdom}, and \code{Kingdom} because those ranks are usually too broad for
-evidence querying. They can still be used if explicitly included.}
+matched case-insensitively. The default excludes \code{Domain} and \code{Kingdom}
+because those ranks are usually too broad for evidence
+querying. They can still be used if explicitly included.}
 
 \item{mode}{Extraction mode. \code{"highest"} returns the most specific valid
 assignment per feature. \code{"all"} returns all valid assignments across

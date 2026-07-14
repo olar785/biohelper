@@ -12,11 +12,7 @@
 
 .biohelper_taxonomy_normalisation_ranks <- function(ranks) {
   ranks <- .biohelper_standardise_rank_names(ranks)
-  out <- tolower(ranks)
-  if ("domain" %in% out) {
-    out <- c("domain", "superkingdom", setdiff(out, "domain"))
-  }
-  unique(out)
+  unique(tolower(ranks))
 }
 
 .biohelper_standardise_rank_names <- function(ranks) {
@@ -123,7 +119,7 @@
   }
 
   rank_aliases <- list(
-    Domain = c("Domain", "domain", "Superkingdom", "superkingdom"),
+    Domain = c("domain", "superkingdom"),
     Kingdom = c("Kingdom", "kingdom"),
     Phylum = c("Phylum", "phylum"),
     Class = c("Class", "class"),

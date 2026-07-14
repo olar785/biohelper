@@ -12,9 +12,7 @@
 #' This dataset is intended for package examples and tests that need a compact
 #' phyloseq object with eukaryotic taxonomic ranks.
 #'
-#' @format A `phyloseq` object with 567 taxa and 33 samples. The taxonomy table
-#'   contains the ranks `superkingdom`, `kingdom`, `phylum`, `class`, `order`,
-#'   `family`, `genus`, `species`, and `asv`.
+#' @format A `phyloseq` object with 567 taxa and 33 samples.
 #'
 #' @details
 #' `ps_test_data_euk` is useful for testing taxonomy extraction, phyloseq-style

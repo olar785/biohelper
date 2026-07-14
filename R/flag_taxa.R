@@ -1719,10 +1719,7 @@ validate_flag_taxa_output <- function(
     return("compatible")
   }
   if (isTRUE(contradicts_environment)) {
-    if (isTRUE(is_species)) {
-      return("incompatible")
-    }
-    return("mixed_within_rank")
+    return("incompatible")
   }
   "unknown"
 }
@@ -1826,8 +1823,7 @@ validate_flag_taxa_output <- function(
   }
 
   if (
-    isTRUE(is_species) &&
-      identical(env_status, "incompatible") &&
+    identical(env_status, "incompatible") &&
       isTRUE(has_positive_environment_incompatibility)
   ) {
     return(list(
@@ -2073,7 +2069,7 @@ validate_flag_taxa_output <- function(
     )
   }
   if (identical(action, "exclude")) {
-    pieces <- c(pieces, "Exclusion is used only because species-level local evidence positively contradicts the expected environment.")
+    pieces <- c(pieces, "Exclusion is used only because trusted local evidence positively contradicts the expected environment.")
   }
 
   paste(pieces, collapse = " ")
@@ -5928,7 +5924,7 @@ call_flag_taxa_tool_evidence <- function(
   rank <- tolower(trimws(as.character(rank[[1]])))
   labels <- c(
     domain = "Domain",
-    superkingdom = "Superkingdom",
+    superkingdom = "Domain",
     kingdom = "Kingdom",
     phylum = "Phylum",
     class = "Class",

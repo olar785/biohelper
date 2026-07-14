@@ -154,13 +154,14 @@ regional occurrence evidence only: no OBIS records means missing regional
 evidence, not evidence of absence, and OBIS is not treated as proof of
 resident habitat use.
 
-\code{expected_habitat_status = "unknown"} means the deterministic evidence
-sources did not provide usable habitat information. Unknown habitat alone
-does not trigger review when the expected environment is compatible and the
-expected region is known or plausible. Broad taxonomic rank alone also does
-not trigger review. A retained row means available deterministic evidence
-supports plausibility and no positive incompatibility was detected; it does
-not mean every ecological detail is proven.
+\code{expected_habitat_status = "no_known_habitat_evidence"} means an expected
+habitat was supplied, but deterministic evidence sources did not document the
+taxon in that habitat. \code{expected_habitat_status = "unknown"} is reserved for
+unassessed or unusable habitat context. Missing habitat evidence triggers
+review rather than exclusion unless positive incompatibility evidence is
+present. A retained row means available deterministic evidence supports
+plausibility and no positive incompatibility was detected; it does not mean
+every ecological detail is proven.
 
 Environment compatibility is assessed from trusted local evidence first:
 user-provided taxon evidence, then WoRMS-derived environment flags when
