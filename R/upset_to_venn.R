@@ -48,6 +48,11 @@ upset_to_venn<- function(upset_df,
                        percent_digits = 1,
                        bold_sets = TRUE) {
 
+  rlang::check_installed(
+    "eulerr",
+    reason = "to use `biohelper::upset_to_venn()`"
+  )
+
   vd = eulerr::euler(upset_df)
 
   # colours
