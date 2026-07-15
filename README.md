@@ -4,5 +4,5 @@ Helper functions for various bioinformatics, data visualisation and analysis ope
 
 The package can be installed with: 
 
-if (!require("remotes")) install.packages("remotes")
+if (!require("remotes")) install.packages("remotes");
 remotes::install_github("olar785/biohelper")
