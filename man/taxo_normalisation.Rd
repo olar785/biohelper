@@ -2,7 +2,7 @@
 % Please edit documentation in R/taxo_normalisation.R
 \name{taxo_normalisation}
 \alias{taxo_normalisation}
-\title{Loads taxo_normalisation}
+\title{Normalise ordered taxonomy against NCBI}
 \usage{
 taxo_normalisation(
   obj,
@@ -10,38 +10,216 @@ taxo_normalisation(
   addExtra = TRUE,
   spnc = FALSE,
   ranks = c("Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus",
-    "Species")
+    "Species"),
+  sequences = NULL,
+  blast_hits = NULL,
+  blast_options = list(),
+  return_details = FALSE,
+  ambiguity = c("first", "lca", "unassigned", "blast_check"),
+  db = NULL,
+  blastapp_path = unname(Sys.which("blastn"))
 )
 }
 \arguments{
-\item{obj}{= Either a dataframe containing taxonomic information (e.g. output of Qiime2 or the assignTaxonomy from dada2) or a phyloseq object}
+\item{obj}{Taxonomy matrix, data.frame or phyloseq object. Supply names in
+broad-to-narrow column order, with any number of columns. Feature IDs can be
+row names or an identifier column such as \code{feature_id}, \code{ASV} or \code{OTU}.
+Semicolon-separated lineages in a \code{taxon} or \code{taxonomy} column are also accepted.
+Recognised BLAST alignment/provenance columns are preserved separately and
+excluded from the ordered-name search; they are not taxonomy ranks.}
 
-\item{sqlFile}{= Path to the local NCBI taxonomy db}
+\item{sqlFile}{Path to the local NCBI taxonomy SQLite database, containing
+names and nodes (for example \code{accessionTaxa.sql}). This is used for name lookup,
+ancestry and output ranks. It is separate from the BLAST sequence database \code{db}.}
 
-\item{addExtra}{= Currently adds the TSAR and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and TSAR group from Metazoans}
+\item{addExtra}{Logical, default TRUE. Apply the existing extra kingdom-group
+assignments, including Protozoa and Archaeplastida (excluding Viridiplantae),
+where applicable. Set FALSE to retain the NCBI kingdom assignments directly.}
 
-\item{spnc}{= Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
+\item{spnc}{Logical, default FALSE. If TRUE, join the final two taxonomic
+columns as genus and species epithet. This is an explicit formatting request,
+independent of column labels; it requires at least two taxonomic columns.
+Otherwise supply complete binomial names where available.}
 
-\item{ranks}{= Ranks to return}
+\item{ranks}{NCBI ranks to return. Default: Domain, Kingdom, Phylum, Class,
+Order, Family, Genus and Species. Output rank column names are lowercase.
+This controls output only; it does not constrain the input names or matching.}
+
+\item{sequences}{ASV sequences as a FASTA file path, named DNAStringSet or
+uniquely named character vector. IDs must match the taxonomy feature IDs;
+FASTA headers are read up to the first whitespace. For phyloseq input,
+reference sequences are used automatically when available. ASVs without
+matching sequences are recorded as \code{missing_sequence} and use the configured
+ambiguity fallback. You do not need to intersect IDs manually.}
+
+\item{blast_hits}{Optional precomputed raw BLAST data.frame, or 12-column
+file readable by \code{\link[=read_blast_taxo_csv]{read_blast_taxo_csv()}}. Required columns: \code{qseqid}, \code{sseqid},
+\code{staxids}, \code{pident}, \code{qcovhsp}, \code{evalue} and \code{bitscore}. No search is run when
+supplied, so \code{sequences}, \code{db} and \code{blastapp_path} are not required.}
+
+\item{blast_options}{Named list of optional BLAST settings. Omitted entries
+use these defaults:
+\describe{
+\item{\code{scope = "ambiguous"}}{Which assignments to check: \code{"ambiguous"}
+checks names still matching multiple NCBI candidates; \code{"all"} also audits
+names with one candidate. Neither option searches features without a
+recognised name candidate.}
+\item{\code{fallback = "first"}}{For remaining ambiguous names: \code{"first"},
+\code{"lca"} or \code{"unassigned"}. Use \code{"lca"} for BLAST followed by LCA.}
+\item{\code{remote = FALSE}}{Run BLAST locally by default. TRUE submits selected
+DNA sequences to NCBI's online BLAST service; if \code{db} is omitted, that
+service uses \code{core_nt}. No local executable is needed for online searches.}
+\item{\code{task = "blastn"}}{BLAST task: \code{"blastn"} or \code{"megablast"}.}
+\item{\code{nthreads = 1}}{Number of threads for local searches.}
+\item{\code{max_hits = 100}}{Maximum reference hits retained per query.}
+\item{\code{evalue = 1e-10}}{Maximum E-value for search and hit screening.}
+\item{\code{min_identity = 95}}{Minimum alignment identity, in percent.}
+\item{\code{min_coverage = 90}}{Minimum query coverage, in percent, of one
+alignment segment (HSP), rather than pooled short alignments.}
+\item{\code{score_fraction = 0.98}}{Retain hits scoring at least this fraction
+of the best hit passing identity, coverage and E-value screening.}
+\item{\code{min_accessions = 2}}{Minimum number of distinct reference accessions.}
+\item{\code{min_taxa = 2}}{Minimum number of distinct reference TaxIDs among
+retained hits. Setting 1 allows evidence from a single TaxID while still
+requiring \code{min_accessions}.}
+\item{\code{min_support = 1}}{Required fraction of retained hit TaxIDs supporting
+a candidate lineage. Default 1 requires all; must be greater than 0.5.}
+\item{\code{conflict_action = "flag"}}{When qualifying hits conflict with all
+name candidates, flag for review and apply the ambiguity fallback.
+\code{"unassign"} explicitly clears the assignment instead. Unique audited
+names remain assigned under \code{"flag"}; they have no competing-name LCA.}
+\item{\code{feature_ids = NULL}}{Optional feature subset. By default all eligible
+features are considered and sequence availability is matched automatically.}
+\item{\code{cache_dir = file.path(tempdir(), "biohelper-blast")}}{Search cache.
+Use a persistent directory to reuse raw hits or resume online requests
+between R sessions. Identical DNA reuses hits; different sequences are
+never pooled merely because their taxonomy names agree.}
+\item{\code{refresh = FALSE}}{Reuse matching cached searches; TRUE reruns them.}
+\item{\code{max_remote_queries = 25}}{Maximum uncached distinct DNA sequences
+per online call. Does not limit local searches.}
+\item{\code{poll_seconds = 60}}{Minimum interval between online job checks.}
+\item{\code{timeout_seconds = 900}}{Maximum online waiting time per call.}
+\item{\code{email = NULL}}{Optional contact email for online requests.}
+}}
+
+\item{return_details}{Logical, default FALSE. FALSE returns the usual taxonomy
+table or phyloseq object. TRUE changes the return value to a list containing
+\code{taxonomy}, \code{blast} and \code{ambiguity}; see Value for the complete output contract.}
+
+\item{ambiguity}{How to handle competing names after ordered lineage matching:
+\code{"first"} (default), \code{"lca"}, \code{"unassigned"} or \code{"blast_check"}.
+Only \code{"blast_check"} enables sequence checking. The other strategies do not
+run BLAST, access its sequence database or submit sequences online.}
+
+\item{db}{BLAST sequence database, using the same convention as
+\code{\link[=blastn_taxo_assignment]{blastn_taxo_assignment()}}. For local searches, supply the formatted database
+prefix, e.g. \verb{/databases/nt}, not a \code{.nin} file, FASTA file or SQLite file.
+A database name resolvable through BLAST's database search path also works.
+Reference records must have TaxIDs for lineage checking. For online searches,
+supply an NCBI database name, or omit it to use \code{core_nt}. Default NULL;
+required only when a new local search actually runs.}
+
+\item{blastapp_path}{Path to the \code{blastn} executable, using the same name as
+\code{\link[=blastn_taxo_assignment]{blastn_taxo_assignment()}}. Default: detect \code{blastn} on the system PATH.
+Required only for a new local search; ignored for online/precomputed evidence.}
+}
+\value{
+With \code{return_details = FALSE} (default): matrix/data.frame input returns a
+data.frame with \code{feature_id} followed by requested lowercase rank columns;
+phyloseq input returns a phyloseq object with normalised taxonomy. The input
+object is not modified. Unassigned ranks are NA; an unassigned requested
+domain is represented as \code{"Unknown"}.
+
+When BLAST checking is enabled, attribute \code{blast_check} contains its report.
+With a non-default ambiguity strategy, attribute \code{ambiguity} contains the
+remaining-candidate/fallback diagnostics. These are attributes, not extra
+taxonomy columns. Ordinary \code{"first"} calls retain the original output shape.
+
+With \code{return_details = TRUE}, the return value is explicitly a list:
+\describe{
+\item{\code{taxonomy}}{The normalised data.frame or phyloseq object.}
+\item{\code{blast}}{NULL when BLAST is disabled; otherwise a list containing
+\code{diagnostics} (one row per selected feature), raw \code{hits}, applied
+\code{settings}, and \code{hit_source} (\code{"blastn"} or \code{"precomputed"}). Diagnostics
+include feature/candidate/selected TaxIDs, final ID, status, hit counts,
+support fraction, minimum retained identity and coverage. Status examples:
+\code{blast_resolved}, \code{blast_supported}, \code{missing_sequence}, \code{no_hits},
+\code{insufficient_quality}, \code{insufficient_records}, \code{mixed_hits},
+\code{taxonomy_unavailable}, \code{insufficient_resolution} and \code{blast_conflict}.}
+\item{\code{ambiguity}}{One row per unresolved competing-name feature handled by
+a fallback, with \code{feature_id}, \code{candidate_ids}, \code{action}, \code{selected_id},
+\code{lca_id}, \code{lca_name}, \code{lca_rank} and requested \code{method}. An empty table
+means no competing names remain for that fallback.}
+}
+Ambiguity warnings report a feature count and up to five example IDs; their
+\code{feature_ids} field retains all affected IDs. BLAST review warnings identify
+features whose evidence did not resolve or confirm the name assignment.
 }
 \description{
-This function performs normalisation of taxonomic assignments of eukaryotic data
-identified via silva, midori or any other reference databases, using NCBI curated
-classification and nomenclature database. It can also provide further taxonomic
-information of additional desired ranks. It can either take in a taxonomy table
-(e.g. from Qiime2) or a phyloseq object. For species assignation, make sure that
-the species column contains both the Genus and Species names. If it doesn't, use \code{spnc = TRUE}.
+Normalise existing taxonomic names using a local NCBI taxonomy SQLite
+database. Input names must run from broad to narrow. Their column labels
+and number do not need to correspond to NCBI ranks. Optionally use ASV
+sequences and BLAST to distinguish competing NCBI meanings of a name.
+}
+\details{
+Names are searched right-to-left, beginning with the finest supplied name.
+Unrecognised names fall back to broader names. For a name with competing
+NCBI IDs, broader supplied names are compared against the complete NCBI
+lineages, including clades and intermediate ranks. Supporting matches must
+follow the input ancestry order; repeated names can match the same node.
+Names unable to support an ordered match in any remaining candidate are skipped.
+Matching stops when one candidate remains. NCBI supplies the output ranks.
 
-Importantly, this function requires the download of NCBI taxonomic database.
+With \code{ambiguity = "first"}, remaining supported candidates use the first
+lookup ID with a warning. If no broader name supports any candidate, this
+default policy leaves the assignment unassigned. \code{"lca"} instead uses the
+deepest common NCBI ancestor of the remaining candidates; \code{"unassigned"}
+clears the ambiguous assignment. Requested ranks below an LCA remain NA.
+LCA nodes can be clades not present among the requested output ranks.
 
-This takes few minutes to install using the following command:
-\code{taxonomizr::prepareDatabase('accessionTaxa.sql')}. The database is ~65 GB
-but the user can set \code{getAccessions = FALSE} to drastically reduce its size.
+With \code{ambiguity = "blast_check"}, sufficiently similar, long, near-best
+sequence hits are checked against the candidate TaxIDs. Each distinct hit
+TaxID contributes one vote. The deepest supported candidate is selected when
+candidates are nested. This selects a meaning of the supplied name; it does
+not automatically replace it with the species name of a BLAST hit.
+Weak, mixed, missing or unavailable evidence uses \code{blast_options$fallback}.
+The screening thresholds are adjustable, not validated rank-specific cutoffs;
+multiple reference accessions need not be independent biological observations.
+
+A failed local search, missing database/executable, network error or pending
+online job stops the call; these execution errors are not treated as LCA
+evidence. Pending online request IDs are saved. Rerun the same call with the
+same persistent cache to resume. Completed hits are cached separately from
+screening thresholds, allowing thresholds to be changed without a new search.
 }
 \examples{
 \dontrun{
-data("ps_test_data")
-taxo_normalisation(ps_test_data, sqlFile = 'accessionTaxa.sql')
+# Name-based normalisation: no BLAST required.
+normalised <- taxo_normalisation(taxa, sqlFile = "accessionTaxa.sql")
+
+# Local BLAST with LCA fallback. Other BLAST options use their defaults.
+normalised <- taxo_normalisation(
+  taxa, sqlFile = "accessionTaxa.sql", sequences = "uniqueSeqs.fasta",
+  ambiguity = "blast_check", db = "/databases/nt",
+  blast_options = list(fallback = "lca")
+)
+
+# Explicitly request the additional reports.
+details <- taxo_normalisation(
+  taxa, sqlFile = "accessionTaxa.sql", sequences = "uniqueSeqs.fasta",
+  ambiguity = "blast_check", db = "/databases/nt",
+  blast_options = list(fallback = "lca"), return_details = TRUE
+)
+details$taxonomy
+details$blast$diagnostics
+details$ambiguity
+
+# Online BLAST is opt-in; db defaults to core_nt for this mode only.
+details <- taxo_normalisation(
+  taxa, sqlFile = "accessionTaxa.sql", sequences = "uniqueSeqs.fasta",
+  ambiguity = "blast_check",
+  blast_options = list(remote = TRUE, fallback = "lca"), return_details = TRUE
+)
 }
 
 }

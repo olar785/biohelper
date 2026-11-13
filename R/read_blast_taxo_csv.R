@@ -46,14 +46,14 @@ read_blast_taxo_csv <- function(path) {
   comma_count <- stringr::str_count(first_line, ",")
   delim <- if (tab_count >= 11 || tab_count > comma_count) "\t" else ","
 
-  x <- readr::read_delim(
+  x <- suppressWarnings(readr::read_delim(
     path,
     delim = delim,
     col_names = FALSE,
     col_types = readr::cols(.default = readr::col_character()),
     show_col_types = FALSE,
     trim_ws = TRUE
-  )
+  ))
 
   if (ncol(x) != length(cols)) {
     stop(
@@ -64,12 +64,16 @@ read_blast_taxo_csv <- function(path) {
   }
 
   names(x) <- cols
-  x$qlen <- as.integer(x$qlen)
-  x$pident <- as.numeric(x$pident)
-  x$evalue <- as.numeric(x$evalue)
-  x$bitscore <- as.numeric(x$bitscore)
-  x$qcovs <- as.numeric(x$qcovs)
-  x$qcovhsp <- as.numeric(x$qcovhsp)
+  if (nrow(readr::problems(x))) stop("Malformed BLAST records: inconsistent field counts or quoting in ", path, call. = FALSE)
+  for (column in c("qlen", "pident", "evalue", "bitscore", "qcovs", "qcovhsp")) {
+    values <- suppressWarnings(as.numeric(x[[column]]))
+    invalid <- !is.finite(values) | values < 0
+    if (column == "qlen") invalid <- invalid | values == 0 | values != floor(values)
+    if (column %in% c("pident", "qcovs", "qcovhsp")) invalid <- invalid | values > 100
+    if (any(invalid)) stop("Invalid BLAST numeric values in column '", column, "' in ", path, call. = FALSE)
+    x[[column]] <- if (column == "qlen") as.integer(values) else values
+  }
+  if (anyNA(x$qseqid) || any(!nzchar(x$qseqid)) || anyNA(x$sseqid) || any(!nzchar(x$sseqid))) stop("BLAST query and subject IDs must be non-empty.", call. = FALSE)
 
   x
 }

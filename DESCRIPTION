@@ -1,6 +1,6 @@
 Package: biohelper
 Title: Helper bioinformatics and data analysis functions
-Version: 0.0.24.000
+Version: 0.0.24.9000
 Authors@R: 
     person(given = "Olivier", family = "Laroche", email = "olar785@aucklanduni.ac.nz", 
            role = c("aut", "cre"),
@@ -34,6 +34,7 @@ Depends:
 Imports:
     betapart,
     Biostrings,
+    DBI,
     ggplot2,
     ggtext,
     gtools,
@@ -42,6 +43,7 @@ Imports:
     plyr,
     readr,
     rlang,
+    RSQLite,
     scales,
     tibble,
     tidyr,

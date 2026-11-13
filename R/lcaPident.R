@@ -1,195 +1,180 @@
-#' lcaPident
+#' Assign taxonomy from BLAST hits using LCA and identity thresholds
 #'
 #' @description
-#' This function takes in the output of a blastn search with multiple hits and
-#' uses a Last Common Ancestor (LCA) approach and optionally, a minimum percent
-#' identity (pident; per taxonomic rank) to assign taxonomy.
+#' Process raw 12-column BLAST hits against a validated local NCBI taxonomy
+#' database. Retains representative alignment statistics separately from the
+#' multi-hit taxonomic consensus. No online taxonomy lookups are performed.
 #'
-#' @param
-#' blast_file        Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"
-#' @param
-#' output_file       Path to write the processed taxonomy table.
-#' @param
-#' ftbl_file         Optional feature table file.
-#' @param
-#' minSim             Minimum similarity to assign species hits (default: 97)
-#' @param
-#' minCov             Minimum coverage to keep hits (default: 80)
-#' @param
-#' update             Should the taxonomy database be updated? (default: FALSE)
-#' @param
-#' pident             To reduce taxonomy assignment according to default percent identity thresholds. Options are: before or after LCA assignment
-#' @param
-#' pgenus             Minimum similarity to assign genus (default: 95)
-#' @param
-#' pfamily            Minimum similarity to assign family (default: 87)
-#' @param
-#' porder             Minimum similarity to assign order (default: 83)
-#' @param
-#' pclass             Minimum similarity to assign class (default: 81)
-#' @param
-#' pphylum            Minimum similarity to assign phylum (default: 79)
-#' @param
-#' pkingdom           Minimum similarity to assign kingdom (default: 71)
-#' @param
-#' taxonly            Should only taxonomy output be returned? (default: TRUE)
-#' @param
-#' verbose            Should progress messages be printed? (default: FALSE)
+#' @param blast_file Headerless 12-column BLAST TSV or CSV, in this order:
+#' qseqid, qlen, pident, sseqid, sgi, evalue, bitscore, staxids, sscinames,
+#' sblastnames, qcovs, qcovhsp. Empty successful BLAST output is accepted.
+#' @param output_file Genuine CSV output path. Existing output is preserved
+#' in an archive before a validated replacement is published.
+#' @param ftbl_file Retained for compatibility; currently unused. No feature
+#' table join is performed. The workflow wrapper retains every FASTA query.
+#' @param minSim Species identity threshold, default 97 percent. Does not
+#' filter all hits by identity. It is used only with pident=before/after.
+#' @param minCov Minimum qcovs (query coverage), default 80 percent.
+#' @param pident `"no"` (standalone default), `"before"` or `"after"`.
+#' before masks each hit's rank according to that hit's identity, then computes
+#' LCA. after computes LCA, then masks ranks using the representative hit's
+#' identity. no applies no identity thresholds. The wrapper's default is before.
+#' @param pgenus Genus identity threshold, default 95 percent.
+#' @param pfamily Family identity threshold, default 87 percent.
+#' @param porder Order identity threshold, default 83 percent.
+#' @param pclass Class identity threshold, default 81 percent.
+#' @param pphylum Phylum identity threshold, default 79 percent.
+#' @param pkingdom Kingdom identity threshold, default 71 percent.
+#' @param taxonly Retained for compatibility. Both settings return the processed
+#' taxonomy with representative alignment statistics; statistics are not removed.
+#' @param update Logical, default FALSE. TRUE performs one safe HTTPS taxonomy
+#' update before this standalone call. FALSE never downloads. See
+#' [blastn_taxo_assignment()] for cache protection and update details.
+#' @param verbose Logical; print resolved/unresolved TaxID counts and output summary.
+#' @param taxonomy_db Optional NCBI taxonomy SQLite path; accepts taxizedb or
+#' taxonomizr names/nodes schemas. NULL uses an existing biohelper cache, otherwise
+#' taxizedb's existing NCBI.sql. Missing/inaccessible/corrupt databases fail early.
+#'
+#' @details
+#' Hits labelled uncultured, unidentified or environmental sample are removed,
+#' and qcovs must meet minCov. All TaxIDs in a merged reference hit (semicolon or
+#' comma separated) contribute lineage evidence; the original implementation
+#' used only the first. Unresolved IDs contribute missing taxonomy, not a spurious
+#' conflicting name. Unique IDs and shared ancestors are queried in batches with
+#' a single read-only SQLite connection, rather than repeated classification calls.
+#' An unresolved or identity-masked representative does not suppress known consensus from other hits.
+#'
+#' Consensus checks ranks from broad to narrow, retaining the unique known value
+#' until the first disagreement and clearing that rank and all finer ranks.
+#' This corrects the former fine-to-broad loop, which could retain a conflicting
+#' genus or kingdom after encountering a species disagreement. The existing
+#' per-rank threshold methodology, treatment of missing rank values and numeric
+#' defaults are otherwise preserved.
+#'
+#' The representative is selected among qualifying hits by lowest E-value,
+#' highest bitscore, highest identity, highest qcovs and subject identifier, with
+#' a canonical row tie-breaker for remaining ties. All its statistics come from
+#' the same hit, independently of the multi-hit consensus. Deterministic tie-breaking
+#' can also affect after-mode rank masking when tied E-values have different
+#' identities. These alignment statistics are not LCA confidence measurements.
+#'
+#' ASVs present in the raw table but without qualifying hits are retained with
+#' missing assignment/statistics. A wholly empty file returns a typed zero-row
+#' table. ASVs absent from raw output cannot be reconstructed by this standalone
+#' function; the workflow wrapper adds them from its query FASTA.
+#'
+#' @return A data.frame written as genuine CSV. Legacy columns `ASVs`, `taxonomy`,
+#' `Percent_Identity`, `Sequence_coverage` and `staxid` are retained. Added numeric
+#' columns are `pident`, `qcovs`, `evalue` and `bitscore`, plus representative
+#' `sseqid`. Percent_Identity/Sequence_coverage alias pident/qcovs. staxid retains
+#' every TaxID attached to the representative hit. taxonomy keeps the compatible
+#' nine-slot semicolon format (domain, superkingdom, kingdom, phylum, class,
+#' order, family, genus, species); modern domain and legacy superkingdom are
+#' normalised to domain, with missing slots written as NA.
+#'
+#' Attribute `provenance` records database identity/provenance, thresholds,
+#' raw/qualifying hit counts, feature count and resolved/unresolved unique TaxID
+#' counts. The wrapper records the method-specific assignment/support provenance
+#' in its final rank table. This function always returns the table, including
+#' when taxonly=FALSE, preserving the historical return type.
 #'
 #' @export
 #' @examples
 #' \dontrun{
-#' lcaPident(
-#'   blast_file = "blastn_output.csv",
-#'   output_file = "taxo_assignment.csv",
-#'   pident = "before"
+#' result <- lcaPident(
+#'   blast_file = "blastn_output.csv", output_file = "blastn_output_processed.csv",
+#'   taxonomy_db = "accessionTaxa.sql", pident = "before"
 #' )
+#' attr(result, "provenance")
 #' }
-
-# Function to assign taxonomy from BLAST file
+#'
 
 lcaPident <- function(
     blast_file, output_file, ftbl_file = NULL,
     minSim = 97, minCov = 80, pident = "no",
     pgenus = 95, pfamily = 87, porder = 83,
     pclass = 81, pphylum = 79, pkingdom = 71,
-    taxonly = TRUE, update = FALSE, verbose = FALSE
+    taxonly = TRUE, update = FALSE, verbose = FALSE,
+    taxonomy_db = NULL
 ) {
-
-  desired_ranks <- c("domain", "superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species")
-
-  # Optionally update the NCBI taxonomy database
-  if (update) {
-    message("Updating local NCBI taxonomy database...")
-    taxizedb::db_download_ncbi(overwrite = TRUE)
-  }
-  # Load BLAST table
-  # Read with fread for reliable parsing, disable quote handling to avoid warnings
-  blast <- data.table::fread(
-    blast_file,
-    col.names = c(
-      "query.id", "query.length", "pident", "subject.id", "subject.GBid",
-      "evalue", "bit.score", "staxids", "sscinames", "sblastnames",
-      "qcovs", "qcovhsp"
-    ),
-    quote = ""
-  )
-
-  # Trim leading/trailing quotes if present
-  blast <- blast %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~stringr::str_remove_all(.x, '^"|"$')),
-                  query.length = as.numeric(query.length),
-                  pident = as.numeric(pident),
-                  evalue = as.numeric(evalue),
-                  bit.score = as.numeric(bit.score),
-                  qcovs = as.numeric(qcovs),
-                  qcovhsp = as.numeric(qcovhsp))
-
-  # Remove unwanted entries
-  blast_trimmed <-blast %>%
-    dplyr::filter(!stringr::str_detect(sscinames, stringr::regex("uncultured|unidentified|environmental sample", ignore_case = TRUE))) %>%
-    dplyr::filter(qcovs >= minCov)
-
-  # Get taxonomy for staxids using lapply
-  ## Keeping the first staxid if multiple
-  blast_trimmed$staxids = sub(";.*", "", blast_trimmed$staxids)
-  staxid_list <- unique(blast_trimmed$staxids)
-  cat("Number of unique staxid =", length(staxid_list), "\n")
-
-  pb <- progress::progress_bar$new(total = length(staxid_list), format = "[:bar] :current/:total (:percent) eta: :eta", clear = FALSE)
-  taxo_result <- lapply(staxid_list, function(tx) {
-    pb$tick()
-    res <- tryCatch({
-      taxizedb::classification(tx, db = "ncbi")
-    }, error = function(e) NULL)
-
-    if (is.null(res) || is.null(res[[1]]) || length(res[[1]]) == 0 || all(is.na(res[[1]]))) {
-      message("[!] No taxonomy found for staxid: ", tx)
-      tax_vec <- stats::setNames(rep("NA", length(desired_ranks)), desired_ranks)
-    } else {
-      ranks_df <- dplyr::filter(res[[1]], rank %in% desired_ranks)
-      tax_vec <- stats::setNames(rep("NA", length(desired_ranks)), desired_ranks)
-      tax_vec[ranks_df$rank] <- ranks_df$name
+  pident <- match.arg(pident, c("before", "after", "no"))
+  for (path in list(blast_file, output_file)) if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) stop("blast_file and output_file must be single file paths.", call. = FALSE)
+  if (!is.logical(verbose) || length(verbose) != 1L || is.na(verbose)) stop("verbose must be TRUE or FALSE.", call. = FALSE)
+  thresholds <- c(kingdom = pkingdom, phylum = pphylum, class = pclass,
+                  order = porder, family = pfamily, genus = pgenus, species = minSim)
+  for (value in c(as.list(thresholds), list(minCov))) {
+    if (!is.numeric(value) || length(value) != 1L || !is.finite(value) || value < 0 || value > 100) {
+      stop("Identity and coverage thresholds must be numbers between 0 and 100.", call. = FALSE)
     }
-    dplyr::tibble(staxids = tx, !!!as.list(tax_vec))
+  }
+  database <- .biohelper_prepare_lca_db(update, taxonomy_db)
+  blast <- .biohelper_read_blast_stage(blast_file)
+  query_ids <- sort(unique(blast$qseqid))
+  ranks <- c("domain", "superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species")
+  keep <- !grepl("uncultured|unidentified|environmental sample", blast$sscinames, ignore.case = TRUE) & blast$qcovs >= minCov
+  keep[is.na(keep)] <- FALSE
+  filtered <- blast[keep, , drop = FALSE]
+  # A merged BLAST reference can represent several organisms. Use every TaxID
+  # for consensus, while retaining one set of alignment statistics per hit.
+  taxids <- lapply(filtered$staxids, function(value) {
+    if (is.na(value)) return(character())
+    unique(trimws(strsplit(as.character(value), "[;,]", perl = TRUE)[[1L]]))
   })
-  taxo_df <- dplyr::bind_rows(taxo_result)
-  blast_annotated <- dplyr::left_join(blast_trimmed, taxo_df, by = "staxids")
-
-  # Apply pident thresholds - each threshold affects only its corresponding rank
-  apply_pident_thresholds <- function(df, minSim, pk, pp, pc, po, pf, pg) {
-    df <- df %>% dplyr::mutate(dplyr::across(dplyr::all_of(desired_ranks), as.character))
-    # Each threshold affects only its corresponding rank
-    df <- df %>% dplyr::mutate(
-      kingdom = ifelse(pident < pk, "NA", kingdom),
-      phylum = ifelse(pident < pp, "NA", phylum),
-      class = ifelse(pident < pc, "NA", class),
-      order = ifelse(pident < po, "NA", order),
-      family = ifelse(pident < pf, "NA", family),
-      genus = ifelse(pident < pg, "NA", genus),
-      species = ifelse(pident < minSim, "NA", species)
-    )
-    return(df)
+  ids <- unique(unlist(taxids))
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  lookup <- .biohelper_lca_lookup(ids, database, verbose)
+  result <- data.frame(ASVs = query_ids, taxonomy = rep("Unknown", length(query_ids)),
+    pident = rep(NA_real_, length(query_ids)), qcovs = rep(NA_real_, length(query_ids)),
+    evalue = rep(NA_real_, length(query_ids)), bitscore = rep(NA_real_, length(query_ids)),
+    sseqid = rep(NA_character_, length(query_ids)), staxid = rep(NA_character_, length(query_ids)),
+    stringsAsFactors = FALSE)
+  grouped <- split(seq_len(nrow(filtered)), filtered$qseqid)
+  for (query in names(grouped)) {
+    indexes <- grouped[[query]]
+    group <- filtered[indexes, , drop = FALSE]
+    best <- group[.biohelper_representative_order(group)[[1L]], , drop = FALSE]
+    row <- match(query, query_ids)
+    for (column in c("pident", "qcovs", "evalue", "bitscore", "sseqid")) result[[column]][[row]] <- best[[column]][[1L]]
+    result$staxid[[row]] <- best$staxids[[1L]]
+    evidence <- lapply(seq_along(indexes), function(i) {
+      id <- taxids[[indexes[[i]]]]
+      if (!length(id)) return(matrix(NA_character_, 1L, length(ranks), dimnames = list(NULL, ranks)))
+      lineages <- lookup$taxonomy[id, ranks, drop = FALSE]
+      if (pident == "before") {
+        for (rank in names(thresholds)) if (group$pident[[i]] < thresholds[[rank]]) lineages[, rank] <- NA_character_
+      }
+      lineages
+    })
+    evidence <- do.call(rbind, evidence)
+    assignment <- stats::setNames(rep(NA_character_, length(ranks)), ranks)
+    # Check broad to narrow: a finer disagreement must never conceal a broader
+    # conflict. Missing/unresolved lineages do not invent a conflicting name.
+    for (rank in ranks) {
+      values <- unique(evidence[, rank])
+      values <- values[!is.na(values) & nzchar(values) & values != "NA"]
+      if (length(values) > 1L) break
+      if (length(values) == 1L) assignment[[rank]] <- values[[1L]]
+    }
+    if (pident == "after") {
+      for (rank in names(thresholds)) if (best$pident[[1L]] < thresholds[[rank]]) assignment[[rank]] <- NA_character_
+    }
+    result$taxonomy[[row]] <- paste(ifelse(is.na(assignment), "NA", assignment), collapse = ";")
   }
-
-  # LCA logic
-  calculate_lca <- function(tbl) {
-    ranks <- rev(desired_ranks)
-    tbl_lca <- dplyr::group_by(tbl, query.id) %>%
-      dplyr::group_map(~ {
-        group_df <- .x
-        group_key <- .y  # This contains the grouping variable (query.id)
-
-        best_hit <- dplyr::slice_min(group_df, order_by = evalue, with_ties = FALSE)
-        lca <- best_hit[1,]
-
-        # Add back the query.id from the grouping key
-        lca$query.id <- group_key$query.id
-
-        for (rank in ranks) {
-          taxa <- unique(group_df[[rank]])
-          # Filter out NA values, empty strings, and "NA" strings
-          valid_taxa <- taxa[!is.na(taxa) & taxa != "" & taxa != "NA"]
-
-          if (length(valid_taxa) > 1) {
-            # Set current rank and all downstream ranks to "NA"
-            rank_index <- which(desired_ranks == rank)
-            lca[desired_ranks[rank_index:length(desired_ranks)]] <- "NA"
-            break
-          }
-        }
-        lca
-      }) %>%
-      dplyr::bind_rows()
-
-    tbl_lca <- tidyr::unite(tbl_lca, "taxonomy", dplyr::all_of(desired_ranks),
-                            sep = ";", remove = FALSE, na.rm = TRUE) %>%
-      dplyr::mutate(taxonomy = dplyr::if_else(taxonomy == "", "Unknown", taxonomy))
-
-    return(tbl_lca)
-  }
-
-  blast_annotated$pident = as.numeric(blast_annotated$pident)
-
-  if (pident == "before") {
-    blast_annotated <- apply_pident_thresholds(blast_annotated, minSim, pk = pkingdom , pp = pphylum, pc = pclass, po = porder, pf = pfamily, pg = pgenus)
-    final_tbl <- calculate_lca(blast_annotated)
-  } else if (pident == "after") {
-    final_tbl <- calculate_lca(blast_annotated)
-    final_tbl <- apply_pident_thresholds(final_tbl, minSim, pk = pkingdom , pp = pphylum, pc = pclass, po = porder, pf = pfamily, pg = pgenus)
-    final_tbl <- tidyr::unite(final_tbl, "taxonomy", dplyr::all_of(desired_ranks), sep = ";", remove = FALSE, na.rm = TRUE)
-  } else {
-    final_tbl <- calculate_lca(blast_annotated)
-  }
-
-  feature_table <- dplyr::select(final_tbl, query.id, taxonomy, pident, qcovs, staxids)
-  colnames(feature_table) = c("ASVs", "taxonomy", "Percent_Identity", "Sequence_coverage", "staxid")
-  # ASVs/OTUs with NA across all ranks either had no consensus at domain level or the staxid was not found by taxizedb
-
-  readr::write_csv(feature_table, output_file)
-  if (verbose) {
-    message("\nTransformed table written to: ", output_file)
-  }
-
-  return(feature_table)
+  # Retain the legacy aliases for direct lcaPident callers, alongside consistent
+  # numeric names used by the workflow and final output.
+  result$Percent_Identity <- result$pident
+  result$Sequence_coverage <- result$qcovs
+  result <- result[, c("ASVs", "taxonomy", "Percent_Identity", "Sequence_coverage", "staxid",
+                       "pident", "qcovs", "evalue", "bitscore", "sseqid")]
+  attr(result, "provenance") <- list(database = database[c("identity", "provenance")],
+    parameters = list(minSim = minSim, minCov = minCov, pident = pident, thresholds = thresholds),
+    hit_count = nrow(blast), qualifying_hit_count = nrow(filtered), feature_count = length(query_ids),
+    resolved_taxids = lookup$resolved, unresolved_taxids = lookup$unresolved)
+  dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
+  temporary <- tempfile(".lca_", tmpdir = dirname(output_file))
+  on.exit(unlink(temporary))
+  readr::write_csv(result, temporary, na = "NA")
+  .biohelper_atomic_publish(temporary, output_file, overwrite = FALSE)
+  if (verbose) message("Taxonomy written: ", output_file, " (", length(query_ids), " ASVs)")
+  result
 }

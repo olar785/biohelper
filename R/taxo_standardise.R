@@ -98,7 +98,8 @@
   output_id_col = NULL,
   taxonomy_col = "taxonomy",
   assignment_method = NULL,
-  keep_assignment_method = FALSE
+  keep_assignment_method = FALSE,
+  keep_alignment_stats = FALSE
 ) {
   df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
   df <- .biohelper_add_split_taxonomy_columns(df, taxonomy_col = taxonomy_col)
@@ -153,6 +154,21 @@
     )
     out[[rank]] <- .biohelper_coalesce_taxonomy_columns(df, columns)
   }
+  if (keep_alignment_stats) {
+    aliases <- list(pident = c("pident", "Percent_Identity"), qcovs = c("qcovs", "Sequence_coverage"),
+                    evalue = "evalue", bitscore = c("bitscore", "bit.score"), sseqid = c("sseqid", "subject.id"))
+    for (field in names(aliases)) {
+      column <- .biohelper_detect_column(df, aliases[[field]])
+      value <- if (is.na(column)) rep(NA_character_, nrow(df)) else df[[column]]
+      out[[field]] <- if (field == "sseqid") as.character(value) else suppressWarnings(as.numeric(value))
+    }
+    if (!"assignment_method" %in% names(out)) {
+      column <- .biohelper_detect_column(df, "assignment_method")
+      out$assignment_method <- if (!is.null(assignment_method)) rep(assignment_method, nrow(df)) else if (is.na(column)) rep(NA_character_, nrow(df)) else as.character(df[[column]])
+    }
+    column <- .biohelper_detect_column(df, "support_method")
+    out$support_method <- if (is.na(column)) out$assignment_method else as.character(df[[column]])
+  }
 
   as.data.frame(out, stringsAsFactors = FALSE, check.names = FALSE)
 }
@@ -174,51 +190,70 @@
     stop("`tables` must be a named list of BLAST taxonomy tables.", call. = FALSE)
   }
 
+  if (anyDuplicated(names(tables)) || length(tables) > 2L || !all(names(tables) %in% c("megablast", "blastn"))) stop("Supply one or both uniquely named megablast/blastn tables.", call. = FALSE)
+  tables <- tables[intersect(c("megablast", "blastn"), names(tables))]
   ranks <- .biohelper_taxonomy_output_ranks()
-  blast <- do.call(
-    rbind,
-    lapply(names(tables), function(method) {
-      .biohelper_standardise_taxonomy_columns(
-        tables[[method]],
-        id_col = "ASVs",
-        output_id_col = "ASV",
-        assignment_method = method,
-        keep_assignment_method = TRUE
-      )
-    })
-  )
-  rownames(blast) <- NULL
-  blast$nRb <- .biohelper_missing_taxonomy_count(blast, ranks)
-
-  asvs <- unique(blast$ASV)
-  newdf <- data.frame(ASV = asvs, stringsAsFactors = FALSE, check.names = FALSE)
-  for (rank in ranks) {
-    newdf[[rank]] <- NA_character_
-  }
-
-  for (i in seq_len(nrow(newdf))) {
-    temp_blast <- blast[blast$ASV == newdf$ASV[[i]], , drop = FALSE]
-    best <- temp_blast[which.min(temp_blast$nRb), , drop = FALSE]
-    rank_counts <- vapply(temp_blast[, ranks, drop = FALSE], .biohelper_n_distinct_non_missing, integer(1))
-    conflict <- which(rank_counts > 1L)
-    values <- as.character(best[1, ranks, drop = TRUE])
-    if (length(conflict) > 0L) {
-      values[seq.int(conflict[[1]], length(ranks))] <- NA_character_
+  normalised <- lapply(names(tables), function(method) {
+    x <- .biohelper_standardise_taxonomy_columns(tables[[method]], output_id_col = "ASV",
+      assignment_method = method, keep_assignment_method = TRUE, keep_alignment_stats = TRUE)
+    if (anyNA(x$ASV) || any(!nzchar(x$ASV))) stop("ASV identifiers must be non-empty.", call. = FALSE)
+    if (anyDuplicated(x$ASV)) {
+      for (id in unique(x$ASV[duplicated(x$ASV)])) {
+        if (nrow(unique(x[x$ASV == id, ranks, drop = FALSE])) > 1L) stop("Conflicting duplicate ASV in ", method, ": ", id, call. = FALSE)
+      }
+      x <- x[.biohelper_representative_order(x), , drop = FALSE]
+      x <- x[!duplicated(x$ASV), , drop = FALSE]
     }
-    newdf[i, ranks] <- values
+    x
+  })
+  names(normalised) <- names(tables)
+  asvs <- sort(unique(as.character(unlist(lapply(normalised, function(x) x$ASV)))))
+  align <- function(x) {
+    out <- x[match(asvs, x$ASV), , drop = FALSE]
+    rownames(out) <- NULL
+    out
   }
-
-  newdf
+  a <- align(normalised[[1L]])
+  b <- if (length(normalised) == 2L) align(normalised[[2L]]) else a[rep(NA_integer_, length(asvs)), , drop = FALSE]
+  a_present <- !is.na(a$ASV)
+  b_present <- !is.na(b$ASV)
+  representatives <- rbind(a, b)
+  priority <- integer(nrow(representatives))
+  priority[.biohelper_representative_order(representatives, representatives$assignment_method)] <- seq_len(nrow(representatives))
+  best_a <- priority[seq_along(asvs)] < priority[length(asvs) + seq_along(asvs)]
+  count_a <- .biohelper_taxonomy_resolution_count(a, ranks)
+  count_b <- .biohelper_taxonomy_resolution_count(b, ranks)
+  choose_a <- a_present & (!b_present | count_a > count_b | (count_a == count_b & best_a))
+  values <- a[, ranks, drop = FALSE]
+  values[!choose_a, ] <- b[!choose_a, ranks, drop = FALSE]
+  conflicts <- as.matrix(!is.na(a[, ranks, drop = FALSE]) & !is.na(b[, ranks, drop = FALSE]) & a[, ranks, drop = FALSE] != b[, ranks, drop = FALSE])
+  conflicts[is.na(conflicts)] <- FALSE
+  has_conflict <- rowSums(conflicts) > 0L
+  first <- if (length(asvs)) max.col(conflicts, ties.method = "first") else integer()
+  for (j in seq_along(ranks)) values[has_conflict & first <= j, j] <- NA_character_
+  support_a <- ifelse(has_conflict, a_present & (!b_present | best_a), choose_a)
+  selected_method <- ifelse(choose_a, a$assignment_method, b$assignment_method)
+  support_method <- ifelse(support_a, a$assignment_method, b$assignment_method)
+  out <- data.frame(ASV = asvs, values, stringsAsFactors = FALSE, check.names = FALSE)
+  for (field in c("pident", "qcovs", "evalue", "bitscore", "sseqid")) out[[field]] <- ifelse(support_a, a[[field]], b[[field]])
+  out$assignment_method <- ifelse(has_conflict, "consensus", selected_method)
+  has_statistics <- !is.na(out$pident) | !is.na(out$qcovs) | !is.na(out$evalue)
+  out$assignment_method[!has_statistics & rowSums(!is.na(values)) == 0L & !has_conflict] <- NA_character_
+  out$support_method <- ifelse(has_statistics, support_method, NA_character_)
+  out
 }
 
 .biohelper_format_blastn_taxo_assignment_output <- function(out) {
   out <- .biohelper_standardise_taxonomy_columns(
     out,
     id_col = NULL,
-    output_id_col = "ASV"
+    output_id_col = "ASV",
+    keep_alignment_stats = TRUE
   )
   .biohelper_validate_blastn_taxo_assignment_output(out)
   out <- janitor::clean_names(out)
+  out <- out[, c("asv", tolower(.biohelper_taxonomy_output_ranks()), .biohelper_blast_stats_columns()), drop = FALSE]
+  out$support_method[is.na(out$pident) & is.na(out$qcovs) & is.na(out$evalue)] <- NA_character_
   .biohelper_validate_blastn_taxo_assignment_output(out)
   out
 }

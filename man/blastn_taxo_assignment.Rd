@@ -2,7 +2,7 @@
 % Please edit documentation in R/blastn_taxo_assignment.R
 \name{blastn_taxo_assignment}
 \alias{blastn_taxo_assignment}
-\title{blastn_taxo_assignment}
+\title{Resumable BLAST taxonomy assignment with provenance}
 \usage{
 blastn_taxo_assignment(
   blastapp_path,
@@ -23,81 +23,217 @@ blastn_taxo_assignment(
   pclass = 81,
   pphylum = 79,
   pkingdom = 71,
-  taxonly = "TRUE"
+  taxonly = "TRUE",
+  resume = TRUE,
+  overwrite = FALSE,
+  taxonomy_db = NULL
 )
 }
 \arguments{
-\item{blastapp_path}{Path to the blastn program}
+\item{blastapp_path}{Path to the BLAST+ \code{blastn} executable, or a command
+resolvable on PATH. The executable and version are recorded.}
 
-\item{method}{Method to be used for blast search. Options are 'megablast', 'blastn' and 'both' (default).}
+\item{method}{\code{"megablast"} (default), \code{"blastn"} or \code{"both"}.}
 
-\item{queries}{Fasta file to query}
+\item{queries}{Query FASTA file with unique, non-empty feature IDs. Headers
+are read up to their first whitespace. Every query is retained in the final
+table, including queries without qualifying hits.}
 
-\item{megablast_opts}{megablast options including evalue (default = 0.001), max_target_seqs (default = 5) and perc_identity (default = 0.8)}
+\item{megablast_opts}{Additional BLAST option string. Default
+\code{"-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8"}, retained for compatibility.
+BLAST interprets \code{-perc_identity} in percent, not as a fraction. Controlled
+input/output/task/thread flags and shell control characters are rejected.}
 
-\item{blastn_opts}{blastn options including evalue (default = 0.001), max_target_seqs (default = 5) and perc_identity (default = 0.5)}
+\item{blastn_opts}{Additional blastn options. Default
+\code{"-evalue 0.001 -max_target_seqs 5 -perc_identity 0.7"}, retained for compatibility.}
 
-\item{db}{Reference database}
+\item{db}{Formatted local BLAST database prefix or name resolvable through
+BLASTDB. Reference identity records available database files, sizes and
+modification times, avoiding full hashing of very large sequence databases.}
 
-\item{output_path}{Path to output directory}
+\item{output_path}{Output directory. Names and paths may contain spaces.}
 
-\item{nthreads}{Number of threads for the blast search}
+\item{nthreads}{Positive integer number of BLAST threads.}
 
-\item{minSim}{Minimum similarity to assign species hits (default: 97)}
+\item{minSim}{Species identity threshold (percent), default 97. This is not
+an overall hit filter; see \code{pident} and \code{\link[=lcaPident]{lcaPident()}}.}
 
-\item{minCov}{Minimum coverage to keep hits (default: 80)}
+\item{minCov}{Minimum \code{qcovs} query coverage (percent), default 80.}
 
-\item{update}{Should the taxonomy database be updated? (default: FALSE)}
+\item{update}{Logical, default FALSE. TRUE builds/validates a fresh local
+taxonomy database once, before assignments, using HTTPS and a separate
+biohelper cache. Internal LCA calls always receive update=FALSE. No download
+occurs when FALSE. See Database handling below.}
 
-\item{pident}{To reduce taxonomy assignment according to default percent identity thresholds. Options are: before or after LCA assingment}
+\item{pident}{\code{"before"} (default), \code{"after"} or \code{"no"}: apply rank identity
+thresholds before LCA, after LCA using the representative hit, or not at all.}
 
-\item{pgenus}{Minimum similarity to assign genus (default: 95)}
+\item{pgenus}{Genus identity threshold, default 95 percent.}
 
-\item{pfamily}{Minimum similarity to assign family (default: 87)}
+\item{pfamily}{Family identity threshold, default 87 percent.}
 
-\item{porder}{Minimum similarity to assign order (default: 83)}
+\item{porder}{Order identity threshold, default 83 percent.}
 
-\item{pclass}{Minimum similarity to assign class (default: 81)}
+\item{pclass}{Class identity threshold, default 81 percent.}
 
-\item{pphylum}{Minimum similarity to assign phylum (default: 79)}
+\item{pphylum}{Phylum identity threshold, default 79 percent.}
 
-\item{pkingdom}{Minimum similarity to assign kingdom (default: 71)}
+\item{pkingdom}{Kingdom identity threshold, default 71 percent.}
 
-\item{taxonly}{Passed to \code{\link[=lcaPident]{lcaPident()}} to control whether only taxonomy output is returned.}
+\item{taxonly}{Retained for compatibility (including the historical string
+\code{"TRUE"}). Representative statistics are now always retained in taxonomy
+outputs; this argument does not remove them.}
+
+\item{resume}{Logical, default TRUE. Reuse structurally valid, unchanged
+completed stages. Missing, interrupted, corrupted or invalidated stages and
+dependent stages are recalculated. Valid older files can be adopted with an
+explicit warning that their original parameters/reference versions are unknown.}
+
+\item{overwrite}{Logical, default FALSE. FALSE preserves superseded files
+under \code{.biohelper/archive}, with checkpoint provenance when available.
+TRUE allows them to be replaced after a valid replacement has completed.
+This does not force rerunning a valid checkpoint when resume=TRUE.}
+
+\item{taxonomy_db}{Optional local NCBI taxonomy SQLite file. Supports both
+taxizedb names/nodes schemas and taxonomizr \code{accessionTaxa.sql} schemas.
+Default NULL uses biohelper's managed cache if present, otherwise taxizedb's
+existing local \code{NCBI.sql}. This is distinct from the BLAST sequence \code{db}.}
+}
+\value{
+Invisibly returns the final data.frame and writes it as CSV, with
+columns in this order: \code{asv}, \code{domain}, \code{kingdom}, \code{phylum}, \code{class}, \code{order},
+\code{family}, \code{genus}, \code{species}, \code{pident}, \code{qcovs}, \code{evalue}, \code{assignment_method},
+\code{support_method}. One row per query ASV, sorted by ID; missing values are NA
+(written as \code{NA}), with no row-name column. Alignment statistics are numeric.
+phyloseq tax_table may coerce them to character alongside rank names.
+
+assignment_method is megablast/blastn for a selected compatible assignment,
+or consensus for conflict truncation. support_method identifies the one method
+providing representative statistics; it is NA when no statistics are available.
+ASVs without qualifying hits have missing taxonomy/statistics/provenance.
+
+\code{blastn_taxo_assignment_provenance.rds} records parameters, versions, database
+identity, query/hit counts, stage records, unresolved TaxID counts and assignment
+summaries. A legacy final-only adoption records its unverified provenance in
+the consensus checkpoint. Existing callers selecting rank columns by name
+remain compatible; callers assuming exactly nine columns must account for the
+five appended columns. The previous implementation documented a returned table
+but actually returned NULL; the function now returns its documented data.frame.
 }
 \description{
-This wrapper function takes in a fasta file and returns a dataframe of
-taxonomic assignments. It first perform a blastn and/or megablast
-search in a database such as NCBI. It then uses a Last Common Ancestor (LCA)
-approach and optionally, a minimum percent identity (pident; per taxonomic rank)
-to assign taxonomy.
-
-If blastn and megablast were both chosen, it merges the results
-using the highest taxonomic resolution between the two, that is, if there is consensus across
-all assigned ranks. Otherwise, it assigns taxonomy using the LCA approach.
-The final table uses lowercase taxonomy rank columns, including \code{domain}.
-
-The function will write files from each step and return a dataframe of
-taxonomic assignments.
-
-Megablast and especially blastn can take several hours
-to run so if executed on a remote computer, best to execute as a sbatch job
-or using a terminal multiplexer like screen or tmux.
-
-Users only interested in performing a LCA/pident taxonomic
-assignment from multiple blast hits may refer to the lcaPident function (can be
-particularly useful to test overall taxonomic resolution using different parameters).
+Run local megablast, blastn or both, apply \code{\link[=lcaPident]{lcaPident()}}, and combine compatible
+assignments. Each search, each taxonomy table and the final consensus has an
+independent, validated checkpoint. A failed downstream stage does not repeat
+a completed BLAST search. Existing taxonomic thresholds and search-option
+defaults are retained.
 }
+\section{Checkpoints and interruption}{
+
+Search outputs are \code{megablast_output.csv} and/or \code{blastn_output.csv}: despite
+these legacy suffixes, raw BLAST files remain headerless 12-column TSV.
+Processed tables are \code{megablast_output_processed.csv} and/or
+\code{blastn_output_processed.csv}, written as genuine CSV. The final genuine CSV
+is \code{blastn_taxo_assignment.csv} (corrected spelling).
+
+Stage records are small RDS files under \code{.biohelper/stages}. They contain
+completion status, input/output hashes, relevant parameters, software and
+database identity, output validation and assignment summaries where available.
+Temporary outputs are validated before publication. Atomic replacement and
+hard-link preservation are used where supported; otherwise previous files
+are preserved by renaming. Search stdout/stderr is retained in per-method logs.
+
+Rerun the same call after interruption. Changing LCA parameters invalidates
+processed tables and consensus, not BLAST. Changing one method's search
+options invalidates that search and its downstream results independently.
+Corrupt final output only requires merging again. Failed replacements retain
+the checkpoint of the completed file still present at its original path.
+A directory lock prevents concurrent runs writing the same outputs; stale
+same-host locks are recovered automatically when their process no longer exists.
+Cross-host/unverifiable locks require confirming the previous process stopped.
+
+The resume/overwrite combinations are:
+\describe{
+\item{TRUE / FALSE (default)}{Reuse valid checkpoints; preserve superseded files.}
+\item{TRUE / TRUE}{Reuse valid checkpoints; discard superseded files only on successful replacement.}
+\item{FALSE / FALSE}{Start fresh only if requested output files/checkpoints do not already exist.}
+\item{FALSE / TRUE}{Explicit fresh run; rerun requested stages and replace superseded results safely.}
+}
+Archive directories can grow across parameter changes; old versions are not
+automatically deleted. No duplicate copy of a current large raw file is made
+solely for checkpointing.
+}
+
+\section{Legacy adoption}{
+
+File existence alone is not sufficient. Raw legacy files require valid records
+with expected query IDs; an empty legacy file without a checkpoint is rerun,
+because zero hits cannot be distinguished from interruption. Completed empty
+outputs with valid checkpoints are reusable. Legacy processed files without
+the new representative-hit columns are reprocessed from reusable raw BLAST.
+
+The old filename \code{blastn_taxo_assingment.csv} is detected and preserved. When
+only a structurally valid final table exists, it can be migrated without
+rerunning BLAST. Unknown statistics/provenance remain NA and adoption is marked
+unverified; old parameters cannot be inferred. When intermediates exist, they
+are used to reconstruct the new statistics and the corrected final filename.
+}
+
+\section{Database handling}{
+
+Existing databases are validated read-only before taxonomy processing.
+Missing files, permission problems, malformed schemas and SQL/ancestry failures
+raise errors, rather than becoming silent missing assignments. Genuine missing
+TaxIDs remain unresolved. Lookups use one read-only SQLite connection per LCA
+call, batched unique TaxIDs and cached ancestor records; no online taxonomy
+queries are used. Concurrent changes to a taxonomy database cause a retryable
+failure instead of mixing database versions.
+
+update=TRUE downloads the official NCBI taxonomy ZIP via HTTPS into a staging
+directory, builds compact names/nodes tables, and checks SQLite and parent/name
+integrity before publishing. The old working cache is archived only after the
+replacement passes. Installed taxizedb code and its shared database are not
+modified. An explicitly supplied externally managed database is not replaced;
+use taxonomy_db=NULL or a new path for an update. This compact cache intentionally
+omits taxizedb's large hierarchy table and is consumed by biohelper's own reader.
+}
+
+\section{Consensus and representative statistics}{
+
+Compatible assignments retain the result with the most populated taxonomy
+ranks. If both methods disagree, retain the selected higher-level taxonomy
+and clear the first conflicting rank and all finer ranks. ASVs present in one
+method are retained. Conflicting duplicate ASVs within one method are rejected.
+
+A representative hit is ordered by lowest E-value, highest bitscore, highest
+identity, highest qcovs, then subject ID. Complete ties have a canonical row
+tie-breaker. Between otherwise tied methods megablast is preferred. For equally
+resolved compatible/identical classifications, this representative ranking
+chooses the method; assignment_method records that method, not consensus.
+Consensus is reserved for taxonomy actually truncated because of disagreement.
+
+More resolved compatible assignments retain their own method's statistics.
+For disagreement, statistics come from the better representative method. Identity,
+coverage and E-value always come from one hit. These are alignment measurements,
+not LCA confidence, and need not individually justify the whole consensus.
+}
+
 \examples{
 \dontrun{
-blastn_taxo_assignment(
-  blastapp_path = "/home/miniconda3/bin/blastn",
-  queries = system.file("extdata", "uniqueSeqsTest.fasta", package = "biohelper"),
-  megablast_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.8",
-  blastn_opts = "-evalue 0.001 -max_target_seqs 5 -perc_identity 0.5",
-  db = "nt",
-  output_path = "blast_results",
-  nthreads = 10
+arguments <- list(
+  blastapp_path = "/tools/blastn", method = "both", queries = "ASVs.fasta",
+  db = "/databases/nt", output_path = "blast_results", nthreads = 4,
+  taxonomy_db = "accessionTaxa.sql"
 )
+result <- do.call(blastn_taxo_assignment, arguments)
+# After interruption, use the same call: completed stages are skipped.
+result <- do.call(blastn_taxo_assignment, arguments)
+# Revise taxonomy thresholds without repeating the searches.
+arguments$minSim <- 98
+revised <- do.call(blastn_taxo_assignment, arguments)
+# Explicit fresh run, allowing replacement after outputs validate.
+arguments$resume <- FALSE
+arguments$overwrite <- TRUE
+fresh <- do.call(blastn_taxo_assignment, arguments)
 }
+
 }

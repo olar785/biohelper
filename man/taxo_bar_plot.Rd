@@ -25,7 +25,7 @@ taxo_bar_plot(
 
 \item{n_rank1}{Number of rank1 groups to keep before assigning rare groups to "Others".}
 
-\item{n_rank2}{Number of shades to use per colour. Taxa which rank below that number will be assigned to "Other".}
+\item{n_rank2}{Number of lower-rank taxa to retain per rank1 group. Remaining taxa are assigned to "Others".}
 
 \item{colors}{Colors to be used}
 

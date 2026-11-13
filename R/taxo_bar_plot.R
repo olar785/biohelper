@@ -16,7 +16,7 @@
 #' @param
 #' colors               Colors to be used
 #' @param
-#' n_rank2              Number of shades to use per colour. Taxa which rank below that number will be assigned to "Other".
+#' n_rank2              Number of lower-rank taxa to retain per rank1 group. Remaining taxa are assigned to "Others".
 #' @param
 #' label                Sample metadata column to use as plot labels.
 #' @param
@@ -43,8 +43,8 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
     label = "Sample"
   }
 
-  n_rank1 = if(is.na(n_rank1)){
-    n_rank1 = length(colors)-1
+  if(is.na(n_rank1)){
+    n_rank1 <- length(colors)-1
   }
   # Creating dataframe
   dfn = speedyseq::psmelt(ps_obj) %>% base::replace(is.na(.), "Unidentified")
@@ -67,7 +67,7 @@ taxo_bar_plot = function(ps_obj, rank1 = "Phylum", rank2 = "Family", n_rank1 = N
     dplyr::group_by_at(c(which(colnames(temp) == ranks[1]):which(colnames(temp) == rank1))) %>%
     dplyr::arrange(desc(ran2_Sum), .by_group = T) %>%
     as.data.frame() %>%
-    slice_head(n = 5,by = rank1)
+    dplyr::slice_head(n = n_rank2, by = dplyr::all_of(rank1))
   list_of_rare_rank2 = temp[(temp[,rank2] %>% as_vector() %>% unname()) %ni% (temp_3[,rank2] %>% as_vector() %>% unname()),]$OTU
   list_of_rare_rank2 = c(list_of_rare_rank2,temp[temp[,which(colnames(temp)==rank2)]=="NA",]$OTU)
   dff[dff$OTU %in% list_of_rare_rank2,rank2] = "Others"

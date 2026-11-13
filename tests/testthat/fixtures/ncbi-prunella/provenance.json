@@ -1,0 +1,13 @@
+{
+  "retrieved_date_NZ": "2026-11-13",
+  "esearch_url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=taxonomy&term=Prunella%5BScientific%20Name%5D&retmode=json",
+  "efetch_url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id=175132,39176&retmode=xml",
+  "scientific_name": "Prunella",
+  "all_scientific_name_matches": [
+    "175132",
+    "39176"
+  ],
+  "lineage_nodes": 54,
+  "efetch_sha256": "6a6c89ebd7f4149e935a6da874a7605dcdcca307819b4b8ee00d0753ad18427c",
+  "construction": "Names, ranks and IDs copied from EFetch Taxon and complete LineageEx records. Parents follow the complete root-to-tip lineage; first listed ancestor has parent root (1). Final parent IDs checked against EFetch ParentTaxId. Only scientific names included; no accessions or unrelated taxa. Database fixture is a real NCBI subset, not the complete taxonomy database."
+}

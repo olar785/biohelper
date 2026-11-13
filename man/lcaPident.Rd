@@ -2,7 +2,7 @@
 % Please edit documentation in R/lcaPident.R
 \name{lcaPident}
 \alias{lcaPident}
-\title{lcaPident}
+\title{Assign taxonomy from BLAST hits using LCA and identity thresholds}
 \usage{
 lcaPident(
   blast_file,
@@ -19,51 +19,112 @@ lcaPident(
   pkingdom = 71,
   taxonly = TRUE,
   update = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  taxonomy_db = NULL
 )
 }
 \arguments{
-\item{blast_file}{Blast file containing multiple hits per query sequence. To work with this function the blastn search MUST have the format output 6  with options "query.id", "query.length", "pident", "subject.id", "subject.GBid", "evalue", "bit.score","staxids", "sscinames", "sblastnames", "qcovs", "qcovhsp"}
+\item{blast_file}{Headerless 12-column BLAST TSV or CSV, in this order:
+qseqid, qlen, pident, sseqid, sgi, evalue, bitscore, staxids, sscinames,
+sblastnames, qcovs, qcovhsp. Empty successful BLAST output is accepted.}
 
-\item{output_file}{Path to write the processed taxonomy table.}
+\item{output_file}{Genuine CSV output path. Existing output is preserved
+in an archive before a validated replacement is published.}
 
-\item{ftbl_file}{Optional feature table file.}
+\item{ftbl_file}{Retained for compatibility; currently unused. No feature
+table join is performed. The workflow wrapper retains every FASTA query.}
 
-\item{minSim}{Minimum similarity to assign species hits (default: 97)}
+\item{minSim}{Species identity threshold, default 97 percent. Does not
+filter all hits by identity. It is used only with pident=before/after.}
 
-\item{minCov}{Minimum coverage to keep hits (default: 80)}
+\item{minCov}{Minimum qcovs (query coverage), default 80 percent.}
 
-\item{pident}{To reduce taxonomy assignment according to default percent identity thresholds. Options are: before or after LCA assignment}
+\item{pident}{\code{"no"} (standalone default), \code{"before"} or \code{"after"}.
+before masks each hit's rank according to that hit's identity, then computes
+LCA. after computes LCA, then masks ranks using the representative hit's
+identity. no applies no identity thresholds. The wrapper's default is before.}
 
-\item{pgenus}{Minimum similarity to assign genus (default: 95)}
+\item{pgenus}{Genus identity threshold, default 95 percent.}
 
-\item{pfamily}{Minimum similarity to assign family (default: 87)}
+\item{pfamily}{Family identity threshold, default 87 percent.}
 
-\item{porder}{Minimum similarity to assign order (default: 83)}
+\item{porder}{Order identity threshold, default 83 percent.}
 
-\item{pclass}{Minimum similarity to assign class (default: 81)}
+\item{pclass}{Class identity threshold, default 81 percent.}
 
-\item{pphylum}{Minimum similarity to assign phylum (default: 79)}
+\item{pphylum}{Phylum identity threshold, default 79 percent.}
 
-\item{pkingdom}{Minimum similarity to assign kingdom (default: 71)}
+\item{pkingdom}{Kingdom identity threshold, default 71 percent.}
 
-\item{taxonly}{Should only taxonomy output be returned? (default: TRUE)}
+\item{taxonly}{Retained for compatibility. Both settings return the processed
+taxonomy with representative alignment statistics; statistics are not removed.}
 
-\item{update}{Should the taxonomy database be updated? (default: FALSE)}
+\item{update}{Logical, default FALSE. TRUE performs one safe HTTPS taxonomy
+update before this standalone call. FALSE never downloads. See
+\code{\link[=blastn_taxo_assignment]{blastn_taxo_assignment()}} for cache protection and update details.}
 
-\item{verbose}{Should progress messages be printed? (default: FALSE)}
+\item{verbose}{Logical; print resolved/unresolved TaxID counts and output summary.}
+
+\item{taxonomy_db}{Optional NCBI taxonomy SQLite path; accepts taxizedb or
+taxonomizr names/nodes schemas. NULL uses an existing biohelper cache, otherwise
+taxizedb's existing NCBI.sql. Missing/inaccessible/corrupt databases fail early.}
+}
+\value{
+A data.frame written as genuine CSV. Legacy columns \code{ASVs}, \code{taxonomy},
+\code{Percent_Identity}, \code{Sequence_coverage} and \code{staxid} are retained. Added numeric
+columns are \code{pident}, \code{qcovs}, \code{evalue} and \code{bitscore}, plus representative
+\code{sseqid}. Percent_Identity/Sequence_coverage alias pident/qcovs. staxid retains
+every TaxID attached to the representative hit. taxonomy keeps the compatible
+nine-slot semicolon format (domain, superkingdom, kingdom, phylum, class,
+order, family, genus, species); modern domain and legacy superkingdom are
+normalised to domain, with missing slots written as NA.
+
+Attribute \code{provenance} records database identity/provenance, thresholds,
+raw/qualifying hit counts, feature count and resolved/unresolved unique TaxID
+counts. The wrapper records the method-specific assignment/support provenance
+in its final rank table. This function always returns the table, including
+when taxonly=FALSE, preserving the historical return type.
 }
 \description{
-This function takes in the output of a blastn search with multiple hits and
-uses a Last Common Ancestor (LCA) approach and optionally, a minimum percent
-identity (pident; per taxonomic rank) to assign taxonomy.
+Process raw 12-column BLAST hits against a validated local NCBI taxonomy
+database. Retains representative alignment statistics separately from the
+multi-hit taxonomic consensus. No online taxonomy lookups are performed.
+}
+\details{
+Hits labelled uncultured, unidentified or environmental sample are removed,
+and qcovs must meet minCov. All TaxIDs in a merged reference hit (semicolon or
+comma separated) contribute lineage evidence; the original implementation
+used only the first. Unresolved IDs contribute missing taxonomy, not a spurious
+conflicting name. Unique IDs and shared ancestors are queried in batches with
+a single read-only SQLite connection, rather than repeated classification calls.
+An unresolved or identity-masked representative does not suppress known consensus from other hits.
+
+Consensus checks ranks from broad to narrow, retaining the unique known value
+until the first disagreement and clearing that rank and all finer ranks.
+This corrects the former fine-to-broad loop, which could retain a conflicting
+genus or kingdom after encountering a species disagreement. The existing
+per-rank threshold methodology, treatment of missing rank values and numeric
+defaults are otherwise preserved.
+
+The representative is selected among qualifying hits by lowest E-value,
+highest bitscore, highest identity, highest qcovs and subject identifier, with
+a canonical row tie-breaker for remaining ties. All its statistics come from
+the same hit, independently of the multi-hit consensus. Deterministic tie-breaking
+can also affect after-mode rank masking when tied E-values have different
+identities. These alignment statistics are not LCA confidence measurements.
+
+ASVs present in the raw table but without qualifying hits are retained with
+missing assignment/statistics. A wholly empty file returns a typed zero-row
+table. ASVs absent from raw output cannot be reconstructed by this standalone
+function; the workflow wrapper adds them from its query FASTA.
 }
 \examples{
 \dontrun{
-lcaPident(
-  blast_file = "blastn_output.csv",
-  output_file = "taxo_assignment.csv",
-  pident = "before"
+result <- lcaPident(
+  blast_file = "blastn_output.csv", output_file = "blastn_output_processed.csv",
+  taxonomy_db = "accessionTaxa.sql", pident = "before"
 )
+attr(result, "provenance")
 }
+
 }
