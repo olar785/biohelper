@@ -64,8 +64,9 @@ use these defaults:
 checks names still matching multiple NCBI candidates; \code{"all"} also audits
 names with one candidate. Neither option searches features without a
 recognised name candidate.}
-\item{\code{fallback = "first"}}{For remaining ambiguous names: \code{"first"},
-\code{"lca"} or \code{"unassigned"}. Use \code{"lca"} for BLAST followed by LCA.}
+\item{\code{fallback = "lca"}}{For remaining ambiguous names: \code{"lca"}
+(default), \code{"first"} or \code{"unassigned"}. Insufficient or missing BLAST
+evidence uses the candidates' lowest common ancestor by default.}
 \item{\code{remote = FALSE}}{Run BLAST locally by default. TRUE submits selected
 DNA sequences to NCBI's online BLAST service; if \code{db} is omitted, that
 service uses \code{core_nt}. No local executable is needed for online searches.}
@@ -74,8 +75,9 @@ service uses \code{core_nt}. No local executable is needed for online searches.}
 \item{\code{verbose = TRUE}}{Show name-matching counts, sequence deduplication,
 cache reuse, search settings and completion/fallback summaries. FALSE
 suppresses progress messages, but does not suppress warnings.}
-\item{\code{progress_seconds = 30}}{Interval in seconds between elapsed-time
-updates while local BLAST is running. BLAST does not report a reliable
+\item{\code{progress_seconds = 300}}{Interval in seconds between elapsed-time
+updates while local BLAST is running. The default is every five minutes,
+with elapsed time displayed in minutes. BLAST does not report a reliable
 percentage or completion-time estimate.}
 \item{\code{max_hits = 100}}{Maximum reference hits retained per query.}
 \item{\code{evalue = 1e-10}}{Maximum E-value for search and hit screening.}
@@ -207,18 +209,29 @@ screening thresholds, allowing thresholds to be changed without a new search.
 # Name-based normalisation: no BLAST required.
 normalised <- taxo_normalisation(taxa, sqlFile = "accessionTaxa.sql")
 
-# Local BLAST with LCA fallback. Other BLAST options use their defaults.
+# Local BLAST: LCA fallback and five-minute progress updates are defaults.
 normalised <- taxo_normalisation(
-  taxa, sqlFile = "accessionTaxa.sql", sequences = "uniqueSeqs.fasta",
-  ambiguity = "blast_check", db = "/databases/nt",
-  blast_options = list(fallback = "lca")
+  obj = taxa,
+  sqlFile = "/databases/accessionTaxa.sql", # NCBI names and ancestry
+  sequences = "uniqueSeqs.fasta",          # ASV IDs must match taxa
+  ambiguity = "blast_check",
+  db = "/databases/nt",                    # BLAST sequence database prefix
+  blastapp_path = "/usr/local/bin/blastn",
+  blast_options = list(
+    remote = FALSE,
+    scope = "ambiguous",
+    nthreads = 4,                          # choose for your computer
+    cache_dir = "blast_cache"              # reuse hits between R sessions
+  )
 )
+attr(normalised, "blast_check")$diagnostics
+attr(normalised, "ambiguity")
 
 # Explicitly request the additional reports.
 details <- taxo_normalisation(
-  taxa, sqlFile = "accessionTaxa.sql", sequences = "uniqueSeqs.fasta",
+  taxa, sqlFile = "/databases/accessionTaxa.sql", sequences = "uniqueSeqs.fasta",
   ambiguity = "blast_check", db = "/databases/nt",
-  blast_options = list(fallback = "lca"), return_details = TRUE
+  blast_options = list(cache_dir = "blast_cache"), return_details = TRUE
 )
 details$taxonomy
 details$blast$diagnostics

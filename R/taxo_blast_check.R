@@ -6,7 +6,7 @@
     score_fraction = 0.98, min_accessions = 2L, min_taxa = 2L, min_support = 1,
     max_remote_queries = 25L, nthreads = 1L, feature_ids = NULL, conflict_action = "flag",
     poll_seconds = 60, timeout_seconds = 900, email = NULL,
-    scope = "ambiguous", fallback = "first", verbose = TRUE, progress_seconds = 30
+    scope = "ambiguous", fallback = "lca", verbose = TRUE, progress_seconds = 300
   )
   if (!is.list(control) || (length(control) && (is.null(names(control)) ||
       any(!nzchar(names(control))) || anyDuplicated(names(control))))) {
@@ -129,6 +129,8 @@
   processx::process$new(command, as.character(args), stdout = log, stderr = "2>&1")
 }
 
+.biohelper_blast_elapsed <- function() proc.time()[["elapsed"]]
+
 .biohelper_run_blast <- function(query, output, log, control) {
   if (!is.character(control$db) || length(control$db) != 1L || is.na(control$db) || !nzchar(control$db)) {
     stop("Supply `db` as the local BLAST database prefix (for example '/databases/nt'). This is separate from the taxonomy SQLite file in `sqlFile`.", call. = FALSE)
@@ -143,17 +145,17 @@
             "-task", control$task, "-evalue", format(control$evalue, scientific = TRUE),
             "-max_target_seqs", control$max_hits, "-outfmt", output_format, "-out", output)
   args <- c(args, "-num_threads", control$nthreads)
-  started <- proc.time()[["elapsed"]]
+  started <- .biohelper_blast_elapsed()
   process <- .biohelper_start_blast_process(control$blastapp_path, args, log)
   on.exit(if (process$is_alive()) process$kill(), add = TRUE)
-  interval <- if (is.null(control$progress_seconds)) 30 else control$progress_seconds
+  interval <- if (is.null(control$progress_seconds)) 300 else control$progress_seconds
   last_update <- started
   while (process$is_alive()) {
     process$wait(timeout = min(1000, interval * 1000))
-    now <- proc.time()[["elapsed"]]
+    now <- .biohelper_blast_elapsed()
     if (process$is_alive() && now - last_update >= interval) {
-      .biohelper_blast_message(control, "BLAST still running (", round(now - started, 1),
-        " s elapsed). Log: ", log)
+      .biohelper_blast_message(control, "BLAST still running (", round((now - started) / 60, 1),
+        " min elapsed). Log: ", log)
       last_update <- now
     }
   }

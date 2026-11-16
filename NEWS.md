@@ -2,6 +2,12 @@
 
 ## Taxonomy normalisation
 
+- BLAST ambiguity checking now defaults to `fallback = "lca"`; use an explicit
+  `fallback = "first"` for the previous fallback behaviour. Name-only ambiguity
+  defaults are unchanged.
+- Progress omits repeated per-round name lookup messages. Local BLAST heartbeats
+  show elapsed minutes every five minutes by default (`progress_seconds = 300`).
+  Both help pages and the README include complete local BLAST examples.
 - `taxo_merge()` plans all NCBI name matches before running one pooled BLAST
   batch for the uncached distinct sequences selected across all input tables.
   FASTA reading and hit ancestry lookup are shared. `refresh = TRUE` also
@@ -9,7 +15,7 @@
 - Both normalisation entry points group repeated ordered taxonomy profiles,
   reuse name/lineage matching, and keep separate evidence for distinct DNA.
   BLAST hit screening and merging avoid repeated full-table scans.
-- `blast_options` adds `verbose = TRUE` and `progress_seconds = 30`, showing
+- `blast_options` adds `verbose = TRUE` and `progress_seconds = 300`, showing
   cache/search counts, active settings, elapsed-time updates and fallback stages.
   Local searches use processx for progress and cleanup on interruption; numerical
   screening settings, task and one-thread default are unchanged.

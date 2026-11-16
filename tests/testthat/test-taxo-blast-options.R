@@ -2,7 +2,7 @@ test_that("the public BLAST interface defaults to local and matches existing arg
   defaults <- biohelper:::.biohelper_blast_options(list())
   expect_false(defaults$remote)
   expect_equal(defaults$scope, "ambiguous")
-  expect_equal(defaults$fallback, "first")
+  expect_equal(defaults$fallback, "lca")
   expect_equal(defaults$nthreads, 1L)
   expect_true(all(c("db", "blastapp_path", "blast_options") %in% names(formals(taxo_normalisation))))
   expect_false("blast_control" %in% names(formals(taxo_normalisation)))

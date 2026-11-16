@@ -15,6 +15,7 @@ test_that("progress reports distinct ambiguous ASVs rather than summing duplicat
   expect_true(any(grepl("3 selected assignments across 2 tables; 2 distinct ASVs", messages, fixed = TRUE)))
   expect_true(any(grepl("2 ambiguous ASVs", messages, fixed = TRUE)))
   expect_true(any(grepl("2 selected ASVs have no sequence", messages, fixed = TRUE)))
+  expect_false(any(grepl("Looking up", messages, fixed = TRUE)))
 })
 
 test_that("one pooled search covers disjoint tables and deduplicates DNA without pooling taxonomy evidence", {
@@ -152,7 +153,7 @@ test_that("progress settings are validated before matching or searching", {
   }
   defaults <- biohelper:::.biohelper_blast_options(list())
   expect_true(defaults$verbose)
-  expect_equal(defaults$progress_seconds, 30)
+  expect_equal(defaults$progress_seconds, 300)
 })
 
 test_that("local searches show elapsed-time heartbeats and preserve paths with spaces", {
@@ -175,12 +176,55 @@ test_that("local searches show elapsed-time heartbeats and preserve paths with s
     })
   expect_true(file.exists(output))
   expect_true(any(grepl("BLAST still running", messages, fixed = TRUE)))
+  expect_true(any(grepl("min elapsed", messages, fixed = TRUE)))
   control$verbose <- FALSE
   expect_message(biohelper:::.biohelper_run_blast("query path", output,
     file.path(directory, "quiet.log"), control), NA)
   writeLines(c("#!/bin/sh", "exit 7"), executable)
   expect_error(biohelper:::.biohelper_run_blast("query path", output,
     file.path(directory, "failure.log"), control), "BLAST failed")
+})
+
+test_that("default local heartbeats first appear at five minutes and use minutes", {
+  step <- 0L
+  fake <- list(is_alive = function() step < 6L,
+    wait = function(...) { step <<- step + 1L }, kill = function() NULL,
+    get_exit_status = function() 0L)
+  testthat::local_mocked_bindings(
+    .biohelper_start_blast_process = function(...) fake,
+    .biohelper_blast_elapsed = function() step * 60
+  )
+  control <- biohelper:::.biohelper_blast_options(list())
+  control$db <- "nt"
+  control$blastapp_path <- tempfile()
+  output <- tempfile()
+  file.create(control$blastapp_path, output)
+  on.exit(unlink(c(control$blastapp_path, output)), add = TRUE)
+  messages <- character()
+  withCallingHandlers(biohelper:::.biohelper_run_blast("query", output, "log", control),
+    message = function(m) {
+      messages <<- c(messages, conditionMessage(m)); invokeRestart("muffleMessage")
+    })
+  expect_length(messages, 1L)
+  expect_match(messages, "BLAST still running (5 min elapsed)", fixed = TRUE)
+})
+
+test_that("BLAST defaults to LCA fallback in both public entry points", {
+  database <- ncbi_prunella_database()
+  input <- batch_taxonomy_input("asv1")
+  result <- suppressWarnings(taxo_normalisation(input, database, addExtra = FALSE,
+    ambiguity = "blast_check", blast_options = list(verbose = FALSE)))
+  expect_equal(result$domain, "Eukaryota")
+  expect_true(is.na(result$genus))
+  expect_equal(attr(result, "ambiguity")$action, "lca")
+  merged <- suppressWarnings(taxo_merge(list(input), database, addExtra = FALSE,
+    ambiguity = "blast_check", blast_options = list(verbose = FALSE)))
+  expect_equal(merged$domain, "Eukaryota")
+  expect_true(is.na(merged$genus))
+  expect_equal(attr(merged, "normalisation")[[1]]$ambiguity$action, "lca")
+  first <- suppressWarnings(taxo_normalisation(input, database, addExtra = FALSE,
+    ambiguity = "blast_check", blast_options = list(fallback = "first", verbose = FALSE)))
+  expect_equal(first$family, "Lamiaceae")
 })
 
 test_that("an interrupted local search cleans up its child process", {

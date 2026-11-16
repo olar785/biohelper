@@ -42,17 +42,18 @@
 #' @param blastapp_path Path to the `blastn` executable. Defaults to detection
 #' on PATH. Used only when a new local BLAST search is needed.
 #' @param blast_options Named list of settings passed to [taxo_normalisation()].
-#' Local searches are the default (`remote = FALSE`). Use
-#' `list(scope = "ambiguous", fallback = "lca")` to check remaining ambiguous
-#' names and use their common ancestor when evidence is insufficient or a
-#' matching sequence is missing. A shared persistent `cache_dir` reuses searches
+#' Local searches are the default (`remote = FALSE`), with `scope = "ambiguous"`
+#' and `fallback = "lca"`. Remaining ambiguous names use their common ancestor
+#' when evidence is insufficient or a matching sequence is missing.
+#' A shared persistent `cache_dir` reuses searches
 #' for identical sequences across tables and calls. All inputs are matched to
 #' NCBI first, then their selected ASVs are combined into one BLAST batch of
 #' uncached, distinct DNA sequences. Even `refresh = TRUE` searches each distinct
 #' sequence once per call. `feature_ids`, when supplied, selects from the union
 #' of input ASV IDs. The online `max_remote_queries` limit applies to the pooled
 #' search. `verbose = TRUE` reports counts and progress, including elapsed-time
-#' updates every `progress_seconds = 30` while local BLAST runs. `nthreads = 1`
+#' updates in minutes every five minutes (`progress_seconds = 300`) while local
+#' BLAST runs. `nthreads = 1`
 #' remains the default; supply a higher thread count to use more local CPUs.
 #' See [taxo_normalisation()]
 #' for all options and screening defaults. Search failures stop the call.
@@ -80,14 +81,24 @@
 #'   spnc = FALSE
 #' )
 #'
+#' # Local BLAST: LCA fallback and five-minute progress updates are defaults.
 #' consensus_taxo <- taxo_merge(
-#'   df_list = list(taxa_silva, taxa_pr2, blastn),
-#'   sqlFile = "accessionTaxa.sql",
-#'   sequences = "ASVs.fasta",
+#'   df_list = list(silva = taxa_silva, pr2 = taxa_pr2, blast = blastn),
+#'   sqlFile = "/databases/accessionTaxa.sql", # NCBI names and ancestry
+#'   sequences = "uniqueSeqs.fasta",          # ASV IDs must match each input
 #'   ambiguity = "blast_check",
-#'   db = "/databases/nt",
-#'   blast_options = list(fallback = "lca", cache_dir = "blast_cache")
+#'   db = "/databases/nt",                    # BLAST sequence database prefix
+#'   blastapp_path = "/usr/local/bin/blastn",
+#'   blast_options = list(
+#'     remote = FALSE,
+#'     scope = "ambiguous",
+#'     nthreads = 4,                          # choose for your computer
+#'     cache_dir = "blast_cache"              # reuse hits between R sessions
+#'   )
 #' )
+#' reports <- attr(consensus_taxo, "normalisation")
+#' reports$pr2$blast$diagnostics
+#' reports$pr2$ambiguity
 #' }
 
 

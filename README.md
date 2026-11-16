@@ -30,7 +30,7 @@ ambiguous NCBI name matches, with an LCA fallback:
 
 ```r
 consensus_taxo <- biohelper::taxo_merge(
-  df_list = list(taxa_silva, taxa_pr2, blastn),
+  df_list = list(silva = taxa_silva, pr2 = taxa_pr2, blast = blastn),
   sqlFile = sqlFile,
   addExtra = addExtra,
   ambiguity = "blast_check",
@@ -40,11 +40,11 @@ consensus_taxo <- biohelper::taxo_merge(
   blast_options = list(
     remote = FALSE,
     scope = "ambiguous",
-    fallback = "lca",
+    fallback = "lca",            # default when BLAST cannot resolve a name
     cache_dir = "blast_cache",
     nthreads = 4,                 # choose according to available local CPUs
     verbose = TRUE,
-    progress_seconds = 30
+    progress_seconds = 300       # default: every five minutes
   )
 )
 ```
@@ -53,8 +53,8 @@ consensus_taxo <- biohelper::taxo_merge(
 The same sequences are matched by ASV ID to each table. The default remains
 one thread unless `nthreads` is supplied. Progress shows matching counts, distinct
 ambiguous ASVs (a distinct total across tables), selected ASVs/DNA sequences,
-cache reuse, the active task/database/thread count, elapsed
-time while BLAST runs, and fallback/merge stages. It does not invent a completion
+cache reuse, the active task/database/thread count, elapsed time in minutes
+every five minutes while BLAST runs, and fallback/merge stages. It does not invent a completion
 percentage for BLAST. Set `verbose = FALSE` to suppress progress; warnings remain.
 Standalone `taxo_normalisation()` uses the same batching, sequence deduplication
 and progress options. Name matching also groups identical ordered profiles and
@@ -68,11 +68,41 @@ ranks. The reports for each input remain available separately:
 
 ```r
 reports <- attr(consensus_taxo, "normalisation")
-reports[[2]]$blast$diagnostics  # checking decisions for the second input (PR2)
-reports[[2]]$ambiguity         # remaining name ambiguities and fallback decisions
+reports$pr2$blast$diagnostics  # checking decisions for PR2
+reports$pr2$ambiguity         # remaining name ambiguities and fallback decisions
 ```
 
 These reports describe normalisation of each input, before the final merge.
+
+## Local BLAST checking during standalone normalisation
+
+The same options can be used directly with `taxo_normalisation()`:
+
+```r
+normalised_taxo <- biohelper::taxo_normalisation(
+  obj = taxa_pr2,
+  sqlFile = "/databases/accessionTaxa.sql", # NCBI names and ancestry
+  sequences = "uniqueSeqs.fasta",          # ASV IDs must match the taxonomy
+  ambiguity = "blast_check",
+  db = "/databases/nt",                    # BLAST sequence database prefix
+  blastapp_path = "/usr/local/bin/blastn",
+  blast_options = list(
+    remote = FALSE,
+    scope = "ambiguous",
+    nthreads = 4,
+    cache_dir = "blast_cache"
+  )
+)
+attr(normalised_taxo, "blast_check")$diagnostics
+attr(normalised_taxo, "ambiguity")
+```
+
+For both functions, omitted BLAST options use LCA as the ambiguity fallback and
+show elapsed minutes every five minutes. Set `fallback = "first"` explicitly
+for the previous BLAST fallback behaviour, or `fallback = "unassigned"` to clear
+remaining ambiguous assignments. The separate name-only `ambiguity = "first"`
+default does not run BLAST. `?taxo_merge` and `?taxo_normalisation` include full
+local BLAST examples and argument descriptions.
 
 ## Restartable BLAST taxonomy assignment
 
