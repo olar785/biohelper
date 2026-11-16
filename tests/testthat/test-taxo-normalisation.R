@@ -111,9 +111,12 @@ test_that("all broader names can resolve ambiguity and unsupported names stay un
   expect_equal(output$genus[3], "SharedGenus")
 
   # Without a supplied higher rank there is no evidence to choose an ID.
-  output <- taxo_normalisation(
-    input[1, c("feature_id", "genus")], sqlFile = "mock.sql",
-    addExtra = FALSE, ranks = "genus"
+  expect_warning(
+    output <- taxo_normalisation(
+      input[1, c("feature_id", "genus")], sqlFile = "mock.sql",
+      addExtra = FALSE, ranks = "genus"
+    ),
+    "Left 1 feature.*unassigned"
   )
   expect_true(is.na(output$genus))
 })

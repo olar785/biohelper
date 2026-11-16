@@ -168,6 +168,9 @@
 #'     `lca_id`, `lca_name`, `lca_rank` and requested `method`. An empty table
 #'     means no competing names remain for that fallback.}
 #' }
+#' Initial multiple-ID name lookup warnings are handled internally; ambiguity
+#' warnings describe candidates still unresolved after ordered lineage matching
+#' and optional BLAST. Other lookup warnings and errors remain visible.
 #' Ambiguity warnings report a feature count and up to five example IDs; their
 #' `feature_ids` field retains all affected IDs. BLAST review warnings identify
 #' features whose evidence did not resolve or confirm the name assignment.
@@ -480,18 +483,24 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
   if (!is.null(blast_result) && nrow(blast_result$diagnostics)) {
     blast_result$diagnostics$final_id <- res_df$id[match(blast_result$diagnostics$feature_id, res_df$feature_id)]
   }
-  if (fallback_action == "first" && length(ambiguous_features) > 0L) {
-      examples <- utils::head(ambiguous_features, 5L)
+  if (fallback_action == "first" && length(ambiguity_rows) > 0L) {
+      affected_features <- res_df$feature_id[ambiguity_rows]
+      examples <- utils::head(affected_features, 5L)
+      n_unassigned <- sum(is.na(res_df$id[ambiguity_rows]))
+      n_first <- length(ambiguity_rows) - n_unassigned
       warning(structure(
         list(
           message = paste0(
-            "Multiple NCBI IDs still match the supplied broader names for ",
-            length(ambiguous_features), " feature(s): ", paste(examples, collapse = ", "),
-            if (length(ambiguous_features) > 5L) " (first 5 shown)" else "",
-            ". Using the first matching ID; these assignments remain ambiguous."
+            "Multiple NCBI IDs still match the supplied names for ",
+            length(affected_features), " feature(s): ", paste(examples, collapse = ", "),
+            if (length(affected_features) > 5L) " (first 5 shown)" else "", ". ",
+            if (n_first) paste0("Using the first matching ID for ", n_first,
+              " feature(s); these assignments remain ambiguous. ") else "",
+            if (n_unassigned) paste0("Left ", n_unassigned,
+              " feature(s) unassigned because no supplied broader name distinguishes the candidates.") else ""
           ),
           call = NULL,
-          feature_ids = ambiguous_features
+          feature_ids = affected_features
         ),
         class = c("biohelper_taxonomy_ambiguity", "warning", "condition")
       ))

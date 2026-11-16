@@ -13,7 +13,18 @@
 .biohelper_cached_ncbi_names <- function(taxa, sqlFile, cache) {
   missing <- unique(taxa[!vapply(taxa, exists, logical(1), envir = cache$names, inherits = FALSE)])
   if (length(missing)) {
-    ids <- as.character(taxonomizr::getId(taxa = missing, sqlFile = sqlFile, onlyScientific = TRUE))
+    ids <- as.character(withCallingHandlers(
+      taxonomizr::getId(taxa = missing, sqlFile = sqlFile, onlyScientific = TRUE),
+      warning = function(w) {
+        # Multiple name matches are expected here. Report ambiguity after
+        # ordered lineage matching and optional BLAST have run.
+        message <- conditionMessage(w)
+        if (startsWith(message, "Multiple taxa ids found for ") &&
+            endsWith(message, ". Collapsing with commas")) {
+          invokeRestart("muffleWarning")
+        }
+      }
+    ))
     for (i in seq_along(missing)) assign(missing[[i]], ids[[i]], envir = cache$names)
   }
   unname(vapply(taxa, get, character(1), envir = cache$names, inherits = FALSE))

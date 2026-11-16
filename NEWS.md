@@ -2,6 +2,10 @@
 
 ## Taxonomy normalisation
 
+- Initial multi-ID name lookup warnings are handled internally. Ambiguity
+  warnings describe conflicts remaining after lineage matching and optional
+  BLAST, including unassigned cases with no distinguishing broader name.
+  Unrelated lookup warnings and errors remain visible.
 - BLAST ambiguity checking now defaults to `fallback = "lca"`; use an explicit
   `fallback = "first"` for the previous fallback behaviour. Name-only ambiguity
   defaults are unchanged.

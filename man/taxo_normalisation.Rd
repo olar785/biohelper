@@ -159,6 +159,9 @@ a fallback, with \code{feature_id}, \code{candidate_ids}, \code{action}, \code{s
 \code{lca_id}, \code{lca_name}, \code{lca_rank} and requested \code{method}. An empty table
 means no competing names remain for that fallback.}
 }
+Initial multiple-ID name lookup warnings are handled internally; ambiguity
+warnings describe candidates still unresolved after ordered lineage matching
+and optional BLAST. Other lookup warnings and errors remain visible.
 Ambiguity warnings report a feature count and up to five example IDs; their
 \code{feature_ids} field retains all affected IDs. BLAST review warnings identify
 features whose evidence did not resolve or confirm the name assignment.
