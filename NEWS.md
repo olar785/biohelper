@@ -2,6 +2,17 @@
 
 ## Taxonomy normalisation
 
+- `taxo_merge()` plans all NCBI name matches before running one pooled BLAST
+  batch for the uncached distinct sequences selected across all input tables.
+  FASTA reading and hit ancestry lookup are shared. `refresh = TRUE` also
+  deduplicates across inputs, and feature subsets may span different input IDs.
+- Both normalisation entry points group repeated ordered taxonomy profiles,
+  reuse name/lineage matching, and keep separate evidence for distinct DNA.
+  BLAST hit screening and merging avoid repeated full-table scans.
+- `blast_options` adds `verbose = TRUE` and `progress_seconds = 30`, showing
+  cache/search counts, active settings, elapsed-time updates and fallback stages.
+  Local searches use processx for progress and cleanup on interruption; numerical
+  screening settings, task and one-thread default are unchanged.
 - `taxo_merge()` now accepts `ambiguity`, `sequences`, `db`, `blastapp_path`,
   and `blast_options`, forwarding them to each input's normalisation before
   merging. Local BLAST checking with an LCA fallback can be enabled directly

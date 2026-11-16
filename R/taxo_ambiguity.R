@@ -1,4 +1,4 @@
-.biohelper_resolve_ambiguity <- function(matches, candidates, rows, action, sqlFile) {
+.biohelper_resolve_ambiguity <- function(matches, candidates, rows, action, sqlFile, paths = NULL) {
   diagnostics <- data.frame(
     feature_id = matches$feature_id[rows],
     candidate_ids = vapply(candidates[rows], paste, character(1), collapse = ","),
@@ -11,7 +11,9 @@
   if (action == "unassigned") ids[rows] <- NA_character_
   if (action == "lca") {
     query_ids <- unique(unlist(candidates[rows]))
-    paths <- .biohelper_ncbi_id_paths(query_ids, sqlFile)
+    missing <- setdiff(query_ids, names(paths))
+    if (length(missing)) paths <- c(paths, .biohelper_ncbi_id_paths(missing, sqlFile))
+    paths <- paths[query_ids]
     if (!all(vapply(paths, function(path) path$complete, logical(1)))) {
       stop("Cannot calculate an LCA: ancestry is unavailable for one or more candidate TaxIDs.", call. = FALSE)
     }

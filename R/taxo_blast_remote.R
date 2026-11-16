@@ -80,6 +80,7 @@
   if (!control$refresh && file.exists(metadata_file)) {
     metadata <- readRDS(metadata_file)
     if (!identical(metadata$query, query_text)) stop("BLAST request cache does not match the submitted queries.", call. = FALSE)
+    .biohelper_blast_message(control, "Resuming NCBI BLAST request ", metadata$rid, ".")
   } else {
     parameters <- list(CMD = "Put", PROGRAM = "blastn", DATABASE = control$db,
                        QUERY = query_text, EXPECT = control$evalue, HITLIST_SIZE = control$max_hits, tool = "biohelper")
@@ -92,7 +93,7 @@
     if (length(rid) < 2L) stop("NCBI did not return a BLAST request ID. See ", log, call. = FALSE)
     metadata <- list(rid = rid[[2]], query = query_text, last_poll = .biohelper_blast_now())
     saveRDS(metadata, metadata_file)
-    message("NCBI BLAST request ", metadata$rid, " submitted; request metadata saved for resume.")
+    .biohelper_blast_message(control, "NCBI BLAST request ", metadata$rid, " submitted; request metadata saved for resume.")
   }
   start <- .biohelper_blast_now()
   repeat {
@@ -105,7 +106,11 @@
     saveRDS(metadata, metadata_file)
     response <- .biohelper_blast_http(list(CMD = "Get", RID = metadata$rid, FORMAT_TYPE = "JSON2_S", tool = "biohelper"))
     writeLines(response, log)
-    if (grepl("Status[[:space:]]*=[[:space:]]*WAITING", response)) next
+    if (grepl("Status[[:space:]]*=[[:space:]]*WAITING", response)) {
+      .biohelper_blast_message(control, "NCBI BLAST request ", metadata$rid,
+        " is still waiting (", round(.biohelper_blast_now() - start, 1), " s elapsed this call).")
+      next
+    }
     if (grepl("Status[[:space:]]*=[[:space:]]*(FAILED|UNKNOWN)", response)) {
       writeLines(response, log)
       stop("NCBI BLAST request ", metadata$rid, " failed or expired. See ", log, call. = FALSE)

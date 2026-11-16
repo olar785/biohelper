@@ -6,7 +6,7 @@
     score_fraction = 0.98, min_accessions = 2L, min_taxa = 2L, min_support = 1,
     max_remote_queries = 25L, nthreads = 1L, feature_ids = NULL, conflict_action = "flag",
     poll_seconds = 60, timeout_seconds = 900, email = NULL,
-    scope = "ambiguous", fallback = "first"
+    scope = "ambiguous", fallback = "first", verbose = TRUE, progress_seconds = 30
   )
   if (!is.list(control) || (length(control) && (is.null(names(control)) ||
       any(!nzchar(names(control))) || anyDuplicated(names(control))))) {
@@ -15,7 +15,7 @@
   unknown <- setdiff(names(control), names(defaults))
   if (length(unknown)) stop("Unknown BLAST control(s): ", paste(unknown, collapse = ", "), call. = FALSE)
   for (name in names(control)) defaults[name] <- control[name]
-  for (name in c("remote", "refresh")) {
+  for (name in c("remote", "refresh", "verbose")) {
     x <- defaults[[name]]
     if (!is.logical(x) || length(x) != 1L || is.na(x)) stop("Invalid BLAST control: ", name, call. = FALSE)
   }
@@ -36,7 +36,7 @@
       stop("BLAST control `", name, "` must be a positive integer.", call. = FALSE)
     }
   }
-  for (name in c("min_identity", "min_coverage", "score_fraction", "min_support", "evalue")) {
+  for (name in c("min_identity", "min_coverage", "score_fraction", "min_support", "evalue", "progress_seconds")) {
     x <- defaults[[name]]
     if (!is.numeric(x) || length(x) != 1L || !is.finite(x) || x <= 0) {
       stop("Invalid BLAST control: ", name, call. = FALSE)
@@ -125,6 +125,10 @@
   unname(tools::md5sum(path))
 }
 
+.biohelper_start_blast_process <- function(command, args, log) {
+  processx::process$new(command, as.character(args), stdout = log, stderr = "2>&1")
+}
+
 .biohelper_run_blast <- function(query, output, log, control) {
   if (!is.character(control$db) || length(control$db) != 1L || is.na(control$db) || !nzchar(control$db)) {
     stop("Supply `db` as the local BLAST database prefix (for example '/databases/nt'). This is separate from the taxonomy SQLite file in `sqlFile`.", call. = FALSE)
@@ -135,11 +139,25 @@
     stop("NCBI BLAST+ `blastn` was not found. Supply `blastapp_path` or precomputed `blast_hits`.", call. = FALSE)
   }
   output_format <- "6 qseqid qlen pident sseqid sgi evalue bitscore staxids sscinames sblastnames qcovs qcovhsp"
-  args <- c("-query", shQuote(query), "-db", shQuote(control$db),
+  args <- c("-query", query, "-db", control$db,
             "-task", control$task, "-evalue", format(control$evalue, scientific = TRUE),
-            "-max_target_seqs", control$max_hits, "-outfmt", shQuote(output_format), "-out", shQuote(output))
+            "-max_target_seqs", control$max_hits, "-outfmt", output_format, "-out", output)
   args <- c(args, "-num_threads", control$nthreads)
-  status <- system2(control$blastapp_path, args, stdout = log, stderr = log)
+  started <- proc.time()[["elapsed"]]
+  process <- .biohelper_start_blast_process(control$blastapp_path, args, log)
+  on.exit(if (process$is_alive()) process$kill(), add = TRUE)
+  interval <- if (is.null(control$progress_seconds)) 30 else control$progress_seconds
+  last_update <- started
+  while (process$is_alive()) {
+    process$wait(timeout = min(1000, interval * 1000))
+    now <- proc.time()[["elapsed"]]
+    if (process$is_alive() && now - last_update >= interval) {
+      .biohelper_blast_message(control, "BLAST still running (", round(now - started, 1),
+        " s elapsed). Log: ", log)
+      last_update <- now
+    }
+  }
+  status <- process$get_exit_status()
   if (status != 0L || !file.exists(output)) {
     stop("BLAST failed. See ", log, ". No taxonomy has been changed by this search.", call. = FALSE)
   }
@@ -147,14 +165,21 @@
 }
 
 .biohelper_blast_search <- function(sequences, control) {
+  started <- proc.time()[["elapsed"]]
   # Preserve cache keys from the previous working API, where db was database.
   specification <- c(list(database = control$db), control[c("remote", "task", "max_hits", "evalue")])
-  keys <- vapply(unname(sequences), .biohelper_blast_key, character(1), specification = specification)
-  unique_keys <- unique(keys)
-  unique_sequences <- stats::setNames(unname(sequences[match(unique_keys, keys)]), unique_keys)
+  distinct <- unique(unname(sequences))
+  .biohelper_blast_message(control, "Preparing search/cache keys for ", length(distinct), " distinct DNA sequences.")
+  unique_keys <- vapply(distinct, .biohelper_blast_key, character(1), specification = specification)
+  keys <- unique_keys[match(unname(sequences), distinct)]
+  unique_sequences <- stats::setNames(distinct, unique_keys)
+  .biohelper_blast_message(control, "BLAST sequences: ", length(sequences), " ASVs; ",
+    length(distinct), " distinct DNA sequences (", length(sequences) - length(distinct), " duplicate sequences reused).")
   dir.create(control$cache_dir, recursive = TRUE, showWarnings = FALSE)
   cached <- stats::setNames(vector("list", length(unique_keys)), unique_keys)
-  for (key in unique_keys) {
+  last_update <- proc.time()[["elapsed"]]
+  for (i in seq_along(unique_keys)) {
+    key <- unique_keys[[i]]
     file <- file.path(control$cache_dir, paste0(key, ".rds"))
     if (!control$refresh && file.exists(file)) {
       entry <- readRDS(file)
@@ -163,8 +188,15 @@
       }
       cached[[key]] <- entry$hits
     }
+    now <- proc.time()[["elapsed"]]
+    if (isTRUE(control$verbose) && now - last_update >= control$progress_seconds) {
+      .biohelper_blast_message(control, "Checking BLAST cache: ", i, "/", length(unique_keys), " sequences.")
+      last_update <- now
+    }
   }
   pending <- names(cached)[vapply(cached, is.null, logical(1))]
+  .biohelper_blast_message(control, "BLAST cache: ", length(unique_keys) - length(pending),
+    " reusable searches; ", length(pending), " new searches. Cache: ", control$cache_dir)
   if (control$remote && length(pending) > control$max_remote_queries) {
     stop("This needs ", length(pending), " uncached remote queries; the configured limit is ",
          control$max_remote_queries, ". Select a pilot with blast_options$feature_ids, use local BLAST, or supply precomputed blast_hits.", call. = FALSE)
@@ -177,10 +209,15 @@
     dna <- Biostrings::DNAStringSet(unique_sequences[pending])
     names(dna) <- paste0("bh_", pending)
     Biostrings::writeXStringSet(dna, query)
+    .biohelper_blast_message(control, "Starting one ", if (control$remote) "remote" else "local",
+      " BLAST batch: ", length(pending), " distinct sequences; task=", control$task,
+      if (!control$remote) paste0("; threads=", control$nthreads) else "", "; database=", control$db,
+      ". Log: ", paste0(prefix, ".log"))
     .biohelper_run_blast(query, output, paste0(prefix, ".log"), control)
     hits <- if (file.info(output)$size == 0) .biohelper_empty_blast_hits() else .biohelper_validate_blast_hits(output)
+    hit_groups <- split(seq_len(nrow(hits)), hits$qseqid)
     for (key in pending) {
-      cached[[key]] <- hits[hits$qseqid == paste0("bh_", key), , drop = FALSE]
+      cached[[key]] <- hits[hit_groups[[paste0("bh_", key)]], , drop = FALSE]
       saveRDS(list(sequence = unique_sequences[[key]], specification = specification,
                    retrieved_utc = format(Sys.time(), tz = "UTC"), hits = cached[[key]]),
               file.path(control$cache_dir, paste0(key, ".rds")))
@@ -191,6 +228,8 @@
     hits$qseqid <- rep(names(sequences)[[i]], nrow(hits))
     hits
   })
+  .biohelper_blast_message(control, "BLAST evidence ready in ", round(proc.time()[["elapsed"]] - started, 1),
+    " s; applying hits to ", length(sequences), " ASVs.")
   if (length(output)) do.call(rbind, output) else .biohelper_empty_blast_hits()
 }
 
@@ -232,38 +271,46 @@
   }), ids)
 }
 
+.biohelper_qualified_blast_hits <- function(hits, control) {
+  x <- hits[hits$pident >= control$min_identity & hits$qcovhsp >= control$min_coverage &
+    hits$evalue <= control$evalue, , drop = FALSE]
+  if (nrow(x)) {
+    best <- stats::ave(x$bitscore, x$qseqid, FUN = max)
+    x <- x[x$bitscore >= best * control$score_fraction, , drop = FALSE]
+  }
+  x
+}
+
 .biohelper_check_blast <- function(matches, candidates, sqlFile, mode, sequences, hits, control,
-                                   db = NULL, blastapp_path = unname(Sys.which("blastn"))) {
+                                   db = NULL, blastapp_path = unname(Sys.which("blastn")),
+                                   missing_sequences = character(), paths = NULL) {
   hit_source <- if (is.null(hits)) "blastn" else "precomputed"
   control <- .biohelper_blast_options(control)
   control$db <- if (is.null(db) && control$remote) "core_nt" else db
   control$blastapp_path <- blastapp_path
-  rows <- which(lengths(candidates) > if (mode == "ambiguous") 1L else 0L)
-  if (!is.null(control$feature_ids)) {
-    unknown <- setdiff(control$feature_ids, matches$feature_id)
-    if (length(unknown)) stop("Unknown BLAST feature IDs: ", paste(utils::head(unknown, 3), collapse = ", "), call. = FALSE)
-    rows <- rows[matches$feature_id[rows] %in% control$feature_ids]
-  }
+  rows <- .biohelper_blast_target_rows(matches, candidates, mode, control$feature_ids)
   target <- matches$feature_id[rows]
-  missing_sequences <- character()
+  .biohelper_blast_message(control, "Checking BLAST evidence for ", length(target), " selected ASVs; fallback: '", control$fallback, "'.")
   if (is.null(hits)) {
     if (length(rows)) {
       available <- if (is.null(sequences)) stats::setNames(character(), character()) else .biohelper_read_blast_sequences(sequences)
       missing_sequences <- setdiff(target, names(available))
       searchable <- intersect(target, names(available))
+      .biohelper_blast_message(control, length(missing_sequences), " selected ASVs have no sequence.")
       hits <- if (length(searchable)) .biohelper_blast_search(
         .biohelper_blast_sequences(available, searchable), control
       ) else .biohelper_empty_blast_hits()
     } else hits <- .biohelper_empty_blast_hits()
   } else hits <- .biohelper_validate_blast_hits(hits)
   hits <- hits[hits$qseqid %in% target, , drop = FALSE]
-  quality <- hits$pident >= control$min_identity & hits$qcovhsp >= control$min_coverage & hits$evalue <= control$evalue
+  qualified <- .biohelper_qualified_blast_hits(hits, control)
+  hit_groups <- split(seq_len(nrow(hits)), hits$qseqid)
+  qualified_groups <- split(seq_len(nrow(qualified)), qualified$qseqid)
   eligible <- vector("list", length(rows))
   taxids <- vector("list", length(rows))
   for (j in seq_along(rows)) {
-    x <- hits[hits$qseqid == target[[j]] & quality, , drop = FALSE]
+    x <- qualified[qualified_groups[[target[[j]]]], , drop = FALSE]
     if (nrow(x)) {
-      x <- x[x$bitscore >= max(x$bitscore) * control$score_fraction, , drop = FALSE]
       x <- x[order(-x$bitscore), , drop = FALSE]
       x <- x[!duplicated(x$sseqid), , drop = FALSE]
     }
@@ -272,7 +319,7 @@
   }
   valid_ids <- unique(c(unlist(candidates[rows]), unlist(taxids)))
   valid_ids <- valid_ids[!is.na(valid_ids) & grepl("^[1-9][0-9]*$", valid_ids)]
-  paths <- .biohelper_ncbi_id_paths(valid_ids, sqlFile)
+  if (is.null(paths)) paths <- .biohelper_ncbi_id_paths(valid_ids, sqlFile)
   ids <- matches$id
   diagnostics <- vector("list", length(rows))
   for (j in seq_along(rows)) {
@@ -308,11 +355,11 @@
           if (status == "blast_conflict" && control$conflict_action == "unassign") ids[[row]] <- NA_character_
         }
       }
-    } else if (any(hits$qseqid == target[[j]])) status <- "insufficient_quality"
+    } else if (length(hit_groups[[target[[j]]]])) status <- "insufficient_quality"
     diagnostics[[j]] <- data.frame(
       feature_id = target[[j]], candidate_ids = paste(candidate, collapse = ","),
       name_selected_id = matches$id[[row]], blast_selected_id = selected, final_id = ids[[row]],
-      status = status, n_raw_hits = sum(hits$qseqid == target[[j]]), n_accessions = nrow(x),
+      status = status, n_raw_hits = length(hit_groups[[target[[j]]]]), n_accessions = nrow(x),
       n_taxa = length(taxa), support_fraction = support,
       min_identity = if (nrow(x)) min(x$pident) else NA_real_,
       min_coverage = if (nrow(x)) min(x$qcovhsp) else NA_real_, stringsAsFactors = FALSE

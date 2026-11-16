@@ -41,6 +41,7 @@ Imports:
     iNEXT,
     methods,
     plyr,
+    processx,
     readr,
     rlang,
     RSQLite,

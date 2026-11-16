@@ -35,6 +35,7 @@
 #' @param sequences Shared ASV sequences as a FASTA path, named DNAStringSet,
 #' or named character vector. Sequence IDs are matched separately to each
 #' input's feature IDs. Used only with `ambiguity = "blast_check"`.
+#' The FASTA is read once for the complete call.
 #' @param db Formatted BLAST sequence database prefix or resolvable database
 #' name, as in [blastn_taxo_assignment()]. Separate from `sqlFile`; local
 #' reference sequences must have TaxIDs. Used only for BLAST checking.
@@ -45,11 +46,19 @@
 #' `list(scope = "ambiguous", fallback = "lca")` to check remaining ambiguous
 #' names and use their common ancestor when evidence is insufficient or a
 #' matching sequence is missing. A shared persistent `cache_dir` reuses searches
-#' for identical sequences across tables and calls. See [taxo_normalisation()]
+#' for identical sequences across tables and calls. All inputs are matched to
+#' NCBI first, then their selected ASVs are combined into one BLAST batch of
+#' uncached, distinct DNA sequences. Even `refresh = TRUE` searches each distinct
+#' sequence once per call. `feature_ids`, when supplied, selects from the union
+#' of input ASV IDs. The online `max_remote_queries` limit applies to the pooled
+#' search. `verbose = TRUE` reports counts and progress, including elapsed-time
+#' updates every `progress_seconds = 30` while local BLAST runs. `nthreads = 1`
+#' remains the default; supply a higher thread count to use more local CPUs.
+#' See [taxo_normalisation()]
 #' for all options and screening defaults. Search failures stop the call.
 #' @return A data.frame with `feature_id` and requested lowercase taxonomy
 #' ranks. BLAST alignment and provenance columns are excluded from merging and
-#' are not returned. Each input is normalised once using the supplied options;
+#' are not returned. Each input is normalised using the supplied options;
 #' the merged result is not normalised again. For a non-default `ambiguity`
 #' strategy, `attr(result, "normalisation")` contains one report per input
 #' (retaining list names when supplied), each with `blast` and `ambiguity`
@@ -109,17 +118,45 @@ taxo_merge = function(
   normalisation_ranks <- .biohelper_taxonomy_normalisation_ranks(ranks)
   reports <- vector("list", length(df_list))
   names(reports) <- names(df_list)
+  plans <- vector("list", length(df_list))
+  cache <- .biohelper_normalisation_cache()
+  use_blast <- ambiguity == "blast_check"
 
   for (i in seq_along(df_list)) {
-    cat("\nNormalizing taxonomy of object #",i,"\n")
+    if (use_blast) {
+      .biohelper_blast_message(blast_options, "Planning taxonomy for table ", i, "/", length(df_list),
+        if (!is.null(names(df_list))) paste0(" (", names(df_list)[[i]], ")") else "", ".")
+    } else cat("\nNormalizing taxonomy of object #",i,"\n")
     colnames(df_list[[i]]) = colnames(df_list[[i]]) %>% tolower()
     colnames(df_list[[i]])[1] = "feature_id"
-    df_list[[i]] = taxo_normalisation(
-      obj = df_list[[i]], sqlFile = sqlFile, ranks = normalisation_ranks,
-      addExtra = addExtra, spnc = spnc, ambiguity = ambiguity,
-      sequences = sequences, db = db, blastapp_path = blastapp_path,
-      blast_options = blast_options
-    )
+    if (use_blast) {
+      plans[[i]] <- .biohelper_prepare_normalisation(
+        df_list[[i]], sqlFile, spnc, normalisation_ranks, cache, blast_options
+      )
+    } else {
+      df_list[[i]] <- taxo_normalisation(
+        obj = df_list[[i]], sqlFile = sqlFile, ranks = normalisation_ranks,
+        addExtra = addExtra, spnc = spnc, ambiguity = ambiguity,
+        sequences = sequences, db = db, blastapp_path = blastapp_path,
+        blast_options = blast_options
+      )
+    }
+  }
+  if (use_blast) {
+    pooled <- .biohelper_pool_normalisation_blast(plans, sequences, blast_options, db, blastapp_path, sqlFile)
+    for (i in seq_along(df_list)) {
+      .biohelper_blast_message(blast_options, "Applying BLAST evidence and fallback to table ", i, "/", length(df_list), ".")
+      options_i <- blast_options
+      if (!is.null(options_i$feature_ids)) {
+        options_i$feature_ids <- intersect(options_i$feature_ids, plans[[i]]$res_df$feature_id)
+      }
+      df_list[[i]] <- .biohelper_finish_normalisation(
+        plans[[i]], sqlFile, addExtra, ambiguity, NULL, NULL, options_i,
+        FALSE, db, blastapp_path, blast_context = pooled
+      )
+    }
+  }
+  for (i in seq_along(df_list)) {
     reports[[i]] <- list(
       blast = attr(df_list[[i]], "blast_check"),
       ambiguity = attr(df_list[[i]], "ambiguity")
@@ -149,12 +186,14 @@ taxo_merge = function(
   newdf = data.frame(matrix(nrow=dfall$feature_id %>% unique() %>% length(), ncol = length(ranks)+1))
   colnames(newdf) = c("feature_id",ranks)
   newdf$feature_id = dfall$feature_id %>% unique()
+  feature_rows <- split(seq_len(nrow(dfall)), factor(dfall$feature_id, levels = newdf$feature_id))
 
-  cat("\nMerging taxonomy\n")
-  pb = utils::txtProgressBar(min = 0, max = nrow(newdf), initial = 0,  style = 3)
+  show_progress <- !use_blast || isTRUE(blast_options$verbose)
+  if (show_progress) cat("\nMerging taxonomy for", nrow(newdf), "features\n")
+  pb <- if (show_progress) utils::txtProgressBar(min = 0, max = nrow(newdf), initial = 0, style = 3) else NULL
   for (i in 1:nrow(newdf)) {
     # df per ASV
-    temp = dfall %>% dplyr::filter(feature_id == newdf$feature_id[i]) %>% as.data.frame()
+    temp = dfall[feature_rows[[i]], , drop = FALSE]
     # If more than 1 taxo assignment result for this ASV...
     if(temp$df %>% unique() %>% length() >1){
       # If a specific df should be used in case of discrepancy...
@@ -164,11 +203,11 @@ taxo_merge = function(
         newdf[i,c("feature_id", ranks)] = temp[which.min(temp$nRb), c("feature_id", ranks), drop = FALSE]
       }else{
         # Determine the number of different values at each rank
-        x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), function(x) dplyr::n_distinct(x, na.rm = TRUE)))
+        x = vapply(temp[, ranks, drop = FALSE], .biohelper_n_distinct_non_missing, integer(1))
         # While some ranks have more than 1 different values...
         while (!all(x %in% c(0,1))) {
           # Determine the lowest resolution rank where there is discrepancy
-          r = min(which(vapply(temp[, ranks, drop = FALSE], .biohelper_n_distinct_non_missing, integer(1)) > 1))
+          r = min(which(x > 1L))
           r_name <- ranks[[r]]
           # If one of the assignments at that rank has majority...
           rank_table <- table(temp[[r_name]])
@@ -176,12 +215,12 @@ taxo_merge = function(
             # Assign the complete taxonomy from the assignment that has majority
             temp = temp[which(temp[[r_name]] == names(which.max(rank_table))),]
             # Determine the number of different values at each rank
-            x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), function(x) dplyr::n_distinct(x, na.rm = TRUE)))
+            x = vapply(temp[, ranks, drop = FALSE], .biohelper_n_distinct_non_missing, integer(1))
           }else{
             # If no assignment has majority, replace that assignment by NA
             temp[,ranks[r:length(ranks)]] = NA
             # Determine the number of different values at each rank
-            x = temp %>% dplyr::summarise(dplyr::across(dplyr::all_of(ranks), function(x) dplyr::n_distinct(x, na.rm = TRUE)))
+            x = vapply(temp[, ranks, drop = FALSE], .biohelper_n_distinct_non_missing, integer(1))
           }
         }
       }
@@ -192,14 +231,14 @@ taxo_merge = function(
       newdf[i,c("feature_id", ranks)] = temp[which.min(temp$nRb), c("feature_id", ranks), drop = FALSE]
     }
 
-    utils::setTxtProgressBar(pb,i)
-    close(pb)
+    if (show_progress) utils::setTxtProgressBar(pb,i)
   }
+  if (show_progress) close(pb)
   # Determine the number of rank assigned for each ASV
   newdf$nRb =  .biohelper_taxonomy_resolution_count(newdf, ranks)
   # Provide the mean and sd of number of rank assigned across the consensus taxo data
   temp_summary = newdf %>% dplyr::summarise(mean = round(mean(nRb),2), sd = round(stats::sd(nRb),2))
-  cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric(),"\n\n")
+  if (show_progress) cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric(),"\n\n")
   newdf <- newdf %>% dplyr::select(-nRb)
   colnames(newdf) <- tolower(colnames(newdf))
   if (ambiguity != "first") attr(newdf, "normalisation") <- reports

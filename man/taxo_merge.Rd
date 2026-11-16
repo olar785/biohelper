@@ -39,7 +39,8 @@ resolving disagreements between input tables during the merge.}
 
 \item{sequences}{Shared ASV sequences as a FASTA path, named DNAStringSet,
 or named character vector. Sequence IDs are matched separately to each
-input's feature IDs. Used only with \code{ambiguity = "blast_check"}.}
+input's feature IDs. Used only with \code{ambiguity = "blast_check"}.
+The FASTA is read once for the complete call.}
 
 \item{db}{Formatted BLAST sequence database prefix or resolvable database
 name, as in \code{\link[=blastn_taxo_assignment]{blastn_taxo_assignment()}}. Separate from \code{sqlFile}; local
@@ -53,13 +54,21 @@ Local searches are the default (\code{remote = FALSE}). Use
 \code{list(scope = "ambiguous", fallback = "lca")} to check remaining ambiguous
 names and use their common ancestor when evidence is insufficient or a
 matching sequence is missing. A shared persistent \code{cache_dir} reuses searches
-for identical sequences across tables and calls. See \code{\link[=taxo_normalisation]{taxo_normalisation()}}
+for identical sequences across tables and calls. All inputs are matched to
+NCBI first, then their selected ASVs are combined into one BLAST batch of
+uncached, distinct DNA sequences. Even \code{refresh = TRUE} searches each distinct
+sequence once per call. \code{feature_ids}, when supplied, selects from the union
+of input ASV IDs. The online \code{max_remote_queries} limit applies to the pooled
+search. \code{verbose = TRUE} reports counts and progress, including elapsed-time
+updates every \code{progress_seconds = 30} while local BLAST runs. \code{nthreads = 1}
+remains the default; supply a higher thread count to use more local CPUs.
+See \code{\link[=taxo_normalisation]{taxo_normalisation()}}
 for all options and screening defaults. Search failures stop the call.}
 }
 \value{
 A data.frame with \code{feature_id} and requested lowercase taxonomy
 ranks. BLAST alignment and provenance columns are excluded from merging and
-are not returned. Each input is normalised once using the supplied options;
+are not returned. Each input is normalised using the supplied options;
 the merged result is not normalised again. For a non-default \code{ambiguity}
 strategy, \code{attr(result, "normalisation")} contains one report per input
 (retaining list names when supplied), each with \code{blast} and \code{ambiguity}

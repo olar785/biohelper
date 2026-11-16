@@ -71,6 +71,12 @@ DNA sequences to NCBI's online BLAST service; if \code{db} is omitted, that
 service uses \code{core_nt}. No local executable is needed for online searches.}
 \item{\code{task = "blastn"}}{BLAST task: \code{"blastn"} or \code{"megablast"}.}
 \item{\code{nthreads = 1}}{Number of threads for local searches.}
+\item{\code{verbose = TRUE}}{Show name-matching counts, sequence deduplication,
+cache reuse, search settings and completion/fallback summaries. FALSE
+suppresses progress messages, but does not suppress warnings.}
+\item{\code{progress_seconds = 30}}{Interval in seconds between elapsed-time
+updates while local BLAST is running. BLAST does not report a reliable
+percentage or completion-time estimate.}
 \item{\code{max_hits = 100}}{Maximum reference hits retained per query.}
 \item{\code{evalue = 1e-10}}{Maximum E-value for search and hit screening.}
 \item{\code{min_identity = 95}}{Minimum alignment identity, in percent.}
@@ -169,6 +175,10 @@ lineages, including clades and intermediate ranks. Supporting matches must
 follow the input ancestry order; repeated names can match the same node.
 Names unable to support an ordered match in any remaining candidate are skipped.
 Matching stops when one candidate remains. NCBI supplies the output ranks.
+Identical ordered taxonomy profiles share name/lineage matching work, but
+each feature retains its own sequence evidence and diagnostics. All selected
+sequences are collected before BLAST; identical DNA is searched once and
+previously cached searches are reused. New local searches run in one batch.
 
 With \code{ambiguity = "first"}, remaining supported candidates use the first
 lookup ID with a warning. If no broader name supports any candidate, this

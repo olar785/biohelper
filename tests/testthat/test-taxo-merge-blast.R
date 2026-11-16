@@ -70,7 +70,7 @@ test_that("missing sequences and insufficient hits retain LCA through the merge"
     ambiguity = "blast_check", sequences = fasta, db = "/databases/nt",
     blast_options = list(fallback = "lca")
   ))
-  expect_equal(searches, 2L)
+  expect_equal(searches, 1L)
   expect_setequal(result$feature_id, c("present", "absent"))
   expect_equal(result$domain, c("Eukaryota", "Eukaryota"))
   expect_true(all(is.na(result$family)))

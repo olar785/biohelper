@@ -49,6 +49,12 @@
 #'     service uses `core_nt`. No local executable is needed for online searches.}
 #'   \item{`task = "blastn"`}{BLAST task: `"blastn"` or `"megablast"`.}
 #'   \item{`nthreads = 1`}{Number of threads for local searches.}
+#'   \item{`verbose = TRUE`}{Show name-matching counts, sequence deduplication,
+#'     cache reuse, search settings and completion/fallback summaries. FALSE
+#'     suppresses progress messages, but does not suppress warnings.}
+#'   \item{`progress_seconds = 30`}{Interval in seconds between elapsed-time
+#'     updates while local BLAST is running. BLAST does not report a reliable
+#'     percentage or completion-time estimate.}
 #'   \item{`max_hits = 100`}{Maximum reference hits retained per query.}
 #'   \item{`evalue = 1e-10`}{Maximum E-value for search and hit screening.}
 #'   \item{`min_identity = 95`}{Minimum alignment identity, in percent.}
@@ -105,6 +111,10 @@
 #' follow the input ancestry order; repeated names can match the same node.
 #' Names unable to support an ordered match in any remaining candidate are skipped.
 #' Matching stops when one candidate remains. NCBI supplies the output ranks.
+#' Identical ordered taxonomy profiles share name/lineage matching work, but
+#' each feature retains its own sequence evidence and diagnostics. All selected
+#' sequences are collected before BLAST; identical DNA is searched once and
+#' previously cached searches are reused. New local searches run in one batch.
 #'
 #' With `ambiguity = "first"`, remaining supported candidates use the first
 #' lookup ID with a warning. If no broader name supports any candidate, this
@@ -197,20 +207,30 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
                               blast_hits = NULL, blast_options = list(), return_details = FALSE,
                               ambiguity = c("first", "lca", "unassigned", "blast_check"),
                               db = NULL, blastapp_path = unname(Sys.which("blastn"))){
-  `%ni%` <- Negate(`%in%`)
   ambiguity <- match.arg(ambiguity)
   use_blast <- ambiguity == "blast_check"
-  fallback_action <- ambiguity
   if (!is.logical(return_details) || length(return_details) != 1L || is.na(return_details)) {
     stop("`return_details` must be TRUE or FALSE.", call. = FALSE)
   }
   if (use_blast) {
     blast_options <- .biohelper_blast_options(blast_options)
-    fallback_action <- blast_options$fallback
     if (is.null(sequences) && is.null(blast_hits) && inherits(obj, "phyloseq")) {
       sequences <- phyloseq::refseq(obj, errorIfNULL = FALSE)
     }
   }
+
+  prepared <- .biohelper_prepare_normalisation(
+    obj, sqlFile, spnc, ranks, progress = if (use_blast) blast_options else NULL
+  )
+  .biohelper_finish_normalisation(
+    prepared, sqlFile, addExtra, ambiguity, sequences, blast_hits, blast_options,
+    return_details, db, blastapp_path
+  )
+}
+
+.biohelper_prepare_normalisation <- function(obj, sqlFile, spnc, ranks,
+                                             cache = .biohelper_normalisation_cache(), progress = NULL) {
+  `%ni%` <- Negate(`%in%`)
 
   if("phyloseq" %in% class(obj)){
     df = obj@tax_table@.Data %>% as.data.frame()
@@ -287,6 +307,13 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
       ifelse(is.na(df[[last[[2L]]]]), "", df[[last[[2L]]]])
     ))
   }
+  original_df <- df
+  profile_keys <- .biohelper_taxonomy_profile_keys(df[, ranks_indexes, drop = FALSE])
+  representatives <- which(!duplicated(profile_keys))
+  profile_map <- match(profile_keys, profile_keys[representatives])
+  df <- df[representatives, , drop = FALSE]
+  .biohelper_blast_message(progress, "NCBI name matching: ", nrow(original_df),
+    " features; ", nrow(df), " distinct ordered taxonomy profiles.")
   # Input columns express the intended resolution order, not authoritative NCBI
   # ranks. Search non-missing names from right to left and retain the position
   # of the name that actually matches, including after an unsuccessful lookup.
@@ -310,9 +337,9 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
     }, character(1))
     res_df$rpt_indexes[pending] <- positions
     res_df$taxa[pending] <- taxa
-    res_df$id[pending] <- taxonomizr::getId(
-      taxa = taxa, sqlFile = sqlFile, onlyScientific = TRUE
-    )
+    .biohelper_blast_message(progress, "Looking up ", length(unique(taxa)),
+      " distinct names for ", length(pending), " unresolved profiles.")
+    res_df$id[pending] <- .biohelper_cached_ncbi_names(taxa, sqlFile, cache)
     pending <- pending[is.na(res_df$id[pending])]
     lookup_step[pending] <- lookup_step[pending] + 1L
     pending <- pending[lookup_step[pending] <= lengths(lookup_positions[pending])]
@@ -332,9 +359,9 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
     lineage_ids <- unique(unlist(candidate_ids))
     # getRawTaxonomy formats numeric IDs and can pad shorter names with spaces.
     # Its results follow the requested order, so name them with our exact IDs.
-    candidate_lineages <- stats::setNames(
-      taxonomizr::getRawTaxonomy(lineage_ids, sqlFile = sqlFile), lineage_ids
-    )
+    .biohelper_blast_message(progress, "Checking full NCBI lineages for ",
+      length(ambiguous_rows), " ambiguous profiles (", length(lineage_ids), " candidate TaxIDs).")
+    candidate_lineages <- .biohelper_cached_ncbi_lineages(lineage_ids, sqlFile, cache)
     ambiguous_features <- character()
     for (j in seq_along(ambiguous_rows)) {
       row <- ambiguous_rows[[j]]
@@ -371,14 +398,48 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
       }
     }
   }
+  ambiguous_profiles <- res_df$feature_id %in% ambiguous_features
+  res_df <- res_df[profile_map, , drop = FALSE]
+  rownames(res_df) <- NULL
+  res_df$feature_id <- rownames(original_df)
+  blast_candidates <- blast_candidates[profile_map]
+  ambiguous_features <- res_df$feature_id[ambiguous_profiles[profile_map]]
+  .biohelper_blast_message(progress, "Name matching complete: ",
+    sum(lengths(blast_candidates) == 1L), " unique matches; ",
+    sum(lengths(blast_candidates) > 1L), " ambiguous ASVs; ",
+    sum(lengths(blast_candidates) == 0L), " without a recognised name.")
+  list(obj = obj, df = original_df, res_df = res_df, blast_candidates = blast_candidates,
+    ambiguous_features = ambiguous_features, ranks = ranks, non_taxo_ranks = non_taxo_ranks,
+    metadata_columns = metadata_columns, feature_metadata = feature_metadata, metadata_ids = metadata_ids)
+}
+
+.biohelper_finish_normalisation <- function(prepared, sqlFile, addExtra, ambiguity,
+                                             sequences, blast_hits, blast_options,
+                                             return_details, db, blastapp_path,
+                                             blast_context = NULL) {
+  obj <- prepared$obj
+  df <- prepared$df
+  res_df <- prepared$res_df
+  blast_candidates <- prepared$blast_candidates
+  ambiguous_features <- prepared$ambiguous_features
+  ranks <- prepared$ranks
+  non_taxo_ranks <- prepared$non_taxo_ranks
+  metadata_columns <- prepared$metadata_columns
+  feature_metadata <- prepared$feature_metadata
+  metadata_ids <- prepared$metadata_ids
+  use_blast <- ambiguity == "blast_check"
+  fallback_action <- if (use_blast) blast_options$fallback else ambiguity
   blast_result <- NULL
   resolved <- character()
   blocked_by_blast <- character()
   if (use_blast) {
     blast_result <- .biohelper_check_blast(
-      res_df, blast_candidates, sqlFile, blast_options$scope, sequences, blast_hits, blast_options,
-      db = db, blastapp_path = blastapp_path
+      res_df, blast_candidates, sqlFile, blast_options$scope, sequences,
+      if (is.null(blast_context)) blast_hits else blast_context$hits, blast_options,
+      db = db, blastapp_path = blastapp_path,
+      missing_sequences = blast_context$missing, paths = blast_context$paths
     )
+    if (!is.null(blast_context)) blast_result$hit_source <- "blastn"
     res_df$id <- blast_result$ids
     diagnostics <- blast_result$diagnostics
     resolved <- diagnostics$feature_id[diagnostics$status == "blast_resolved"]
@@ -400,7 +461,7 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
   ambiguity_rows <- which(lengths(blast_candidates) > 1L &
     !res_df$feature_id %in% c(resolved, blocked_by_blast))
   ambiguity_result <- .biohelper_resolve_ambiguity(
-    res_df, blast_candidates, ambiguity_rows, fallback_action, sqlFile
+    res_df, blast_candidates, ambiguity_rows, fallback_action, sqlFile, paths = blast_context$paths
   )
   res_df$id <- ambiguity_result$ids
   ambiguity_diagnostics <- ambiguity_result$diagnostics
@@ -431,6 +492,11 @@ taxo_normalisation = function(obj, sqlFile, addExtra = TRUE, spnc = FALSE, ranks
         " Inspect the ambiguity diagnostics for candidate and selected TaxIDs."),
       call = NULL, feature_ids = res_df$feature_id[ambiguity_rows], action = fallback_action
     ), class = c("biohelper_taxonomy_ambiguity", "warning", "condition")))
+  }
+  if (use_blast) {
+    .biohelper_blast_message(blast_options, "Resolving taxonomy: ", length(resolved),
+      " features resolved by BLAST; ", length(ambiguity_rows),
+      " remaining name ambiguities handled with '", fallback_action, "'.")
   }
   res_df[ranks] = taxonomizr::getTaxonomy(res_df$id, sqlFile = sqlFile, desiredTaxa = str_to_lower(ranks))
   res_df = res_df[,colnames(res_df) %in% c(ranks,non_taxo_ranks)]

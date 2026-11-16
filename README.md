@@ -20,8 +20,12 @@ compatibility notes. This development version is provided for testing.
 
 ## Local BLAST checking during taxonomy merging
 
-`taxo_merge()` normalises each input once with the selected ambiguity strategy,
-then merges the resulting taxonomy tables. To use local sequences to distinguish
+`taxo_merge()` first finds the NCBI name candidates in every input, combines the
+ASVs selected for checking, and reads the FASTA once. Identical DNA is searched
+once across all tables; different DNA keeps its own evidence even when taxonomy
+labels match. Cached hits are reused, and all remaining sequences run in one
+local BLAST batch. Results are applied to each input before merging.
+To use local sequences to distinguish
 ambiguous NCBI name matches, with an LCA fallback:
 
 ```r
@@ -37,14 +41,25 @@ consensus_taxo <- biohelper::taxo_merge(
     remote = FALSE,
     scope = "ambiguous",
     fallback = "lca",
-    cache_dir = "blast_cache"
+    cache_dir = "blast_cache",
+    nthreads = 4,                 # choose according to available local CPUs
+    verbose = TRUE,
+    progress_seconds = 30
   )
 )
 ```
 
 `sqlFile` supplies NCBI names and ancestry; `db` supplies reference sequences.
-The same sequences are matched by ASV ID to each table. Shared cached searches
-are reused for identical DNA. Missing ASV sequences or inconclusive evidence
+The same sequences are matched by ASV ID to each table. The default remains
+one thread unless `nthreads` is supplied. Progress shows matching counts, distinct
+ambiguous ASVs (a distinct total across tables), selected ASVs/DNA sequences,
+cache reuse, the active task/database/thread count, elapsed
+time while BLAST runs, and fallback/merge stages. It does not invent a completion
+percentage for BLAST. Set `verbose = FALSE` to suppress progress; warnings remain.
+Standalone `taxo_normalisation()` uses the same batching, sequence deduplication
+and progress options. Name matching also groups identical ordered profiles and
+reuses NCBI name/lineage lookups; individual ASV diagnostics are retained.
+Missing ASV sequences or inconclusive evidence
 use the configured ambiguity fallback; search execution failures stop the call.
 BLAST checking resolves name ambiguity within each input. Disagreements between
 inputs still follow the existing merge/majority rules; they do not trigger a
