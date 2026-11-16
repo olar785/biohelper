@@ -18,6 +18,47 @@ Restart R after installation and check `packageVersion("biohelper")`. The curren
 development version is `0.0.24.9000`. See [NEWS.md](NEWS.md) for changes and output
 compatibility notes. This development version is provided for testing.
 
+## Local BLAST checking during taxonomy merging
+
+`taxo_merge()` normalises each input once with the selected ambiguity strategy,
+then merges the resulting taxonomy tables. To use local sequences to distinguish
+ambiguous NCBI name matches, with an LCA fallback:
+
+```r
+consensus_taxo <- biohelper::taxo_merge(
+  df_list = list(taxa_silva, taxa_pr2, blastn),
+  sqlFile = sqlFile,
+  addExtra = addExtra,
+  ambiguity = "blast_check",
+  sequences = dna,               # named ASV sequences, or a FASTA path
+  db = db,                       # formatted BLAST database with TaxIDs
+  blastapp_path = blastapp_path,
+  blast_options = list(
+    remote = FALSE,
+    scope = "ambiguous",
+    fallback = "lca",
+    cache_dir = "blast_cache"
+  )
+)
+```
+
+`sqlFile` supplies NCBI names and ancestry; `db` supplies reference sequences.
+The same sequences are matched by ASV ID to each table. Shared cached searches
+are reused for identical DNA. Missing ASV sequences or inconclusive evidence
+use the configured ambiguity fallback; search execution failures stop the call.
+BLAST checking resolves name ambiguity within each input. Disagreements between
+inputs still follow the existing merge/majority rules; they do not trigger a
+second BLAST search. The returned table contains only feature IDs and taxonomy
+ranks. The reports for each input remain available separately:
+
+```r
+reports <- attr(consensus_taxo, "normalisation")
+reports[[2]]$blast$diagnostics  # checking decisions for the second input (PR2)
+reports[[2]]$ambiguity         # remaining name ambiguities and fallback decisions
+```
+
+These reports describe normalisation of each input, before the final merge.
+
 ## Restartable BLAST taxonomy assignment
 
 `blastn_taxo_assignment()` independently checkpoints each megablast/blastn search,

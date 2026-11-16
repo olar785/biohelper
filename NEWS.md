@@ -2,6 +2,13 @@
 
 ## Taxonomy normalisation
 
+- `taxo_merge()` now accepts `ambiguity`, `sequences`, `db`, `blastapp_path`,
+  and `blast_options`, forwarding them to each input's normalisation before
+  merging. Local BLAST checking with an LCA fallback can be enabled directly
+  in the merge call. Reports for non-default ambiguity strategies are retained
+  in the `normalisation` attribute without adding taxonomy columns. The existing
+  `spnc` argument is now forwarded as supplied. Calls with no assigned ranks
+  return an empty table instead of failing during merging.
 - `taxo_normalisation()` searches ordered names from right to left across any
   number of taxonomic columns. Input labels do not impose NCBI ranks.
 - Conflicting names are matched against full ordered NCBI lineages. Ambiguity

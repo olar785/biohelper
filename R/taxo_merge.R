@@ -28,6 +28,33 @@
 #' addExtra       Currently adds the TSAR and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and TSAR group from Metazoans
 #' @param
 #' spnc           Only needs to be applied if the Genus is not present under the Species column (default is FALSE).
+#' @param ambiguity How to resolve competing NCBI name matches within each
+#' input: `"first"` (default), `"lca"`, `"unassigned"`, or `"blast_check"`.
+#' Passed to [taxo_normalisation()] before merging. This is separate from
+#' resolving disagreements between input tables during the merge.
+#' @param sequences Shared ASV sequences as a FASTA path, named DNAStringSet,
+#' or named character vector. Sequence IDs are matched separately to each
+#' input's feature IDs. Used only with `ambiguity = "blast_check"`.
+#' @param db Formatted BLAST sequence database prefix or resolvable database
+#' name, as in [blastn_taxo_assignment()]. Separate from `sqlFile`; local
+#' reference sequences must have TaxIDs. Used only for BLAST checking.
+#' @param blastapp_path Path to the `blastn` executable. Defaults to detection
+#' on PATH. Used only when a new local BLAST search is needed.
+#' @param blast_options Named list of settings passed to [taxo_normalisation()].
+#' Local searches are the default (`remote = FALSE`). Use
+#' `list(scope = "ambiguous", fallback = "lca")` to check remaining ambiguous
+#' names and use their common ancestor when evidence is insufficient or a
+#' matching sequence is missing. A shared persistent `cache_dir` reuses searches
+#' for identical sequences across tables and calls. See [taxo_normalisation()]
+#' for all options and screening defaults. Search failures stop the call.
+#' @return A data.frame with `feature_id` and requested lowercase taxonomy
+#' ranks. BLAST alignment and provenance columns are excluded from merging and
+#' are not returned. Each input is normalised once using the supplied options;
+#' the merged result is not normalised again. For a non-default `ambiguity`
+#' strategy, `attr(result, "normalisation")` contains one report per input
+#' (retaining list names when supplied), each with `blast` and `ambiguity`
+#' diagnostics from [taxo_normalisation()]. These reports describe the input
+#' normalisations, rather than the later merge decisions.
 #'
 #' @export
 #' @examples
@@ -43,6 +70,15 @@
 #'   addExtra = TRUE,
 #'   spnc = FALSE
 #' )
+#'
+#' consensus_taxo <- taxo_merge(
+#'   df_list = list(taxa_silva, taxa_pr2, blastn),
+#'   sqlFile = "accessionTaxa.sql",
+#'   sequences = "ASVs.fasta",
+#'   ambiguity = "blast_check",
+#'   db = "/databases/nt",
+#'   blast_options = list(fallback = "lca", cache_dir = "blast_cache")
+#' )
 #' }
 
 
@@ -52,16 +88,42 @@ taxo_merge = function(
     ranks = c("Domain","Kingdom","Phylum","Class","Order","Family","Genus","Species"),
     priority_df = NA,
     addExtra = T,
-    spnc = F)
+    spnc = F,
+    ambiguity = c("first", "lca", "unassigned", "blast_check"),
+    sequences = NULL,
+    db = NULL,
+    blastapp_path = unname(Sys.which("blastn")),
+    blast_options = list())
 {
+  if (!is.list(df_list) || is.data.frame(df_list) || !length(df_list)) {
+    stop("`df_list` must be a non-empty list of taxonomy tables.", call. = FALSE)
+  }
+  ambiguity <- match.arg(ambiguity)
+  if (ambiguity == "blast_check") {
+    blast_options <- .biohelper_blast_options(blast_options)
+  }
   ranks <- .biohelper_standardise_rank_names(ranks)
+  if (!length(ranks)) {
+    stop("`ranks` must include at least one recognised taxonomy rank.", call. = FALSE)
+  }
   normalisation_ranks <- .biohelper_taxonomy_normalisation_ranks(ranks)
+  reports <- vector("list", length(df_list))
+  names(reports) <- names(df_list)
 
-  for (i in 1:length(df_list)) {
+  for (i in seq_along(df_list)) {
     cat("\nNormalizing taxonomy of object #",i,"\n")
     colnames(df_list[[i]]) = colnames(df_list[[i]]) %>% tolower()
     colnames(df_list[[i]])[1] = "feature_id"
-    df_list[[i]] = taxo_normalisation(obj = df_list[[i]], sqlFile = sqlFile, ranks = normalisation_ranks, addExtra = addExtra, spnc = F)
+    df_list[[i]] = taxo_normalisation(
+      obj = df_list[[i]], sqlFile = sqlFile, ranks = normalisation_ranks,
+      addExtra = addExtra, spnc = spnc, ambiguity = ambiguity,
+      sequences = sequences, db = db, blastapp_path = blastapp_path,
+      blast_options = blast_options
+    )
+    reports[[i]] <- list(
+      blast = attr(df_list[[i]], "blast_check"),
+      ambiguity = attr(df_list[[i]], "ambiguity")
+    )
     df_list[[i]] = .biohelper_standardise_taxonomy_columns(
       df_list[[i]],
       id_col = "feature_id",
@@ -76,6 +138,13 @@ taxo_merge = function(
   #dfall <- dfall %>% mutate_all(na_if,"")
   dfall <- dfall %>% dplyr::mutate(dplyr::across(dplyr::where(is.character), ~ dplyr::na_if(.x, "")))
   dfall = dfall[!dfall$nRb==length(ranks),]
+
+  if (!nrow(dfall)) {
+    empty <- data.frame(feature_id = character(), stringsAsFactors = FALSE)
+    for (rank in tolower(ranks)) empty[[rank]] <- character()
+    if (ambiguity != "first") attr(empty, "normalisation") <- reports
+    return(empty)
+  }
 
   newdf = data.frame(matrix(nrow=dfall$feature_id %>% unique() %>% length(), ncol = length(ranks)+1))
   colnames(newdf) = c("feature_id",ranks)
@@ -133,5 +202,6 @@ taxo_merge = function(
   cat("\nMean assigned taxonomic ranks: ",temp_summary$mean %>% as.numeric(),"\nStandard deviation: ",temp_summary$sd %>% as.numeric(),"\n\n")
   newdf <- newdf %>% dplyr::select(-nRb)
   colnames(newdf) <- tolower(colnames(newdf))
+  if (ambiguity != "first") attr(newdf, "normalisation") <- reports
   return(newdf)
 }

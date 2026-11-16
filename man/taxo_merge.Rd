@@ -11,7 +11,12 @@ taxo_merge(
     "Species"),
   priority_df = NA,
   addExtra = T,
-  spnc = F
+  spnc = F,
+  ambiguity = c("first", "lca", "unassigned", "blast_check"),
+  sequences = NULL,
+  db = NULL,
+  blastapp_path = unname(Sys.which("blastn")),
+  blast_options = list()
 )
 }
 \arguments{
@@ -26,6 +31,40 @@ taxo_merge(
 \item{addExtra}{Currently adds the TSAR and Archaeplastida (excl. Viridiplantae) groups under the Kingdom rank (default is TRUE). This is to make it easier to dissociate the Plantea and TSAR group from Metazoans}
 
 \item{spnc}{Only needs to be applied if the Genus is not present under the Species column (default is FALSE).}
+
+\item{ambiguity}{How to resolve competing NCBI name matches within each
+input: \code{"first"} (default), \code{"lca"}, \code{"unassigned"}, or \code{"blast_check"}.
+Passed to \code{\link[=taxo_normalisation]{taxo_normalisation()}} before merging. This is separate from
+resolving disagreements between input tables during the merge.}
+
+\item{sequences}{Shared ASV sequences as a FASTA path, named DNAStringSet,
+or named character vector. Sequence IDs are matched separately to each
+input's feature IDs. Used only with \code{ambiguity = "blast_check"}.}
+
+\item{db}{Formatted BLAST sequence database prefix or resolvable database
+name, as in \code{\link[=blastn_taxo_assignment]{blastn_taxo_assignment()}}. Separate from \code{sqlFile}; local
+reference sequences must have TaxIDs. Used only for BLAST checking.}
+
+\item{blastapp_path}{Path to the \code{blastn} executable. Defaults to detection
+on PATH. Used only when a new local BLAST search is needed.}
+
+\item{blast_options}{Named list of settings passed to \code{\link[=taxo_normalisation]{taxo_normalisation()}}.
+Local searches are the default (\code{remote = FALSE}). Use
+\code{list(scope = "ambiguous", fallback = "lca")} to check remaining ambiguous
+names and use their common ancestor when evidence is insufficient or a
+matching sequence is missing. A shared persistent \code{cache_dir} reuses searches
+for identical sequences across tables and calls. See \code{\link[=taxo_normalisation]{taxo_normalisation()}}
+for all options and screening defaults. Search failures stop the call.}
+}
+\value{
+A data.frame with \code{feature_id} and requested lowercase taxonomy
+ranks. BLAST alignment and provenance columns are excluded from merging and
+are not returned. Each input is normalised once using the supplied options;
+the merged result is not normalised again. For a non-default \code{ambiguity}
+strategy, \code{attr(result, "normalisation")} contains one report per input
+(retaining list names when supplied), each with \code{blast} and \code{ambiguity}
+diagnostics from \code{\link[=taxo_normalisation]{taxo_normalisation()}}. These reports describe the input
+normalisations, rather than the later merge decisions.
 }
 \description{
 This function takes in a list of taxonomic assignment dataframes, normalizes the
@@ -55,6 +94,15 @@ taxo_merge(
   priority_df = NA,
   addExtra = TRUE,
   spnc = FALSE
+)
+
+consensus_taxo <- taxo_merge(
+  df_list = list(taxa_silva, taxa_pr2, blastn),
+  sqlFile = "accessionTaxa.sql",
+  sequences = "ASVs.fasta",
+  ambiguity = "blast_check",
+  db = "/databases/nt",
+  blast_options = list(fallback = "lca", cache_dir = "blast_cache")
 )
 }
 }

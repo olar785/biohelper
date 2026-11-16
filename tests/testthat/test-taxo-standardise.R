@@ -30,7 +30,7 @@ test_that("taxo_merge keeps consensus values with lowercase default output ranks
   alternative <- input
   alternative$genus <- "Gadus"
   testthat::local_mocked_bindings(
-    taxo_normalisation = function(obj, sqlFile, ranks, addExtra, spnc) obj
+    taxo_normalisation = function(obj, sqlFile, ranks, addExtra, spnc, ...) obj
   )
   output <- suppressMessages(taxo_merge(
     list(input, alternative, input), sqlFile = "mock.sql"
@@ -261,7 +261,7 @@ test_that("taxo_merge returns lowercase ranks without live NCBI lookup", {
     stringsAsFactors = FALSE
   )
   testthat::local_mocked_bindings(
-    taxo_normalisation = function(obj, sqlFile, ranks, addExtra, spnc) {
+    taxo_normalisation = function(obj, sqlFile, ranks, addExtra, spnc, ...) {
       expect_true("domain" %in% ranks)
       expect_false("superkingdom" %in% ranks)
       obj
